@@ -1598,15 +1598,18 @@ bool write_step(const OcctShape& shape, rust::Str filename) {
 // MODERN FORMAT EXPORT (glTF, OBJ, STL, PLY)
 // ============================================================
 
+// OCCT 7.6+ features: glTF, OBJ, PLY export via XDE
+#if CADHY_HAS_MODERN_EXPORT
+
 // Helper: Create XDE document from shape for export
 static Handle(TDocStd_Document) create_xde_document(const OcctShape& shape) {
     Handle(TDocStd_Application) app = new TDocStd_Application();
     Handle(TDocStd_Document) doc;
     app->NewDocument("BinXCAF", doc);
-    
+
     Handle(XCAFDoc_ShapeTool) shapeTool = XCAFDoc_DocumentTool::ShapeTool(doc->Main());
     shapeTool->AddShape(shape.get());
-    
+
     return doc;
 }
 
@@ -1614,15 +1617,15 @@ bool write_gltf(const OcctShape& shape, rust::Str filename, double deflection) {
     try {
         if (shape.is_null()) return false;
         std::string path(filename.data(), filename.size());
-        
+
         // Tessellate first
         BRepMesh_IncrementalMesh mesh(shape.get(), deflection);
         mesh.Perform();
         if (!mesh.IsDone()) return false;
-        
+
         // Create XDE document
         Handle(TDocStd_Document) doc = create_xde_document(shape);
-        
+
         // Write glTF
         TColStd_IndexedDataMapOfStringString fileInfo;
         RWGltf_CafWriter writer(path.c_str(), false); // false = text format
@@ -1637,15 +1640,15 @@ bool write_glb(const OcctShape& shape, rust::Str filename, double deflection) {
     try {
         if (shape.is_null()) return false;
         std::string path(filename.data(), filename.size());
-        
+
         // Tessellate first
         BRepMesh_IncrementalMesh mesh(shape.get(), deflection);
         mesh.Perform();
         if (!mesh.IsDone()) return false;
-        
+
         // Create XDE document
         Handle(TDocStd_Document) doc = create_xde_document(shape);
-        
+
         // Write GLB (binary)
         TColStd_IndexedDataMapOfStringString fileInfo;
         RWGltf_CafWriter writer(path.c_str(), true); // true = binary format
@@ -1660,15 +1663,15 @@ bool write_obj(const OcctShape& shape, rust::Str filename, double deflection) {
     try {
         if (shape.is_null()) return false;
         std::string path(filename.data(), filename.size());
-        
+
         // Tessellate first
         BRepMesh_IncrementalMesh mesh(shape.get(), deflection);
         mesh.Perform();
         if (!mesh.IsDone()) return false;
-        
+
         // Create XDE document
         Handle(TDocStd_Document) doc = create_xde_document(shape);
-        
+
         // Write OBJ
         RWObj_CafWriter writer(path.c_str());
         Message_ProgressRange progress;
@@ -1678,6 +1681,53 @@ bool write_obj(const OcctShape& shape, rust::Str filename, double deflection) {
     }
 }
 
+bool write_ply(const OcctShape& shape, rust::Str filename, double deflection) {
+    try {
+        if (shape.is_null()) return false;
+        std::string path(filename.data(), filename.size());
+
+        // Tessellate first
+        BRepMesh_IncrementalMesh mesh(shape.get(), deflection);
+        mesh.Perform();
+        if (!mesh.IsDone()) return false;
+
+        // Create XDE document
+        Handle(TDocStd_Document) doc = create_xde_document(shape);
+
+        // Write PLY
+        RWPly_CafWriter writer(path.c_str());
+        Message_ProgressRange progress;
+        return writer.Perform(doc, TColStd_IndexedDataMapOfStringString(), progress);
+    } catch (...) {
+        return false;
+    }
+}
+
+#else // OCCT < 7.6 - stub implementations
+
+bool write_gltf(const OcctShape& /*shape*/, rust::Str /*filename*/, double /*deflection*/) {
+    // glTF export requires OCCT 7.6+
+    return false;
+}
+
+bool write_glb(const OcctShape& /*shape*/, rust::Str /*filename*/, double /*deflection*/) {
+    // GLB export requires OCCT 7.6+
+    return false;
+}
+
+bool write_obj(const OcctShape& /*shape*/, rust::Str /*filename*/, double /*deflection*/) {
+    // OBJ export requires OCCT 7.6+
+    return false;
+}
+
+bool write_ply(const OcctShape& /*shape*/, rust::Str /*filename*/, double /*deflection*/) {
+    // PLY export requires OCCT 7.6+
+    return false;
+}
+
+#endif // CADHY_HAS_MODERN_EXPORT
+
+// STL export - available in all OCCT versions
 bool write_stl(const OcctShape& shape, rust::Str filename, double deflection) {
     try {
         if (shape.is_null()) return false;
@@ -1711,28 +1761,6 @@ bool write_stl_binary(const OcctShape& shape, rust::Str filename, double deflect
         StlAPI_Writer stlWriter;
         stlWriter.ASCIIMode() = false;
         return stlWriter.Write(shape.get(), path.c_str());
-    } catch (...) {
-        return false;
-    }
-}
-
-bool write_ply(const OcctShape& shape, rust::Str filename, double deflection) {
-    try {
-        if (shape.is_null()) return false;
-        std::string path(filename.data(), filename.size());
-        
-        // Tessellate first
-        BRepMesh_IncrementalMesh mesh(shape.get(), deflection);
-        mesh.Perform();
-        if (!mesh.IsDone()) return false;
-        
-        // Create XDE document
-        Handle(TDocStd_Document) doc = create_xde_document(shape);
-        
-        // Write PLY
-        RWPly_CafWriter writer(path.c_str());
-        Message_ProgressRange progress;
-        return writer.Perform(doc, TColStd_IndexedDataMapOfStringString(), progress);
     } catch (...) {
         return false;
     }
