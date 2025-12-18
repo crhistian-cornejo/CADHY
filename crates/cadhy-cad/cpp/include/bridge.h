@@ -149,14 +149,24 @@ inline namespace cxxbridge1 {
 #include <IGESControl_Writer.hxx>
 #include <IGESData_IGESModel.hxx>
 
-// Data Exchange - glTF
+// Data Exchange - STL (available in all OCCT versions)
+#include <RWStl.hxx>
+#include <StlAPI_Writer.hxx>
+
+// Version detection for OCCT 7.6+ features
+#include <Standard_Version.hxx>
+
+// Data Exchange - glTF/OBJ/PLY (OCCT 7.6+)
+#if OCC_VERSION_HEX >= 0x070600
 #include <RWGltf_CafWriter.hxx>
 #include <RWGltf_CafReader.hxx>
 #include <RWObj_CafWriter.hxx>
 #include <RWObj_CafReader.hxx>
-#include <RWStl.hxx>
-#include <StlAPI_Writer.hxx>
 #include <RWPly_CafWriter.hxx>
+#define CADHY_HAS_MODERN_EXPORT 1
+#else
+#define CADHY_HAS_MODERN_EXPORT 0
+#endif
 
 // XDE Framework for advanced export
 #include <XCAFDoc_DocumentTool.hxx>

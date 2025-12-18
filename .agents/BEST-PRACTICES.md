@@ -108,9 +108,13 @@ packages/          # Paquetes compartidos TypeScript
 
 ## Debugging
 
-### Bindings no compilan (Linux)
-- Ubuntu tiene OCCT v7.5, necesitamos v7.6+
-- Linux build usa `continue-on-error: true`
+### Bindings y compatibilidad OCCT
+- **macOS/Windows**: Usan OCCT v7.9.2 (full features)
+- **Linux (Ubuntu 22.04)**: Usa OCCT v7.5 del sistema
+  - Algunas funciones no disponibles: `write_gltf`, `write_glb`, `write_obj`, `write_ply`
+  - Estas funciones retornan `false` en lugar de fallar la compilación
+  - Ver `CADHY_HAS_MODERN_EXPORT` macro en `bridge.h`
+- Linux build usa `continue-on-error: true` en CI
 - Solo Windows y macOS son releases obligatorios
 
 ### Secretos de GitHub
