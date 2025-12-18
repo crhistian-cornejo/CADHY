@@ -4,9 +4,11 @@ import { createRoot } from "react-dom/client"
 import { createBrowserRouter, Outlet, RouterProvider, ScrollRestoration } from "react-router-dom"
 import DocsLayout from "@/app/docs/layout"
 import DocsPage from "@/app/docs/page"
+import DownloadPage from "@/app/download/page"
 import LandingLayout from "@/app/layout"
 import LandingPage from "@/app/page"
 import PrivacyPage from "@/app/privacy/page"
+import RoadmapPage from "@/app/roadmap/page"
 import TermsPage from "@/app/terms/page"
 import { ScrollToTop } from "@/components/scroll-to-top"
 
@@ -70,6 +72,14 @@ const router = createBrowserRouter(
             {
               path: "/terms",
               element: <TermsPage />,
+            },
+            {
+              path: "/download",
+              element: <DownloadPage />,
+            },
+            {
+              path: "/roadmap",
+              element: <RoadmapPage />,
             },
           ],
         },

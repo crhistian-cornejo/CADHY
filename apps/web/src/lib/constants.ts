@@ -23,39 +23,40 @@ export const SPECS = [
 
 export const FEATURES = [
   {
-    title: "Open Channel Flow",
+    title: "3D Channel Modeling",
     description:
-      "Analyze trapezoidal, rectangular, circular, and custom channel sections with Manning equation and GVF profiles.",
+      "Create rectangular, trapezoidal, and triangular open channels with real-time 3D visualization.",
+    icon: "cube",
+  },
+  {
+    title: "Hydraulic Analysis",
+    description:
+      "Calculate normal depth, critical depth, Froude number, and flow characteristics using Manning's equation.",
     icon: "waves",
   },
   {
-    title: "Pipe Networks",
+    title: "Hydraulic Structures",
     description:
-      "Design and analyze pressurized pipe systems with Hardy Cross method and demand analysis.",
+      "Design transitions, drops, chutes, and energy dissipation basins (USBR Types I-IV, SAF).",
     icon: "pipeline",
+  },
+  {
+    title: "Water Surface Profiles",
+    description:
+      "Compute gradually varied flow (GVF) profiles using the Standard Step Method with M1, M2, S1, S2 classification.",
+    icon: "chart",
+  },
+  {
+    title: "CAD Export",
+    description:
+      "Export geometry to STL, OBJ, STEP, and glTF formats for use in other CAD software.",
+    icon: "file-export",
   },
   {
     title: "AI Assistant",
     description:
-      "Describe your hydraulic problem in natural language and let AI help with calculations and design.",
+      "Multi-provider support (Claude, GPT, Gemini) with streaming responses to help with hydraulic calculations.",
     icon: "sparkles",
-  },
-  {
-    title: "Results Visualization",
-    description:
-      "Interactive water surface profiles, energy grade lines, and Froude number analysis.",
-    icon: "chart",
-  },
-  {
-    title: "3D Viewer",
-    description: "Visualize channel geometry and flow conditions in real-time 3D environment.",
-    icon: "cube",
-  },
-  {
-    title: "Export & Reports",
-    description:
-      "Generate professional reports with detailed calculations and export to CAD formats.",
-    icon: "file-export",
   },
 ] as const
 

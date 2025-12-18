@@ -61,7 +61,8 @@
       "digestAlgorithm": "sha256",
       "timestampUrl": "",
       "webviewInstallMode": {
-        "type": "embedBootstrapper"
+        "type": "downloadBootstrapper",
+        "silent": true
       }
     },
     "macOS": {

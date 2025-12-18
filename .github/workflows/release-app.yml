@@ -19,6 +19,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  OCCT_VERSION: "7.9.2"
 
 jobs:
   # ============================================================================
@@ -52,7 +53,16 @@ jobs:
             . -> target
             apps/desktop/src-tauri -> apps/desktop/src-tauri/target
 
+      # Cache OCCT download to speed up builds (~570MB download)
+      - name: Cache OpenCASCADE
+        id: cache-occt
+        uses: actions/cache@v4
+        with:
+          path: deps/occt-${{ env.OCCT_VERSION }}
+          key: occt-windows-${{ env.OCCT_VERSION }}
+
       - name: Setup OpenCASCADE
+        if: steps.cache-occt.outputs.cache-hit != 'true'
         shell: powershell
         run: .\scripts\occt\setup.ps1
 
@@ -69,36 +79,56 @@ jobs:
         run: bun install --frozen-lockfile
         env:
           HUSKY: 0
-          # node-gyp needs Python and VS Build Tools (pre-installed on windows-latest)
           npm_config_python: python
           npm_config_msvs_version: 2022
 
       - name: Build App
         shell: powershell
         env:
-          OCCT_ROOT: ${{ github.workspace }}\deps\occt-7.9.2
-          DEP_OCCT_ROOT: ${{ github.workspace }}\deps\occt-7.9.2
-          CASROOT: ${{ github.workspace }}\deps\occt-7.9.2
+          OCCT_ROOT: ${{ github.workspace }}\deps\occt-${{ env.OCCT_VERSION }}
+          DEP_OCCT_ROOT: ${{ github.workspace }}\deps\occt-${{ env.OCCT_VERSION }}
+          CASROOT: ${{ github.workspace }}\deps\occt-${{ env.OCCT_VERSION }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: .\scripts\dev\run-with-occt.ps1 "bun run --filter @cadhy/desktop tauri:build"
 
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare Windows artifacts
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p release-files
+
+          # NSIS installer
+          cp target/release/bundle/nsis/*.exe "release-files/CADHY_${VERSION}_x64-setup.exe" 2>/dev/null || true
+          cp target/release/bundle/nsis/*.exe.sig "release-files/CADHY_${VERSION}_x64-setup.exe.sig" 2>/dev/null || true
+
+          # MSI installer
+          cp target/release/bundle/msi/*.msi "release-files/CADHY_${VERSION}_x64_en-US.msi" 2>/dev/null || true
+          cp target/release/bundle/msi/*.msi.sig "release-files/CADHY_${VERSION}_x64_en-US.msi.sig" 2>/dev/null || true
+
+          ls -la release-files/
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-binaries
-          path: |
-            target/release/bundle/nsis/*.exe
-            target/release/bundle/nsis/*.exe.sig
-            target/release/bundle/msi/*.msi
-            target/release/bundle/msi/*.msi.sig
+          path: release-files/*
           if-no-files-found: error
 
   # ============================================================================
   # macOS Build (ARM64 only - Intel x64 disabled due to runner costs)
-  # macos-13 (Intel free) is retired, macos-15-large (Intel) requires payment
   # ============================================================================
   build-macos:
     name: Build (macOS ${{ matrix.arch }})
@@ -112,11 +142,7 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             arch: arm64
-            runner: macos-14  # ARM64 native runner (free)
-          # Intel x64 disabled - macos-15-large requires paid billing
-          # - target: x86_64-apple-darwin
-          #   arch: x64
-          #   runner: macos-15-large
+            runner: macos-14
 
     steps:
       - name: Checkout repository
@@ -174,33 +200,45 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          # Notarization temporarily disabled - was hanging indefinitely
-          # To re-enable: uncomment APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID
+          # Notarization disabled - re-enable when Apple credentials are verified
           # APPLE_ID: ${{ secrets.APPLE_ID }}
           # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }}
 
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare macOS artifacts
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCH="${{ matrix.arch == 'arm64' && 'aarch64' || 'x64' }}"
+          mkdir -p release-files
+
+          # DMG installer
+          cp target/${{ matrix.target }}/release/bundle/dmg/*.dmg "release-files/CADHY_${VERSION}_${ARCH}.dmg" 2>/dev/null || true
+          cp target/${{ matrix.target }}/release/bundle/dmg/*.dmg.sig "release-files/CADHY_${VERSION}_${ARCH}.dmg.sig" 2>/dev/null || true
+
+          # App bundle for auto-updater (critical!)
+          cp target/${{ matrix.target }}/release/bundle/macos/*.app.tar.gz "release-files/CADHY_${VERSION}_${ARCH}.app.tar.gz" 2>/dev/null || true
+          cp target/${{ matrix.target }}/release/bundle/macos/*.app.tar.gz.sig "release-files/CADHY_${VERSION}_${ARCH}.app.tar.gz.sig" 2>/dev/null || true
+
+          echo "=== Release files ==="
+          ls -la release-files/
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-binaries-${{ matrix.arch }}
-          path: |
-            target/${{ matrix.target }}/release/bundle/dmg/*.dmg
-            target/${{ matrix.target }}/release/bundle/dmg/*.dmg.sig
-            target/${{ matrix.target }}/release/bundle/macos/*.app
-            target/${{ matrix.target }}/release/bundle/macos/*.app.tar.gz
-            target/${{ matrix.target }}/release/bundle/macos/*.app.tar.gz.sig
+          path: release-files/*
           if-no-files-found: warn
-
-  # ============================================================================
-  # Linux Build - DISABLED (Ubuntu OCCT 7.5 lacks required features)
-  # See: .agents/standards/BEST-PRACTICES.md for details
-  # ============================================================================
-  # build-linux:
-  #   Disabled until Ubuntu packages OpenCASCADE 7.6+
-  #   or we set up a custom build pipeline
 
   # ============================================================================
   # Create GitHub Release with Update Manifest
@@ -209,7 +247,6 @@ jobs:
     name: Create Release
     needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
-    # Run if at least macOS arm64 OR Windows succeeded (allow partial releases)
     if: |
       always() &&
       startsWith(github.ref, 'refs/tags/v') &&
@@ -228,7 +265,9 @@ jobs:
           path: artifacts
 
       - name: Display structure of downloaded files
-        run: ls -laR artifacts/
+        run: |
+          echo "=== All artifacts ==="
+          ls -laR artifacts/
 
       - name: Get version
         id: version
@@ -263,35 +302,36 @@ jobs:
           PLATFORMS="{"
           FIRST=true
 
-          # macOS arm64
-          if ls artifacts/macos-binaries-arm64/*.app.tar.gz.sig 2>/dev/null; then
-            SIG=$(cat artifacts/macos-binaries-arm64/*.app.tar.gz.sig)
+          # macOS arm64 (for auto-updater, uses .app.tar.gz)
+          if [ -f "artifacts/macos-binaries-arm64/CADHY_${VERSION}_aarch64.app.tar.gz.sig" ]; then
+            SIG=$(cat "artifacts/macos-binaries-arm64/CADHY_${VERSION}_aarch64.app.tar.gz.sig")
             if [ "$FIRST" = false ]; then PLATFORMS+=","; fi
             PLATFORMS+="\"darwin-aarch64\":{\"signature\":\"$SIG\",\"url\":\"https://github.com/${RELEASES_REPO}/releases/download/v${VERSION}/CADHY_${VERSION}_aarch64.app.tar.gz\"}"
             FIRST=false
+            echo "Added darwin-aarch64 to manifest"
           fi
 
           # macOS x64 (if built)
-          if ls artifacts/macos-binaries-x64/*.app.tar.gz.sig 2>/dev/null; then
-            SIG=$(cat artifacts/macos-binaries-x64/*.app.tar.gz.sig)
+          if [ -f "artifacts/macos-binaries-x64/CADHY_${VERSION}_x64.app.tar.gz.sig" ]; then
+            SIG=$(cat "artifacts/macos-binaries-x64/CADHY_${VERSION}_x64.app.tar.gz.sig")
             if [ "$FIRST" = false ]; then PLATFORMS+=","; fi
             PLATFORMS+="\"darwin-x86_64\":{\"signature\":\"$SIG\",\"url\":\"https://github.com/${RELEASES_REPO}/releases/download/v${VERSION}/CADHY_${VERSION}_x64.app.tar.gz\"}"
             FIRST=false
+            echo "Added darwin-x86_64 to manifest"
           fi
 
-          # Linux - DISABLED (OCCT 7.5 compatibility issues)
-          # Will be enabled when Ubuntu packages OCCT 7.6+
-
-          # Windows
-          if ls artifacts/windows-binaries/*.exe.sig 2>/dev/null; then
-            SIG=$(cat artifacts/windows-binaries/*.exe.sig)
+          # Windows (uses .exe for auto-updater)
+          if [ -f "artifacts/windows-binaries/CADHY_${VERSION}_x64-setup.exe.sig" ]; then
+            SIG=$(cat "artifacts/windows-binaries/CADHY_${VERSION}_x64-setup.exe.sig")
             if [ "$FIRST" = false ]; then PLATFORMS+=","; fi
             PLATFORMS+="\"windows-x86_64\":{\"signature\":\"$SIG\",\"url\":\"https://github.com/${RELEASES_REPO}/releases/download/v${VERSION}/CADHY_${VERSION}_x64-setup.exe\"}"
             FIRST=false
+            echo "Added windows-x86_64 to manifest"
           fi
 
           PLATFORMS+="}"
 
+          # Generate latest.json
           cat > artifacts/latest.json << EOF
           {
             "version": "${VERSION}",
@@ -300,8 +340,23 @@ jobs:
             "platforms": ${PLATFORMS}
           }
           EOF
-          echo "Generated latest.json:"
+
+          echo "=== Generated latest.json ==="
           cat artifacts/latest.json
+
+      - name: Collect release files
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p release-upload
+
+          # Copy all artifacts to release folder
+          cp artifacts/windows-binaries/* release-upload/ 2>/dev/null || true
+          cp artifacts/macos-binaries-arm64/* release-upload/ 2>/dev/null || true
+          cp artifacts/macos-binaries-x64/* release-upload/ 2>/dev/null || true
+          cp artifacts/latest.json release-upload/
+
+          echo "=== Files to upload ==="
+          ls -la release-upload/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -309,11 +364,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: CADHY v${{ steps.version.outputs.version }}
           body_path: changelog_body.txt
-          files: |
-            artifacts/windows-binaries/**/*
-            artifacts/macos-binaries-arm64/**/*
-            artifacts/macos-binaries-x64/**/*
-            artifacts/latest.json
+          files: release-upload/*
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, 'alpha') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'rc') }}
         env:
