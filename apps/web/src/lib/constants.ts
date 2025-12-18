@@ -74,6 +74,7 @@ export const DOWNLOADS = [
     size: "~180 MB",
     url: `${RELEASES_URL}/download/CADHY_0.1.0_x64-setup.exe`,
     filename: "CADHY_0.1.0_x64-setup.exe",
+    comingSoon: false,
   },
   {
     platform: "macOS",
@@ -82,14 +83,16 @@ export const DOWNLOADS = [
     size: "~150 MB",
     url: `${RELEASES_URL}/download/CADHY_0.1.0_aarch64.dmg`,
     filename: "CADHY_0.1.0_aarch64.dmg",
+    comingSoon: false,
   },
   {
     platform: "Linux",
     version: "0.1.0",
     architecture: "x64",
     size: "~140 MB",
-    url: `${RELEASES_URL}/download/CADHY_0.1.0_amd64.AppImage`,
+    url: "#",
     filename: "CADHY_0.1.0_amd64.AppImage",
+    comingSoon: true,
   },
 ] as const
 

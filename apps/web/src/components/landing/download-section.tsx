@@ -81,15 +81,21 @@ export function DownloadSection() {
                   </div>
                 </div>
 
-                <a
-                  href={opt.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-8 w-full border border-border bg-primary/10 hover:bg-primary/20 text-foreground py-4 px-6 flex items-center justify-between rounded-lg group-hover:border-primary/50 transition-all duration-300 hover:shadow-md"
-                >
-                  <span className="text-xs font-bold tracking-widest">DOWNLOAD</span>
-                  <HugeiconsIcon icon={Download02Icon} size={16} />
-                </a>
+                {opt.comingSoon ? (
+                  <div className="mt-8 w-full border border-border bg-muted/50 text-muted-foreground py-4 px-6 flex items-center justify-between rounded-lg cursor-not-allowed">
+                    <span className="text-xs font-bold tracking-widest">COMING SOON</span>
+                  </div>
+                ) : (
+                  <a
+                    href={opt.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-8 w-full border border-border bg-primary/10 hover:bg-primary/20 text-foreground py-4 px-6 flex items-center justify-between rounded-lg group-hover:border-primary/50 transition-all duration-300 hover:shadow-md"
+                  >
+                    <span className="text-xs font-bold tracking-widest">DOWNLOAD</span>
+                    <HugeiconsIcon icon={Download02Icon} size={16} />
+                  </a>
+                )}
               </div>
             )
           })}

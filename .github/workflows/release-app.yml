@@ -60,10 +60,18 @@ jobs:
         shell: powershell
         run: .\scripts\occt\copy-dlls.ps1
 
+      - name: Setup Node.js for native modules
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install Dependencies
         run: bun install --frozen-lockfile
         env:
           HUSKY: 0
+          # node-gyp needs Python and VS Build Tools (pre-installed on windows-latest)
+          npm_config_python: python
+          npm_config_msvs_version: 2022
 
       - name: Build App
         shell: powershell
@@ -107,7 +115,7 @@ jobs:
             runner: macos-14  # ARM64 native runner
           - target: x86_64-apple-darwin
             arch: x64
-            runner: macos-13  # Intel native runner
+            runner: macos-15-large  # Intel native runner (macos-13 retired)
 
     steps:
       - name: Checkout repository
@@ -165,9 +173,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Notarization temporarily disabled - was hanging indefinitely
+          # To re-enable: uncomment APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }}
 
