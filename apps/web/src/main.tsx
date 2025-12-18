@@ -1,7 +1,7 @@
 import { TooltipProvider } from "@cadhy/ui"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
-import { createBrowserRouter, RouterProvider } from "react-router-dom"
+import { createBrowserRouter, Outlet, RouterProvider, ScrollRestoration } from "react-router-dom"
 import DocsLayout from "@/app/docs/layout"
 import DocsPage from "@/app/docs/page"
 import LandingLayout from "@/app/layout"
@@ -35,38 +35,57 @@ applyInitialTheme()
 // Get base path for GitHub Pages deployment
 const basePath = import.meta.env.BASE_URL || "/"
 
+/**
+ * Root layout that wraps all routes.
+ * This ensures ScrollToTop and ScrollRestoration are INSIDE the router context.
+ */
+function RootLayout() {
+  return (
+    <>
+      <ScrollToTop />
+      <ScrollRestoration />
+      <Outlet />
+    </>
+  )
+}
+
 // Using BrowserRouter with basename for clean URLs (better SEO)
 // 404.html handles client-side routing on GitHub Pages
 const router = createBrowserRouter(
   [
     {
-      element: <LandingLayout />,
+      element: <RootLayout />,
       children: [
         {
-          path: "/",
-          element: <LandingPage />,
+          element: <LandingLayout />,
+          children: [
+            {
+              path: "/",
+              element: <LandingPage />,
+            },
+            {
+              path: "/privacy",
+              element: <PrivacyPage />,
+            },
+            {
+              path: "/terms",
+              element: <TermsPage />,
+            },
+          ],
         },
         {
-          path: "/privacy",
-          element: <PrivacyPage />,
-        },
-        {
-          path: "/terms",
-          element: <TermsPage />,
-        },
-      ],
-    },
-    {
-      path: "/docs",
-      element: <DocsLayout />,
-      children: [
-        {
-          path: "",
-          element: <DocsPage />,
-        },
-        {
-          path: "*",
-          element: <DocsPage />,
+          path: "/docs",
+          element: <DocsLayout />,
+          children: [
+            {
+              path: "",
+              element: <DocsPage />,
+            },
+            {
+              path: "*",
+              element: <DocsPage />,
+            },
+          ],
         },
       ],
     },
@@ -80,7 +99,6 @@ function App() {
   return (
     <TooltipProvider delay={300}>
       <RouterProvider router={router} />
-      <ScrollToTop />
     </TooltipProvider>
   )
 }

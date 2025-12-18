@@ -10,10 +10,12 @@ import { FAQSection } from "@/components/landing/faq-section"
 import { FeaturesSection } from "@/components/landing/features-section"
 import { HeroSection } from "@/components/landing/hero-section"
 import { RoadmapSection } from "@/components/landing/roadmap-section"
+import { LandingSEO } from "@/components/seo"
 
 export default function LandingPage() {
   return (
     <>
+      <LandingSEO />
       <HeroSection />
       <FeaturesSection />
       <RoadmapSection />

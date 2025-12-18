@@ -2,9 +2,12 @@
  * Privacy Policy Page
  */
 
+import { PrivacySEO } from "@/components/seo"
+
 export default function PrivacyPage() {
   return (
     <div className="max-w-4xl mx-auto px-8 py-16">
+      <PrivacySEO />
       <h1 className="text-4xl font-bold tracking-tighter mb-8">Privacy Policy</h1>
       <p className="text-muted-foreground mb-8">Last updated: December 2025</p>
 

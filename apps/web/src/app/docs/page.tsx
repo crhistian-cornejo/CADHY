@@ -8,6 +8,7 @@
 import { Button } from "@cadhy/ui"
 import { useEffect, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
+import { DocsSEO } from "@/components/seo"
 import { findDocByPath, getAdjacentDocs, getBreadcrumbs } from "@/lib/source"
 import { type TocItem, useToc } from "@/lib/toc-context"
 
@@ -117,6 +118,9 @@ export default function DocsPage() {
 
   return (
     <div className="space-y-8">
+      {/* SEO */}
+      <DocsSEO pageTitle={title} />
+
       {/* Breadcrumbs */}
       {breadcrumbs.length > 0 && (
         <nav className="flex items-center gap-2 text-sm text-muted-foreground">
