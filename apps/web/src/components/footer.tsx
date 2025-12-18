@@ -12,10 +12,12 @@ import {
   NewTwitterIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { FlickeringGrid } from "@/components/flickering-grid"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { Logo } from "@/components/logo"
+import { useTranslation } from "@/lib/i18n"
 
 // Scroll to element by ID with offset for fixed navbar
 function scrollToElement(elementId: string) {
@@ -29,52 +31,6 @@ function scrollToElement(elementId: string) {
     })
   }
 }
-
-const FOOTER_LINKS = [
-  {
-    title: "Product",
-    links: [
-      { id: 1, label: "Features", href: "/#features" },
-      { id: 2, label: "Roadmap", href: "/#roadmap" },
-      { id: 3, label: "Downloads", href: "/#downloads" },
-      {
-        id: 4,
-        label: "Changelog",
-        href: "https://github.com/crhistian-cornejo/CADHY/releases",
-      },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { id: 5, label: "Documentation", href: "/docs" },
-      { id: 6, label: "Getting Started", href: "/docs/getting-started/installation" },
-      { id: 7, label: "Hydraulics Guide", href: "/docs/hydraulics" },
-      { id: 8, label: "AI Integration", href: "/docs/ai-integration" },
-    ],
-  },
-  {
-    title: "Community",
-    links: [
-      {
-        id: 9,
-        label: "GitHub Releases",
-        href: "https://github.com/crhistian-cornejo/CADHY",
-      },
-      {
-        id: 10,
-        label: "Discussions",
-        href: "https://github.com/crhistian-cornejo/CADHY/discussions",
-      },
-      {
-        id: 11,
-        label: "Report Issues",
-        href: "https://github.com/crhistian-cornejo/CADHY/issues",
-      },
-      { id: 12, label: "Contact", href: "mailto:support@cadhy.app" },
-    ],
-  },
-]
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(false)
@@ -101,6 +57,61 @@ export function Footer() {
   const navigate = useNavigate()
   const currentPath = location.pathname
   const isMobile = useMediaQuery("(max-width: 768px)")
+  const { t, language } = useTranslation()
+
+  // Build footer links from translations
+  const footerLinks = useMemo(
+    () => [
+      {
+        title: t.footer.product,
+        links: [
+          { id: 1, label: t.footer.features, href: "/#features" },
+          { id: 2, label: t.footer.roadmap, href: "/roadmap" },
+          { id: 3, label: t.footer.downloads, href: "/download" },
+          {
+            id: 4,
+            label: t.footer.changelog,
+            href: "https://github.com/crhistian-cornejo/CADHY/releases",
+          },
+        ],
+      },
+      {
+        title: t.footer.resources,
+        links: [
+          { id: 5, label: t.footer.docs, href: "/docs" },
+          { id: 6, label: t.footer.gettingStarted, href: "/docs/getting-started/installation" },
+          { id: 7, label: t.footer.openChannels, href: "/docs/hydraulics" },
+          { id: 8, label: t.footer.aiIntegration, href: "/docs/ai-integration" },
+        ],
+      },
+      {
+        title: language === "es" ? "Comunidad" : "Community",
+        links: [
+          {
+            id: 9,
+            label: t.footer.github,
+            href: "https://github.com/crhistian-cornejo/CADHY",
+          },
+          {
+            id: 10,
+            label: language === "es" ? "Discusiones" : "Discussions",
+            href: "https://github.com/crhistian-cornejo/CADHY/discussions",
+          },
+          {
+            id: 11,
+            label: language === "es" ? "Reportar Problemas" : "Report Issues",
+            href: "https://github.com/crhistian-cornejo/CADHY/issues",
+          },
+          {
+            id: 12,
+            label: language === "es" ? "Contacto" : "Contact",
+            href: "mailto:support@cadhy.app",
+          },
+        ],
+      },
+    ],
+    [t, language]
+  )
 
   const handleHashClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
@@ -117,6 +128,12 @@ export function Footer() {
     [currentPath, navigate]
   )
 
+  const gridText = isMobile
+    ? "CADHY"
+    : language === "es"
+      ? "Para Ingenieros"
+      : "Built for Engineers"
+
   return (
     <footer id="footer" className="w-full pb-0 border-t border-border bg-background">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between p-8 lg:p-12 max-w-7xl mx-auto">
@@ -129,8 +146,9 @@ export function Footer() {
             </span>
           </Link>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            AI-powered hydraulic analysis software for civil engineers. Design open channels,
-            analyze pipe networks, and solve complex problems with ease.
+            {language === "es"
+              ? "Software de análisis hidráulico potenciado por IA para ingenieros civiles. Diseña canales abiertos, analiza redes de tuberías y resuelve problemas complejos con facilidad."
+              : "AI-powered hydraulic analysis software for civil engineers. Design open channels, analyze pipe networks, and solve complex problems with ease."}
           </p>
           <div className="flex items-center gap-4 mt-2">
             <a
@@ -161,14 +179,14 @@ export function Footer() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
             </span>
-            PROPRIETARY SOFTWARE
+            {language === "es" ? "SOFTWARE PROPIETARIO" : "PROPRIETARY SOFTWARE"}
           </div>
         </div>
 
         {/* Links Columns */}
         <div className="flex-1 md:pl-16 lg:pl-24">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-8 lg:gap-12">
-            {FOOTER_LINKS.map((column) => (
+            {footerLinks.map((column) => (
               <div key={column.title}>
                 <h4 className="text-sm font-semibold text-foreground mb-4">{column.title}</h4>
                 <ul className="space-y-3">
@@ -243,7 +261,7 @@ export function Footer() {
         <div className="absolute inset-0 bg-gradient-to-t from-transparent to-background z-10 from-30%" />
         <div className="absolute inset-0 mx-4">
           <FlickeringGrid
-            text={isMobile ? "CADHY" : "Built for Engineers"}
+            text={gridText}
             fontSize={isMobile ? 48 : 72}
             fontWeight={700}
             className="h-full w-full"
@@ -259,14 +277,17 @@ export function Footer() {
       {/* Bottom Bar */}
       <div className="border-t border-border px-8 py-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
-          <div>&copy; 2025 CADHY. All rights reserved.</div>
+          <div className="flex items-center gap-4">
+            <span>&copy; 2025 CADHY. {t.footer.copyright}</span>
+            <LanguageSwitcher />
+          </div>
           <div className="flex items-center gap-6">
             <span className="font-mono">v0.1.0</span>
             <Link to="/privacy" className="hover:text-foreground transition-colors">
-              Privacy Policy
+              {t.footer.privacy}
             </Link>
             <Link to="/terms" className="hover:text-foreground transition-colors">
-              Terms of Service
+              {t.footer.terms}
             </Link>
             <a
               href="https://github.com/crhistian-cornejo/CADHY"

@@ -7,13 +7,16 @@
 import { ArrowDown01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useState } from "react"
+import { useTranslation } from "@/lib/i18n"
 
 interface FAQItem {
   question: string
   answer: string
 }
 
-const FAQ_ITEMS: FAQItem[] = [
+// FAQ items are hardcoded since they contain technical details
+// that don't need frequent translation updates
+const FAQ_ITEMS_EN: FAQItem[] = [
   {
     question: "What is CADHY?",
     answer:
@@ -56,7 +59,50 @@ const FAQ_ITEMS: FAQItem[] = [
   },
 ]
 
-function FAQItem({
+const FAQ_ITEMS_ES: FAQItem[] = [
+  {
+    question: "¿Qué es CADHY?",
+    answer:
+      "CADHY (Computer Aided Design for HYdraulics) es una aplicación de escritorio profesional para ingeniería hidráulica. Combina modelado 3D paramétrico con hidráulica computacional, permitiendo a los ingenieros diseñar y analizar canales abiertos, redes de tuberías y estructuras hidráulicas.",
+  },
+  {
+    question: "¿CADHY es gratis?",
+    answer:
+      "Sí, CADHY actualmente es gratuito para descargar y usar. Ofrecemos la aplicación de escritorio completa con todas las características incluidas sin costo durante nuestra fase de lanzamiento inicial.",
+  },
+  {
+    question: "¿Qué plataformas soporta CADHY?",
+    answer:
+      "CADHY está disponible para Windows (x64), macOS (Apple Silicon e Intel) y Linux (AppImage). Todas las plataformas reciben las mismas características y actualizaciones simultáneamente.",
+  },
+  {
+    question: "¿Qué cálculos hidráulicos puede realizar CADHY?",
+    answer:
+      "CADHY soporta cálculos con la ecuación de Manning, análisis de tirante normal y crítico, cálculo del número de Froude, perfiles de Flujo Gradualmente Variado (FGV) (clasificaciones M1, M2, S1, S2, S3), y diagramas de energía específica. El soporte para redes de tuberías con el método Hardy-Cross viene pronto.",
+  },
+  {
+    question: "¿Qué es la función de asistente IA?",
+    answer:
+      "CADHY incluye un asistente de IA integrado que entiende conceptos de ingeniería hidráulica. Puedes describir problemas en lenguaje natural, obtener cálculos instantáneos, recibir recomendaciones de diseño, y hacer que la IA ayude a generar configuraciones de canales basadas en tus requerimientos.",
+  },
+  {
+    question: "¿Qué kernel de geometría usa CADHY?",
+    answer:
+      "CADHY está construido sobre OpenCASCADE Technology (OCCT), el mismo kernel de modelado sólido B-Rep de grado industrial usado por FreeCAD y otros sistemas CAD profesionales. Esto permite geometría paramétrica precisa, operaciones booleanas y exportación a formatos CAD estándar.",
+  },
+  {
+    question: "¿Puedo exportar mis diseños?",
+    answer:
+      "Actualmente CADHY soporta visualización 3D y guardado de proyectos. La exportación a formatos STEP, IGES, STL y DXF está planificada para próximas versiones, permitiendo integración con otro software CAD y de análisis.",
+  },
+  {
+    question: "¿Cómo reporto bugs o solicito características?",
+    answer:
+      "Puedes reportar problemas y solicitar características a través de nuestro repositorio en GitHub. Visita la sección de Issues para enviar reportes de bugs o la sección de Discussions para proponer nuevas características y conectar con otros usuarios.",
+  },
+]
+
+function FAQItemComponent({
   item,
   isOpen,
   onToggle,
@@ -90,6 +136,9 @@ function FAQItem({
 
 export function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
+  const { t, language } = useTranslation()
+
+  const faqItems = language === "es" ? FAQ_ITEMS_ES : FAQ_ITEMS_EN
 
   return (
     <section className="relative border-t border-border bg-background py-24 px-8 lg:px-16" id="faq">
@@ -101,20 +150,20 @@ export function FAQSection() {
         <div className="mb-12 text-center">
           <div className="inline-flex items-center gap-2 border border-border bg-card px-3 py-1 mb-6 rounded-full">
             <HugeiconsIcon icon={HelpCircleIcon} size={12} className="text-muted-foreground" />
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground">FAQ</span>
+            <span className="text-[10px] font-bold tracking-widest text-muted-foreground">
+              {t.faq.badge}
+            </span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold tracking-tighter text-foreground mb-4">
-            Frequently Asked Questions
+            {t.faq.title}
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to know about CADHY and hydraulic engineering software.
-          </p>
+          <p className="text-muted-foreground max-w-2xl mx-auto">{t.faq.description}</p>
         </div>
 
         {/* FAQ Items */}
         <div className="space-y-4">
-          {FAQ_ITEMS.map((item, index) => (
-            <FAQItem
+          {faqItems.map((item, index) => (
+            <FAQItemComponent
               key={item.question}
               item={item}
               isOpen={openIndex === index}
@@ -125,14 +174,14 @@ export function FAQSection() {
 
         {/* Contact CTA */}
         <div className="mt-12 text-center">
-          <p className="text-sm text-muted-foreground mb-4">Still have questions?</p>
+          <p className="text-sm text-muted-foreground mb-4">{t.faq.contact}</p>
           <a
             href="https://github.com/crhistian-cornejo/CADHY/discussions"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground transition-colors border border-border px-6 py-3 hover:border-foreground/50 rounded-full"
           >
-            <span>ASK IN DISCUSSIONS</span>
+            <span>{t.faq.contactLink}</span>
             <span>&rarr;</span>
           </a>
         </div>

@@ -40,12 +40,13 @@ import {
   Sun03Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { SearchDialog, useSearchDialog } from "@/components/docs/search-dialog"
 import { LinuxIcon, MacIcon, WindowsIcon } from "@/components/icons/platform-icons"
 import { Logo } from "@/components/logo"
 import { Hamburger } from "@/components/ui/hamburger"
+import { useTranslation } from "@/lib/i18n"
 
 // Platform detection
 type Platform = "WINDOWS" | "MACOS" | "LINUX" | "UNKNOWN"
@@ -73,64 +74,6 @@ interface MenuGroup {
   items: MenuItem[]
 }
 
-const MENU_GROUPS: MenuGroup[] = [
-  {
-    title: "Product",
-    items: [
-      {
-        title: "Features",
-        description: "Explore CADHY capabilities",
-        href: "/#features",
-        icon: SparklesIcon,
-      },
-      {
-        title: "Roadmap",
-        description: "See what we are building next",
-        href: "/roadmap",
-        icon: RoadLocation01Icon,
-      },
-      {
-        title: "Download",
-        description: "Get CADHY for your platform",
-        href: "/download",
-        icon: Download02Icon,
-      },
-      {
-        title: "Q&A",
-        description: "Frequently asked questions",
-        href: "/#faq",
-        icon: QuestionIcon,
-      },
-    ],
-  },
-  {
-    title: "Resources",
-    items: [
-      {
-        title: "GitHub",
-        description: "Releases and downloads",
-        href: "https://github.com/crhistian-cornejo/CADHY",
-        icon: Github01Icon,
-        external: true,
-      },
-      {
-        title: "Support",
-        description: "Get help and report issues",
-        href: "https://github.com/crhistian-cornejo/CADHY/issues",
-        icon: HelpCircleIcon,
-        external: true,
-      },
-    ],
-  },
-]
-
-const platformConfig = {
-  WINDOWS: { label: "Windows", Icon: WindowsIcon, tooltip: "Download for Windows" },
-  MACOS: { label: "macOS", Icon: MacIcon, tooltip: "Download for macOS" },
-  LINUX: { label: "Linux", Icon: LinuxIcon, tooltip: "Download for Linux" },
-  UNKNOWN: { label: "Download", Icon: Download02Icon, tooltip: "Download CADHY" },
-}
-
 function scrollToElement(elementId: string) {
   const element = document.getElementById(elementId)
   if (element) {
@@ -141,6 +84,13 @@ function scrollToElement(elementId: string) {
       behavior: "smooth",
     })
   }
+}
+
+const platformConfig = {
+  WINDOWS: { label: "Windows", Icon: WindowsIcon, tooltip: "Download for Windows" },
+  MACOS: { label: "macOS", Icon: MacIcon, tooltip: "Download for macOS" },
+  LINUX: { label: "Linux", Icon: LinuxIcon, tooltip: "Download for Linux" },
+  UNKNOWN: { label: "Download", Icon: Download02Icon, tooltip: "Download CADHY" },
 }
 
 // Desktop dropdown with hover support
@@ -267,6 +217,62 @@ export function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const currentPath = location.pathname
+  const { t } = useTranslation()
+
+  // Build menu groups from translations
+  const menuGroups: MenuGroup[] = useMemo(
+    () => [
+      {
+        title: t.nav.product,
+        items: [
+          {
+            title: t.nav.features,
+            description: t.nav.featuresDesc,
+            href: "/#features",
+            icon: SparklesIcon,
+          },
+          {
+            title: t.nav.roadmap,
+            description: t.nav.roadmapDesc,
+            href: "/roadmap",
+            icon: RoadLocation01Icon,
+          },
+          {
+            title: t.nav.downloadNav,
+            description: t.nav.downloadDesc,
+            href: "/download",
+            icon: Download02Icon,
+          },
+          {
+            title: t.nav.faq,
+            description: t.nav.faqDesc,
+            href: "/#faq",
+            icon: QuestionIcon,
+          },
+        ],
+      },
+      {
+        title: t.nav.resources,
+        items: [
+          {
+            title: t.nav.github,
+            description: t.nav.githubDesc,
+            href: "https://github.com/crhistian-cornejo/CADHY",
+            icon: Github01Icon,
+            external: true,
+          },
+          {
+            title: t.nav.support,
+            description: t.nav.supportDesc,
+            href: "https://github.com/crhistian-cornejo/CADHY/issues",
+            icon: HelpCircleIcon,
+            external: true,
+          },
+        ],
+      },
+    ],
+    [t]
+  )
 
   useEffect(() => {
     setPlatform(detectPlatform())
@@ -286,7 +292,7 @@ export function Navbar() {
     localStorage.setItem("cadhy-web-theme", theme)
   }, [theme])
 
-  const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"))
+  const toggleTheme = () => setTheme((prev) => (prev === "light" ? "dark" : "light"))
 
   const { label: platformLabel, Icon: PlatformIcon } = platformConfig[platform]
 
@@ -341,7 +347,7 @@ export function Navbar() {
 
               {/* Navigation Dropdowns */}
               <div className="flex items-center gap-1">
-                {MENU_GROUPS.map((group) => (
+                {menuGroups.map((group) => (
                   <NavDropdownMenu
                     key={group.title}
                     group={group}
@@ -353,7 +359,7 @@ export function Navbar() {
                   to="/docs"
                   className="inline-flex h-9 items-center justify-center rounded-full bg-transparent px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
-                  Documentation
+                  {t.nav.docs}
                 </Link>
               </div>
             </div>
@@ -401,7 +407,7 @@ export function Navbar() {
                 ) : (
                   <HugeiconsIcon icon={Download02Icon} size={16} />
                 )}
-                Download
+                {t.common.download}
               </Button>
             </div>
           </nav>
@@ -461,7 +467,7 @@ export function Navbar() {
 
                   <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
                     <Accordion className="flex w-full flex-col gap-2">
-                      {MENU_GROUPS.map((group) => (
+                      {menuGroups.map((group) => (
                         <AccordionItem key={group.title} value={group.title} className="border-b-0">
                           <AccordionTrigger className="py-3 font-semibold text-foreground hover:no-underline">
                             {group.title}
@@ -518,7 +524,7 @@ export function Navbar() {
                       className="py-3 font-semibold text-foreground transition-colors hover:text-primary"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Documentation
+                      {t.nav.docs}
                     </Link>
                   </div>
 
@@ -532,7 +538,7 @@ export function Navbar() {
                       }}
                     >
                       <HugeiconsIcon icon={Rocket01Icon} size={18} />
-                      Download for {platformLabel}
+                      {t.nav.downloadFor} {platformLabel}
                     </Button>
                   </div>
                 </SheetContent>

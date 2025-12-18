@@ -11,6 +11,7 @@ import PrivacyPage from "@/app/privacy/page"
 import RoadmapPage from "@/app/roadmap/page"
 import TermsPage from "@/app/terms/page"
 import { ScrollToTop } from "@/components/scroll-to-top"
+import { LanguageProvider } from "@/lib/i18n"
 
 import "@/styles/globals.css"
 
@@ -107,9 +108,11 @@ const router = createBrowserRouter(
 
 function App() {
   return (
-    <TooltipProvider delay={300}>
-      <RouterProvider router={router} />
-    </TooltipProvider>
+    <LanguageProvider>
+      <TooltipProvider delay={300}>
+        <RouterProvider router={router} />
+      </TooltipProvider>
+    </LanguageProvider>
   )
 }
 

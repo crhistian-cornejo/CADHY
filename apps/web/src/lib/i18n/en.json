@@ -1,0 +1,145 @@
+{
+  "common": {
+    "download": "Download",
+    "documentation": "Documentation",
+    "learnMore": "Learn more",
+    "viewAll": "View all",
+    "comingSoon": "Coming soon",
+    "loading": "Loading...",
+    "version": "Version",
+    "latest": "Latest",
+    "available": "AVAILABLE",
+    "changelog": "Changelog",
+    "language": "Language",
+    "english": "English",
+    "spanish": "Spanish"
+  },
+  "nav": {
+    "product": "Product",
+    "resources": "Resources",
+    "features": "Features",
+    "featuresDesc": "Explore CADHY capabilities",
+    "roadmap": "Roadmap",
+    "roadmapDesc": "See what we are building next",
+    "downloadNav": "Download",
+    "downloadDesc": "Get CADHY for your platform",
+    "faq": "Q&A",
+    "faqDesc": "Frequently asked questions",
+    "github": "GitHub",
+    "githubDesc": "Releases and downloads",
+    "support": "Support",
+    "supportDesc": "Get help and report issues",
+    "docs": "Documentation",
+    "downloadFor": "Download for"
+  },
+  "hero": {
+    "title": "Computational Analysis & Design",
+    "titleHighlight": "for Hydraulics",
+    "description": "Desktop application for designing and analyzing open channel hydraulic structures. Powerful CAD engine with hydraulic analysis tools in one integrated environment.",
+    "downloadFor": "Download for",
+    "downloadFree": "Download Free",
+    "viewDownloads": "View Downloads"
+  },
+  "stats": {
+    "channelTypes": "Channel Types",
+    "linesOfRust": "Lines of Rust",
+    "platforms": "Platforms",
+    "latestRelease": "Latest Release"
+  },
+  "features": {
+    "badge": "FEATURES",
+    "title": "Everything You Need for Hydraulic Analysis",
+    "description": "From open channel flow to hydraulic structures, CADHY provides comprehensive tools for hydraulic engineering.",
+    "3dModeling": {
+      "title": "3D Channel Modeling",
+      "description": "Create rectangular, trapezoidal, and triangular open channels with real-time 3D visualization."
+    },
+    "hydraulicAnalysis": {
+      "title": "Hydraulic Analysis",
+      "description": "Calculate normal depth, critical depth, Froude number, and flow characteristics using Manning's equation."
+    },
+    "structures": {
+      "title": "Hydraulic Structures",
+      "description": "Design transitions, drops, chutes, and energy dissipation basins (USBR Types I-IV, SAF)."
+    },
+    "waterSurface": {
+      "title": "Water Surface Profiles",
+      "description": "Compute gradually varied flow (GVF) profiles using the Standard Step Method with M1, M2, S1, S2 classification."
+    },
+    "cadExport": {
+      "title": "CAD Export",
+      "description": "Export geometry to STL, OBJ, STEP, and glTF formats for use in other CAD software."
+    },
+    "aiAssistant": {
+      "title": "AI Assistant",
+      "description": "Multi-provider support (Claude, GPT, Gemini) with streaming responses to help with hydraulic calculations."
+    }
+  },
+  "changelog": {
+    "badge": "CHANGELOG",
+    "title": "What's New",
+    "description": "Latest updates and improvements to CADHY.",
+    "viewReleaseNotes": "View release notes",
+    "allReleases": "All releases"
+  },
+  "faq": {
+    "badge": "FAQ",
+    "title": "Frequently Asked Questions",
+    "description": "Common questions about CADHY and hydraulic engineering.",
+    "contact": "Still have questions?",
+    "contactLink": "Open a discussion on GitHub"
+  },
+  "downloadCta": {
+    "title": "Try CADHY now.",
+    "downloadFor": "Download for",
+    "downloadFree": "Download Free",
+    "readDocs": "Read the docs",
+    "availableFor": "Available for",
+    "and": "and",
+    "linuxSoon": "Linux (soon)"
+  },
+  "download": {
+    "title": "Download CADHY",
+    "description": "Available for macOS and Windows. Linux coming soon.",
+    "downloadFor": "Download for",
+    "viewDownloads": "View Downloads",
+    "viewReleaseNotes": "View release notes",
+    "previousVersions": "Previous Versions",
+    "errorFetching": "Unable to fetch releases from GitHub. Please visit the releases page directly:",
+    "viewOnGithub": "View on GitHub",
+    "appleSilicon": "Apple Silicon",
+    "intel": "Intel",
+    "universal": "Universal",
+    "msiInstaller": "MSI Installer",
+    "exeInstaller": "EXE Installer"
+  },
+  "roadmap": {
+    "badge": "DEVELOPMENT ROADMAP",
+    "title": "What's Next",
+    "description": "Our development roadmap. Track completed milestones and upcoming features.",
+    "suggestFeature": "SUGGEST A FEATURE",
+    "completed": "COMPLETED",
+    "inProgress": "IN PROGRESS",
+    "planned": "PLANNED"
+  },
+  "footer": {
+    "product": "Product",
+    "resources": "Resources",
+    "engineering": "Engineering",
+    "features": "Features",
+    "roadmap": "Roadmap",
+    "changelog": "Changelog",
+    "downloads": "Downloads",
+    "docs": "Documentation",
+    "gettingStarted": "Getting Started",
+    "apiReference": "API Reference",
+    "github": "GitHub",
+    "openChannels": "Open Channels",
+    "pipeNetworks": "Pipe Networks",
+    "gvfAnalysis": "GVF Analysis",
+    "aiIntegration": "AI Integration",
+    "copyright": "All rights reserved.",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  }
+}
