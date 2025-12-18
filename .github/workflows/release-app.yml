@@ -56,6 +56,10 @@ jobs:
         shell: powershell
         run: .\scripts\occt\setup.ps1
 
+      - name: Copy OCCT DLLs for bundling
+        shell: powershell
+        run: .\scripts\occt\copy-dlls.ps1
+
       - name: Install Dependencies
         run: bun install --frozen-lockfile
         env:
@@ -85,11 +89,12 @@ jobs:
           if-no-files-found: error
 
   # ============================================================================
-  # macOS Build (Apple Silicon only for now - x64 cross-compilation requires x64 runner)
+  # macOS Build (ARM64 + Intel x64)
+  # Each architecture uses its native runner for OpenCASCADE compatibility
   # ============================================================================
   build-macos:
     name: Build (macOS ${{ matrix.arch }})
-    runs-on: macos-latest
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
 
@@ -99,9 +104,10 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             arch: arm64
-          # Temporarily disabled: x64 cross-compilation fails on ARM runners
-          # - target: x86_64-apple-darwin
-          #   arch: x64
+            runner: macos-14  # ARM64 native runner
+          - target: x86_64-apple-darwin
+            arch: x64
+            runner: macos-13  # Intel native runner
 
     steps:
       - name: Checkout repository
