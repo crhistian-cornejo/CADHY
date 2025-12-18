@@ -1,0 +1,6 @@
+[test]
+preload = ["./src/__tests__/setup.ts"]
+
+# Use happy-dom for DOM environment in tests
+[test.env]
+NODE_ENV = "test"

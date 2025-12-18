@@ -1,0 +1,506 @@
+/**
+ * CADHY Web - Global Styles
+ * Imports the shared UI theme and adds web-specific customizations
+ */
+
+/* All @import statements must come first (CSS spec requirement) */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Tailwind v4 plugins */
+@plugin "tailwind-scrollbar";
+@plugin "@tailwindcss/typography";
+
+/* Custom dark variant for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Source scanning for Tailwind classes */
+@source "../../packages/ui/src/**/*.{ts,tsx}";
+@source "./components/**/*.{ts,tsx}";
+@source "./app/**/*.{ts,tsx}";
+
+/* ============================================
+   CSS CUSTOM PROPERTIES - DESIGN TOKENS
+   ============================================ */
+
+@theme inline {
+  /* Shadcn/Tailwind semantic colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Chart colors */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Border radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Shadows */
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+
+  /* Typography */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: "Chillax", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+
+  /* Layout width for docs */
+  --fd-layout-width: 1400px;
+}
+
+/* ============================================
+   LIGHT THEME (Default) - OKLCH with Blue Primary
+   ============================================ */
+
+:root {
+  --radius: 0.5rem;
+
+  /* Light theme colors - OKLCH */
+  --background: oklch(0.9821 0 0);
+  --foreground: oklch(0.2435 0 0);
+  --card: oklch(0.9911 0 0);
+  --card-foreground: oklch(0.2435 0 0);
+  --popover: oklch(0.9911 0 0);
+  --popover-foreground: oklch(0.2435 0 0);
+  --primary: oklch(0.6 0.18 230);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.92 0.03 230);
+  --secondary-foreground: oklch(0.35 0.1 230);
+  --muted: oklch(0.9521 0 0);
+  --muted-foreground: oklch(0.5032 0 0);
+  --accent: oklch(0.931 0 0);
+  --accent-foreground: oklch(0.2435 0 0);
+  --destructive: oklch(0.6271 0.1936 33.339);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.8822 0 0);
+  --input: oklch(0.8822 0 0);
+  --ring: oklch(0.6 0.18 230);
+  --chart-1: oklch(0.6 0.18 230);
+  --chart-2: oklch(0.65 0.12 200);
+  --chart-3: oklch(0.931 0 0);
+  --chart-4: oklch(0.7 0.1 180);
+  --chart-5: oklch(0.5 0.12 280);
+  --sidebar: oklch(0.9881 0 0);
+  --sidebar-foreground: oklch(0.2645 0 0);
+  --sidebar-primary: oklch(0.325 0 0);
+  --sidebar-primary-foreground: oklch(0.9881 0 0);
+  --sidebar-accent: oklch(0.9761 0 0);
+  --sidebar-accent-foreground: oklch(0.325 0 0);
+  --sidebar-border: oklch(0.9401 0 0);
+  --sidebar-ring: oklch(0.7731 0 0);
+}
+
+/* ============================================
+   DARK THEME - OKLCH with Blue Primary
+   ============================================ */
+
+.dark,
+[data-theme="dark"] {
+  /* Dark theme colors - OKLCH */
+  --background: oklch(0.2264 0 0);
+  --foreground: oklch(0.9491 0 0);
+  --card: oklch(0.3012 0 0);
+  --card-foreground: oklch(0.9491 0 0);
+  --popover: oklch(0.3012 0 0);
+  --popover-foreground: oklch(0.9491 0 0);
+  --primary: oklch(0.7 0.15 230);
+  --primary-foreground: oklch(0.15 0.02 230);
+  --secondary: oklch(0.3904 0 0);
+  --secondary-foreground: oklch(0.85 0.08 230);
+  --muted: oklch(0.3904 0 0);
+  --muted-foreground: oklch(0.7241 0 0);
+  --accent: oklch(0.4819 0 0);
+  --accent-foreground: oklch(0.9491 0 0);
+  --destructive: oklch(0.6271 0.1936 33.339);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.3012 0 0);
+  --input: oklch(0.3904 0 0);
+  --ring: oklch(0.7 0.15 230);
+  --chart-1: oklch(0.7 0.15 230);
+  --chart-2: oklch(0.6 0.1 200);
+  --chart-3: oklch(0.285 0 0);
+  --chart-4: oklch(0.65 0.08 180);
+  --chart-5: oklch(0.55 0.1 280);
+  --sidebar: oklch(0.3012 0 0);
+  --sidebar-foreground: oklch(0.9674 0.0013 286.3752);
+  --sidebar-primary: oklch(0.6 0.18 230);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.3904 0 0);
+  --sidebar-accent-foreground: oklch(0.9674 0.0013 286.3752);
+  --sidebar-border: oklch(0.3012 0 0);
+  --sidebar-ring: oklch(0.4819 0 0);
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  @apply bg-background text-foreground;
+  font-family: var(--font-sans);
+}
+
+#root {
+  @apply min-h-screen;
+}
+
+/* Headings use Chillax font */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) var(--background);
+}
+
+/* ============================================
+   SELECTION
+   ============================================ */
+
+::selection {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* ============================================
+   CODE BLOCKS - Shiki
+   ============================================ */
+
+pre.shiki,
+.prose pre:has(code) {
+  @apply rounded-lg overflow-hidden font-mono text-sm my-4;
+  border: 1px solid var(--border);
+}
+
+pre.shiki,
+.prose pre {
+  background-color: oklch(0.97 0 0);
+}
+
+.dark pre.shiki,
+.dark .prose pre,
+[data-theme="dark"] pre.shiki,
+[data-theme="dark"] .prose pre {
+  background-color: oklch(0.18 0 0);
+}
+
+.dark pre.shiki span,
+.dark .shiki span,
+[data-theme="dark"] pre.shiki span,
+[data-theme="dark"] .shiki span {
+  color: var(--shiki-dark);
+}
+
+pre.shiki code,
+.prose pre code {
+  @apply p-4 block overflow-x-auto;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* Inline code */
+.prose code:not(pre code),
+code:not(pre code) {
+  @apply px-1.5 py-0.5 rounded text-sm font-mono;
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+/* ============================================
+   GRID PATTERN BACKGROUND
+   ============================================ */
+
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes spin-slow {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+/* ============================================
+   HIDE SCROLLBAR UTILITY
+   ============================================ */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   TOC Active Link
+   ============================================ */
+
+.toc-link {
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.toc-link.active {
+  color: var(--foreground);
+}
+
+.toc-link.active::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 16px;
+  background: var(--primary);
+}
+
+/* ============================================
+   HEADING ANCHORS
+   ============================================ */
+
+h1[id], h2[id], h3[id], h4[id] {
+  scroll-margin-top: 80px;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .docs-sidebar,
+  .docs-toc,
+  .docs-search,
+  nav {
+    display: none;
+  }
+
+  main {
+    margin: 0;
+    padding: 20px;
+    width: 100%;
+  }
+}
+
+/* ============================================
+   PROSE / TYPOGRAPHY STYLES
+   ============================================ */
+
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--muted);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+
+  @apply max-w-none;
+}
+
+.prose :where(h1, h2, h3, h4, h5, h6) {
+  @apply font-bold tracking-tight text-foreground;
+}
+
+.prose :where(h1) {
+  @apply text-3xl mt-0 mb-6;
+}
+
+.prose :where(h2) {
+  @apply text-2xl mt-10 mb-4 pb-2 border-b border-border;
+}
+
+.prose :where(h3) {
+  @apply text-xl mt-8 mb-3;
+}
+
+.prose :where(h4) {
+  @apply text-lg mt-6 mb-2;
+}
+
+.prose :where(p) {
+  @apply text-foreground leading-7 mb-4;
+}
+
+.prose :where(a) {
+  @apply text-primary font-medium underline underline-offset-4 hover:text-primary/80 transition-colors;
+}
+
+.prose :where(strong) {
+  @apply font-semibold text-foreground;
+}
+
+.prose :where(ul, ol) {
+  @apply my-4 pl-6;
+}
+
+.prose :where(ul) {
+  @apply list-disc;
+}
+
+.prose :where(ol) {
+  @apply list-decimal;
+}
+
+.prose :where(li) {
+  @apply text-foreground mb-2;
+}
+
+.prose :where(li > ul, li > ol) {
+  @apply my-2;
+}
+
+.prose :where(blockquote) {
+  @apply border-l-4 border-primary/50 pl-4 py-1 my-4 italic text-muted-foreground bg-muted/30 rounded-r-lg;
+}
+
+.prose :where(hr) {
+  @apply my-8 border-border;
+}
+
+.prose :where(table) {
+  @apply w-full my-6 text-sm border-collapse;
+}
+
+.prose :where(th) {
+  @apply border border-border bg-muted/50 px-4 py-2 text-left font-semibold text-foreground;
+}
+
+.prose :where(td) {
+  @apply border border-border px-4 py-2 text-foreground;
+}
+
+.prose :where(img) {
+  @apply rounded-lg border border-border my-6;
+}
+
+.prose :where(figure) {
+  @apply my-6;
+}
+
+.prose :where(figcaption) {
+  @apply mt-2 text-center text-sm text-muted-foreground;
+}
+
+/* ============================================
+   TAILWIND BASE LAYER
+   ============================================ */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+}

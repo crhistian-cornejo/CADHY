@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "corx-dev/cadhy" }],
+  "commit": false,
+  "fixed": [],
+  "linked": [["@cadhy/desktop", "@cadhy/web"]],
+  "access": "restricted",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["@cadhy/config"],
+  "privatePackages": {
+    "tag": true,
+    "version": true
+  }
+}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/cadhy-logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CADHY</title>
+
+    <!-- Preconnect to font origins -->
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+
+    <!-- Chillax font for headings (from Fontshare) -->
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=chillax@400,600,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      // Apply theme immediately to prevent flash
+      (() => {
+        const stored = localStorage.getItem('cadhy-theme');
+        const theme = stored || 'dark';
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = theme === 'system' ? systemDark : theme === 'dark';
+
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

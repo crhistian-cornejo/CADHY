@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "CADHY - Hydraulic Analysis",
+        "width": 1200,
+        "height": 900,
+        "minWidth": 900,
+        "minHeight": 500,
+        "resizable": true,
+        "decorations": false,
+        "transparent": false,
+        "shadow": true
+      }
+    ]
+  },
+  "bundle": {
+    "targets": ["msi", "nsis"],
+    "fileAssociations": [
+      {
+        "ext": ["cadhy"],
+        "name": "CADHY Project",
+        "role": "Editor",
+        "mimeType": "application/x-cadhy"
+      }
+    ],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      }
+    }
+  }
+}

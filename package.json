@@ -1,0 +1,53 @@
+{
+  "name": "cadhy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "bun scripts/core/run-cross.ts \"bun run --filter @cadhy/desktop tauri:dev\"",
+    "dev": "bun scripts/core/run-cross.ts \"bun run --filter @cadhy/desktop tauri:dev\"",
+    "dev:desktop": "bun scripts/core/run-cross.ts \"bun run --filter @cadhy/desktop tauri:dev\"",
+    "dev:web": "bun run --filter @cadhy/web dev",
+    "dev:all": "bun run --filter @cadhy/desktop tauri:dev & bun run --filter @cadhy/web dev",
+    "build": "bun scripts/core/run-cross.ts \"bun run --filter @cadhy/desktop tauri build\"",
+    "build:web": "bun run --filter @cadhy/web build",
+    "tauri": "bun run --filter @cadhy/desktop tauri",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --filter '*' test",
+    "test:desktop": "bun run --filter @cadhy/desktop test",
+    "test:rust": "cargo test --workspace",
+    "changeset": "changeset",
+    "changeset:add": "changeset add",
+    "changeset:status": "changeset status",
+    "version": "changeset version && bun install --frozen-lockfile",
+    "release": "bun scripts/release/index.ts",
+    "deploy": "bun scripts/deploy/index.ts",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.9",
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.29.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.1",
+    "shadcn": "^3.6.1",
+    "typescript": "~5.9.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "biome check --write --diagnostic-level=error"
+    ],
+    "*.json": [
+      "biome format --write"
+    ]
+  },
+  "packageManager": "bun@1.3.1"
+}

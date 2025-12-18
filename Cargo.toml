@@ -1,0 +1,81 @@
+[workspace]
+resolver = "2"
+members = [
+    "apps/desktop/src-tauri",
+    "crates/cadhy-core",
+    "crates/cadhy-cad",
+    "crates/cadhy-hydraulics",
+    "crates/cadhy-mesh",
+    "crates/cadhy-export",
+    "crates/cadhy-project",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["CADHY Team"]
+license = "MIT"
+repository = "https://github.com/cadhy/cadhy"
+
+[workspace.dependencies]
+# Internal crates
+cadhy-core = { path = "crates/cadhy-core" }
+cadhy-cad = { path = "crates/cadhy-cad" }
+cadhy-hydraulics = { path = "crates/cadhy-hydraulics" }
+cadhy-mesh = { path = "crates/cadhy-mesh" }
+
+# Tauri
+tauri = { version = "2", features = [] }
+tauri-build = { version = "2", features = [] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Async
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs"] }
+async-trait = "0.1"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# UUID for entity IDs
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# TypeScript type generation
+ts-rs = { version = "11", features = ["serde-compat", "uuid-impl"] }
+
+# Collections
+indexmap = { version = "2.0", features = ["serde"] }
+
+# Math library
+glam = { version = "0.29", features = ["serde"] }
+nalgebra = { version = "0.33", features = ["serde-serialize"] }
+
+# Parallelism
+rayon = "1.10"
+parking_lot = "0.12"
+
+# C++ FFI
+cxx = "1.0"
+
+# Testing
+pretty_assertions = "1.4"
+
+# Date/Time
+chrono = { version = "0.4", features = ["serde"] }
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

@@ -1,0 +1,20 @@
+[package]
+name = "cadhy-project"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Project file format and management for CADHY (.cadhy files)"
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+cadhy-core.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tempfile = "3.0"
+pretty_assertions.workspace = true

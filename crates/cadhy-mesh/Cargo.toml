@@ -1,0 +1,33 @@
+[package]
+name = "cadhy-mesh"
+version.workspace = true
+edition.workspace = true
+description = "Surface mesh generation for CADHY using OpenCASCADE TKMesh"
+license.workspace = true
+build = "build.rs"
+
+[dependencies]
+# Workspace dependencies
+cadhy-core.workspace = true
+cadhy-cad.workspace = true
+
+# Safe C++/Rust FFI
+cxx.workspace = true
+
+# Error handling
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Serialization for mesh export
+serde.workspace = true
+serde_json.workspace = true
+
+# Logging
+tracing.workspace = true
+
+[build-dependencies]
+cc = "1.0"
+cxx-build = "1.0"
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
