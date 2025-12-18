@@ -4,6 +4,7 @@
   "outputDirectory": "apps/web/dist",
   "installCommand": "bun install",
   "framework": "vite",
+  "ignoreCommand": "bash scripts/vercel-ignore.sh",
   "rewrites": [
     {
       "source": "/((?!assets/|hero/|favicon|logo|sitemap|robots|manifest).*)",
