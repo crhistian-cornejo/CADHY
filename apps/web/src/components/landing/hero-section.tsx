@@ -123,27 +123,6 @@ export function HeroSection() {
             />
           </div>
         </div>
-
-        {/* Stats Row */}
-        <div className="mt-16 pt-16 border-t border-border">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { value: "4", label: t.stats.channelTypes },
-              { value: "48K+", label: t.stats.linesOfRust },
-              { value: "3", label: t.stats.platforms },
-              { value: `v${version}`, label: t.stats.latestRelease },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-3xl font-bold text-foreground tracking-tighter mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   )

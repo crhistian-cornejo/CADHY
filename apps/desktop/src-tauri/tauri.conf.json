@@ -13,7 +13,7 @@
   "plugins": {
     "updater": {
       "active": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXkgOUIyODQ4QjRBNEMzQzI3OApSV1I0d3NPa3RFZ29teXN0NDBZMlRLaGVud3M4UXM3OGV5WkJ3MUhUOVROSGlqajdyWU05bjN3Sgo=",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXkgNzU2MUE3NTg1RjFFQTgwQwpSV1FNcUI1ZldLZGhkVU0ycEtudzJ3NEFmUXExaklIbTJLWkJhVlRKN0xVcUZMbHBVTncxOTBnNwo=",
       "endpoints": [
         "https://github.com/crhistian-cornejo/CADHY/releases/latest/download/latest.json"
       ],
