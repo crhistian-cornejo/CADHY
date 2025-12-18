@@ -12,9 +12,9 @@ import { defineConfig, type PluginOption } from "vite"
 import tsconfigPaths from "vite-tsconfig-paths"
 
 export default defineConfig({
-  // For GitHub Pages: '/' (root of cadhy-releases repo)
-  // The landing page is deployed to crhistian-cornejo.github.io/cadhy-releases/
-  base: process.env.GITHUB_PAGES ? "/cadhy-releases/" : "/",
+  // For GitHub Pages: '/' (root of CADHY repo)
+  // The landing page is deployed to crhistian-cornejo.github.io/CADHY/
+  base: process.env.GITHUB_PAGES ? "/CADHY/" : "/",
 
   plugins: [
     // MDX must run before React plugin with enforce: 'pre'

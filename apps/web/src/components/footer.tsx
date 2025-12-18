@@ -40,7 +40,7 @@ const FOOTER_LINKS = [
       {
         id: 4,
         label: "Changelog",
-        href: "https://github.com/crhistian-cornejo/cadhy-releases/releases",
+        href: "https://github.com/crhistian-cornejo/CADHY/releases",
       },
     ],
   },
@@ -59,17 +59,17 @@ const FOOTER_LINKS = [
       {
         id: 9,
         label: "GitHub Releases",
-        href: "https://github.com/crhistian-cornejo/cadhy-releases",
+        href: "https://github.com/crhistian-cornejo/CADHY",
       },
       {
         id: 10,
         label: "Discussions",
-        href: "https://github.com/crhistian-cornejo/cadhy-releases/discussions",
+        href: "https://github.com/crhistian-cornejo/CADHY/discussions",
       },
       {
         id: 11,
         label: "Report Issues",
-        href: "https://github.com/crhistian-cornejo/cadhy-releases/issues",
+        href: "https://github.com/crhistian-cornejo/CADHY/issues",
       },
       { id: 12, label: "Contact", href: "mailto:support@cadhy.app" },
     ],
@@ -134,7 +134,7 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-4 mt-2">
             <a
-              href="https://github.com/crhistian-cornejo/cadhy-releases"
+              href="https://github.com/crhistian-cornejo/CADHY"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"
@@ -269,7 +269,7 @@ export function Footer() {
               Terms of Service
             </Link>
             <a
-              href="https://github.com/crhistian-cornejo/cadhy-releases"
+              href="https://github.com/crhistian-cornejo/CADHY"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors"

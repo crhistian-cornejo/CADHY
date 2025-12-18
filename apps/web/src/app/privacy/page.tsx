@@ -113,7 +113,7 @@ export default function PrivacyPage() {
           <p className="text-muted-foreground leading-relaxed">
             If you have questions about this Privacy Policy, please open an issue on our{" "}
             <a
-              href="https://github.com/crhistian-cornejo/cadhy-releases/issues"
+              href="https://github.com/crhistian-cornejo/CADHY/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline"

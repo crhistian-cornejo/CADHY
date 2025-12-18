@@ -294,7 +294,7 @@ jobs:
       - name: Generate update manifest (latest.json)
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          RELEASES_REPO="crhistian-cornejo/cadhy-releases"
+          RELEASES_REPO="${{ github.repository }}"
 
           # Build platforms object dynamically based on available artifacts
           PLATFORMS="{"
@@ -345,10 +345,9 @@ jobs:
           echo "Generated latest.json:"
           cat artifacts/latest.json
 
-      - name: Create Release on cadhy-releases Repo
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          repository: crhistian-cornejo/cadhy-releases
           tag_name: v${{ steps.version.outputs.version }}
           name: CADHY v${{ steps.version.outputs.version }}
           body_path: changelog_body.txt
@@ -361,4 +360,4 @@ jobs:
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, 'alpha') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'rc') }}
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

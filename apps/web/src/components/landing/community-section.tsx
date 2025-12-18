@@ -183,7 +183,7 @@ export function CommunitySection() {
             transform: "translate(-50%, -50%)",
           }}
         >
-          <GraphNode href="https://github.com/crhistian-cornejo/cadhy-releases" external>
+          <GraphNode href="https://github.com/crhistian-cornejo/CADHY" external>
             <HugeiconsIcon
               icon={Github01Icon}
               size={20}
@@ -206,7 +206,7 @@ export function CommunitySection() {
           }}
         >
           <GraphNode
-            href="https://github.com/crhistian-cornejo/cadhy-releases/discussions"
+            href="https://github.com/crhistian-cornejo/CADHY/discussions"
             external
           >
             <HugeiconsIcon

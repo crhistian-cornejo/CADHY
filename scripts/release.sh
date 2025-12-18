@@ -1,5 +1,5 @@
 #!/bin/bash
-# CADHY Release Script - Triggers build in cadhy-releases repo
+# CADHY Release Script - Triggers build in CADHY repo
 set -e
 
 VERSION=$1
@@ -13,8 +13,8 @@ fi
 echo "🚀 Launching release build for v$VERSION..."
 echo ""
 
-# Trigger workflow in cadhy-releases repo
-gh api repos/crhistian-cornejo/cadhy-releases/dispatches \
+# Trigger workflow in CADHY repo
+gh api repos/crhistian-cornejo/CADHY/dispatches \
   -X POST \
   -f event_type='build-release' \
   -f "client_payload[version]=$VERSION"
@@ -22,9 +22,9 @@ gh api repos/crhistian-cornejo/cadhy-releases/dispatches \
 echo "✅ Build triggered successfully!"
 echo ""
 echo "Monitor progress:"
-echo "https://github.com/crhistian-cornejo/cadhy-releases/actions"
+echo "https://github.com/crhistian-cornejo/CADHY/actions"
 echo ""
 echo "Release will be available at:"
-echo "https://github.com/crhistian-cornejo/cadhy-releases/releases/tag/v$VERSION"
+echo "https://github.com/crhistian-cornejo/CADHY/releases/tag/v$VERSION"
 echo ""
 echo "⏱️  Estimated time: ~45 minutes"

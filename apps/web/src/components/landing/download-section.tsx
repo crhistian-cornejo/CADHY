@@ -123,7 +123,7 @@ export function DownloadSection() {
 
             <div className="space-y-4">
               <a
-                href="https://github.com/crhistian-cornejo/cadhy-releases/releases"
+                href="https://github.com/crhistian-cornejo/CADHY/releases"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full bg-muted/50 border border-border p-4 flex items-center justify-between group hover:border-foreground/50 transition-colors text-left rounded-lg"

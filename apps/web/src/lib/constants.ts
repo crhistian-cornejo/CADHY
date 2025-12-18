@@ -63,7 +63,7 @@ export const FEATURES = [
 // DOWNLOADS
 // ============================================================================
 
-export const RELEASES_REPO = "crhistian-cornejo/cadhy-releases"
+export const RELEASES_REPO = "crhistian-cornejo/CADHY"
 export const RELEASES_URL = `https://github.com/${RELEASES_REPO}/releases/latest`
 
 export const DOWNLOADS = [
@@ -113,7 +113,7 @@ export const FOOTER_SECTIONS = [
       { label: "Documentation", href: "#/docs" },
       { label: "Getting Started", href: "#/docs/getting-started/introduction" },
       { label: "API Reference", href: "#/docs/technical-reference" },
-      { label: "GitHub", href: "https://github.com/crhistian-cornejo/cadhy-releases" },
+      { label: "GitHub", href: "https://github.com/crhistian-cornejo/CADHY" },
     ],
   },
   {
@@ -135,5 +135,5 @@ export const NAV_LINKS = [
   { label: "Features", href: "/#features" },
   { label: "Roadmap", href: "/#roadmap" },
   { label: "Documentation", href: "#/docs" },
-  { label: "GitHub", href: "https://github.com/crhistian-cornejo/cadhy-releases", external: true },
+  { label: "GitHub", href: "https://github.com/crhistian-cornejo/CADHY", external: true },
 ] as const

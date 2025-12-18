@@ -31,5 +31,5 @@ jobs:
           echo "  4. Create and push a git tag"
           echo "  5. Trigger release-app.yml to build binaries"
           echo ""
-          echo "Binaries are published to: crhistian-cornejo/cadhy-releases"
+          echo "Binaries are published to: crhistian-cornejo/CADHY"
           exit 1

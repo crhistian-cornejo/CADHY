@@ -127,7 +127,7 @@ export function FAQSection() {
         <div className="mt-12 text-center">
           <p className="text-sm text-muted-foreground mb-4">Still have questions?</p>
           <a
-            href="https://github.com/crhistian-cornejo/cadhy-releases/discussions"
+            href="https://github.com/crhistian-cornejo/CADHY/discussions"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground transition-colors border border-border px-6 py-3 hover:border-foreground/50 rounded-full"
