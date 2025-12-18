@@ -141,5 +141,146 @@
     "copyright": "All rights reserved.",
     "privacy": "Privacy",
     "terms": "Terms"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: December 2025",
+    "sections": {
+      "introduction": {
+        "title": "1. Introduction",
+        "content": "CADHY (\"we\", \"our\", or \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our desktop application and website."
+      },
+      "informationWeCollect": {
+        "title": "2. Information We Collect",
+        "intro": "CADHY is designed with privacy in mind. We collect minimal data:",
+        "items": {
+          "localData": {
+            "label": "Local Data:",
+            "content": "All project files, calculations, and settings are stored locally on your device. We do not have access to your project data."
+          },
+          "aiFeatures": {
+            "label": "AI Features:",
+            "content": "If you use the AI assistant, your prompts are sent to third-party AI providers (Anthropic, OpenAI, or Google) using your own API keys. We do not store or have access to these conversations."
+          },
+          "updateChecks": {
+            "label": "Update Checks:",
+            "content": "The application may check for updates, which involves connecting to our GitHub repository. This does not transmit any personal information."
+          },
+          "websiteAnalytics": {
+            "label": "Website Analytics:",
+            "content": "Our website may use basic analytics to understand visitor patterns. No personally identifiable information is collected."
+          }
+        }
+      },
+      "howWeUse": {
+        "title": "3. How We Use Your Information",
+        "intro": "Since we collect minimal data, our use is limited to:",
+        "items": [
+          "Providing application updates and security patches",
+          "Improving our website and documentation",
+          "Responding to support requests you initiate"
+        ]
+      },
+      "thirdParty": {
+        "title": "4. Third-Party Services",
+        "intro": "CADHY integrates with optional third-party services:",
+        "items": {
+          "aiProviders": {
+            "label": "AI Providers:",
+            "content": "When using AI features, your data is subject to the privacy policies of Anthropic, OpenAI, or Google, depending on which provider you configure."
+          },
+          "github": {
+            "label": "GitHub:",
+            "content": "Updates and releases are distributed through GitHub. Their privacy policy applies to interactions with their platform."
+          }
+        }
+      },
+      "dataSecurity": {
+        "title": "5. Data Security",
+        "content": "Your project data remains on your local device. We recommend following standard security practices: keeping your operating system updated, using strong passwords, and backing up your project files regularly."
+      },
+      "yourRights": {
+        "title": "6. Your Rights",
+        "content": "Since we don't collect personal data, there is no personal information for us to provide, modify, or delete. Your project files are entirely under your control on your local device."
+      },
+      "childrensPrivacy": {
+        "title": "7. Children's Privacy",
+        "content": "CADHY is professional engineering software not directed at children under 13. We do not knowingly collect information from children."
+      },
+      "changes": {
+        "title": "8. Changes to This Policy",
+        "content": "We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated revision date."
+      },
+      "contact": {
+        "title": "9. Contact Us",
+        "content": "If you have questions about this Privacy Policy, please open an issue on our",
+        "linkText": "GitHub repository"
+      }
+    }
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last updated: December 2025",
+    "sections": {
+      "acceptance": {
+        "title": "1. Acceptance of Terms",
+        "content": "By downloading, installing, or using CADHY (\"the Software\"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Software."
+      },
+      "license": {
+        "title": "2. License Grant",
+        "intro": "Subject to these Terms, we grant you a limited, non-exclusive, non-transferable, revocable license to use the Software for personal and professional purposes.",
+        "youMayNot": "You may NOT:",
+        "items": [
+          "Reverse engineer, decompile, or disassemble the Software",
+          "Modify, adapt, or create derivative works based on the Software",
+          "Distribute, sublicense, lease, or lend the Software to third parties",
+          "Remove or alter any proprietary notices or labels",
+          "Use the Software for any unlawful purpose"
+        ]
+      },
+      "intellectualProperty": {
+        "title": "3. Intellectual Property",
+        "content": "CADHY and all related intellectual property rights are owned by us. The Software includes components built with open-source libraries (OpenCASCADE, Tauri, React, etc.) which retain their respective licenses. Your use of these components is subject to their individual license terms."
+      },
+      "userContent": {
+        "title": "4. User Content",
+        "content": "You retain all rights to the projects, designs, and data you create using CADHY. We claim no ownership over your work product. Your files are stored locally on your device and are your responsibility to backup and secure."
+      },
+      "thirdPartyServices": {
+        "title": "5. Third-Party Services",
+        "content": "CADHY may integrate with third-party services (AI providers, GitHub). Your use of these services is subject to their respective terms and conditions. We are not responsible for the availability, accuracy, or content of third-party services."
+      },
+      "disclaimer": {
+        "title": "6. Disclaimer of Warranties",
+        "content1": "THE SOFTWARE IS PROVIDED \"AS IS\" WITHOUT WARRANTY OF ANY KIND. WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.",
+        "content2": "CADHY is engineering software intended to assist professionals. All calculations, analyses, and designs should be independently verified by qualified engineers. We do not guarantee the accuracy of any calculations or results."
+      },
+      "liability": {
+        "title": "7. Limitation of Liability",
+        "content1": "TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, OR GOODWILL, ARISING FROM YOUR USE OF THE SOFTWARE.",
+        "content2": "You acknowledge that hydraulic engineering involves complex calculations and real-world conditions that software cannot fully replicate. You assume all responsibility for the application of results produced by the Software."
+      },
+      "updates": {
+        "title": "8. Updates and Modifications",
+        "content": "We may release updates, patches, or new versions of the Software at our discretion. We reserve the right to modify, suspend, or discontinue the Software at any time without notice."
+      },
+      "termination": {
+        "title": "9. Termination",
+        "content": "We may terminate your license to use the Software at any time if you violate these Terms. Upon termination, you must cease all use of the Software and delete all copies."
+      },
+      "governingLaw": {
+        "title": "10. Governing Law",
+        "content": "These Terms shall be governed by and construed in accordance with applicable laws, without regard to conflict of law principles."
+      },
+      "changesToTerms": {
+        "title": "11. Changes to Terms",
+        "content": "We reserve the right to modify these Terms at any time. Continued use of the Software after changes constitutes acceptance of the modified Terms."
+      },
+      "contact": {
+        "title": "12. Contact",
+        "content": "For questions about these Terms, please open an issue on our",
+        "linkText": "GitHub repository"
+      }
+    }
   }
 }
