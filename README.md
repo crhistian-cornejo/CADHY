@@ -10,17 +10,7 @@
 
 <p align="center">
   <a href="https://cadhy.app"><img src="https://img.shields.io/badge/Website-cadhy.app-0ea5e9?style=flat-square" alt="Website"></a>
-  <a href="https://github.com/crhistian-cornejo/CADHY/releases/latest"><img src="https://img.shields.io/github/v/release/crhistian-cornejo/CADHY?style=flat-square&color=blue&label=Download" alt="Download"></a>
-  <a href="https://github.com/crhistian-cornejo/CADHY/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/crhistian-cornejo/CADHY/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/crhistian-cornejo/CADHY/ci.yml?style=flat-square&label=CI" alt="CI"></a>
   <img src="https://img.shields.io/badge/Vercel-deployed-black?style=flat-square&logo=vercel" alt="Vercel">
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform">
-</p>
-
-<p align="center">
   <a href="https://github.com/crhistian-cornejo/CADHY/stargazers"><img src="https://img.shields.io/github/stars/crhistian-cornejo/CADHY?style=flat-square" alt="Stars"></a>
   <a href="https://github.com/crhistian-cornejo/CADHY/releases"><img src="https://img.shields.io/github/downloads/crhistian-cornejo/CADHY/total?style=flat-square&label=Downloads" alt="Downloads"></a>
 </p>
