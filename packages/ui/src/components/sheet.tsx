@@ -78,10 +78,14 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  hideDefaultClose = false,
+  fullHeight = false,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
+  hideDefaultClose?: boolean
+  fullHeight?: boolean
 }) {
   const sideClasses = {
     top: "inset-x-0 top-0 border-b",
@@ -98,6 +102,7 @@ function SheetContent({
         data-side={side}
         className={cn(
           "bg-background fixed z-50 flex flex-col gap-4 shadow-2xl",
+          fullHeight ? "h-full" : "h-auto max-h-[95vh]",
           "transition-transform duration-300 ease-out",
           side === "right" &&
             "data-[starting-style]:translate-x-full data-[ending-style]:translate-x-full",
@@ -113,7 +118,7 @@ function SheetContent({
         {...props}
       >
         {children}
-        {showCloseButton && (
+        {showCloseButton && !hideDefaultClose && (
           <SheetPrimitive.Close
             data-slot="sheet-close"
             className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-transparent text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
