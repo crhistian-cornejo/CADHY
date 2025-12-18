@@ -1,11 +1,8 @@
 "use client"
 
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
-import { Button } from "@cadhy/ui/components/button"
 
 import { cn } from "@cadhy/ui/lib/utils"
-import { Cancel01Icon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 import * as React from "react"
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
@@ -67,7 +64,8 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 bg-black/10 duration-100 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs fixed inset-0 z-50",
+        "fixed inset-0 z-50 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ease-out",
+        "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
         className
       )}
       {...props}
@@ -99,13 +97,16 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "bg-background fixed z-50 flex flex-col gap-4 bg-clip-padding text-sm shadow-lg transition duration-200 ease-in-out",
-          "data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0",
-          side === "right" && "data-closed:slide-out-to-right-10 data-open:slide-in-from-right-10",
-          side === "left" && "data-closed:slide-out-to-left-10 data-open:slide-in-from-left-10",
-          side === "top" && "data-closed:slide-out-to-top-10 data-open:slide-in-from-top-10",
+          "bg-background fixed z-50 flex flex-col gap-4 shadow-2xl",
+          "transition-transform duration-300 ease-out",
+          side === "right" &&
+            "data-[starting-style]:translate-x-full data-[ending-style]:translate-x-full",
+          side === "left" &&
+            "data-[starting-style]:-translate-x-full data-[ending-style]:-translate-x-full",
+          side === "top" &&
+            "data-[starting-style]:-translate-y-full data-[ending-style]:-translate-y-full",
           side === "bottom" &&
-            "data-closed:slide-out-to-bottom-10 data-open:slide-in-from-bottom-10",
+            "data-[starting-style]:translate-y-full data-[ending-style]:translate-y-full",
           sideClasses[side],
           className
         )}
@@ -115,17 +116,24 @@ function SheetContent({
         {showCloseButton && (
           <SheetPrimitive.Close
             data-slot="sheet-close"
-            render={
-              <Button
-                variant="ghost"
-                className="fixed top-3 right-3 z-[60] rounded-full"
-                size="icon"
-                aria-label="Close menu"
-                title="Close menu"
-              />
-            }
+            className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-transparent text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Close menu"
+            title="Close menu"
           >
-            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-5" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
             <span className="sr-only">Close menu</span>
           </SheetPrimitive.Close>
         )}
