@@ -127,7 +127,7 @@ export default function TermsPage() {
           <p className="text-muted-foreground leading-relaxed">
             For questions about these Terms, please open an issue on our{" "}
             <a
-              href="https://github.com/crhistian-cornejo/cadhy-releases/issues"
+              href="https://github.com/crhistian-cornejo/CADHY/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline"

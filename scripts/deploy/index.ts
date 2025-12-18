@@ -7,7 +7,7 @@
  *
  * Features:
  * - Builds the web application
- * - Deploys to gh-pages branch in cadhy-releases repo
+ * - Deploys to gh-pages branch in CADHY repo
  * - Supports preview mode for testing builds
  */
 
@@ -42,7 +42,7 @@ const ROOT_DIR = join(import.meta.dir, "../..")
 const WEB_DIR = join(ROOT_DIR, "apps/web")
 const DIST_DIR = join(WEB_DIR, "dist")
 const DEPLOY_DIR = join(ROOT_DIR, ".deploy-temp")
-const RELEASES_REPO = "crhistian-cornejo/cadhy-releases"
+const RELEASES_REPO = "crhistian-cornejo/CADHY"
 
 // Create readline interface
 function createRL(): readline.Interface {
@@ -274,7 +274,7 @@ async function main() {
 ${colors.green}Status:${colors.reset} Live
 
 ${colors.yellow}Your site is available at:${colors.reset}
-https://crhistian-cornejo.github.io/cadhy-releases/
+https://crhistian-cornejo.github.io/CADHY/
 
 ${colors.dim}Note: It may take a few minutes for changes to propagate.${colors.reset}
 `)

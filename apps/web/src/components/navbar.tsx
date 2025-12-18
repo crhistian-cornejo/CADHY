@@ -103,14 +103,14 @@ const MENU_GROUPS: MenuGroup[] = [
       {
         title: "GitHub",
         description: "Releases and downloads",
-        href: "https://github.com/crhistian-cornejo/cadhy-releases",
+        href: "https://github.com/crhistian-cornejo/CADHY",
         icon: Github01Icon,
         external: true,
       },
       {
         title: "Support",
         description: "Get help and report issues",
-        href: "https://github.com/crhistian-cornejo/cadhy-releases/issues",
+        href: "https://github.com/crhistian-cornejo/CADHY/issues",
         icon: HelpCircleIcon,
         external: true,
       },

@@ -112,7 +112,7 @@ export function ChangelogSection() {
               </p>
             </div>
             <a
-              href="https://github.com/crhistian-cornejo/cadhy-releases/releases"
+              href="https://github.com/crhistian-cornejo/CADHY/releases"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground transition-colors"

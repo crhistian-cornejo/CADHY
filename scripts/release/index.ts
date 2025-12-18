@@ -359,8 +359,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     }
   }
 
-  // Add version link at the bottom (releases go to cadhy-releases repo)
-  const linkLine = `[${version}]: https://github.com/crhistian-cornejo/cadhy-releases/releases/tag/v${version}`
+  // Add version link at the bottom (releases go to CADHY repo)
+  const linkLine = `[${version}]: https://github.com/crhistian-cornejo/CADHY/releases/tag/v${version}`
   if (!content.includes(linkLine)) {
     content = `${content.trimEnd()}\n${linkLine}\n`
   }
@@ -544,7 +544,7 @@ ${colors.yellow}Monitor progress:${colors.reset}
 https://github.com/crhistian-cornejo/CADHY/actions
 
 ${colors.yellow}Release will be available at:${colors.reset}
-https://github.com/crhistian-cornejo/cadhy-releases/releases/tag/v${nextVersionStr}
+https://github.com/crhistian-cornejo/CADHY/releases/tag/v${nextVersionStr}
 
 ${colors.dim}Estimated build time: ~45 minutes${colors.reset}
 `)

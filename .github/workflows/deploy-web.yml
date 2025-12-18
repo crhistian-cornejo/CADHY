@@ -1,4 +1,4 @@
-name: Deploy Landing Page to cadhy-releases
+name: Deploy Landing Page
 
 on:
   push:
@@ -12,11 +12,13 @@ on:
 
 jobs:
   build-and-deploy:
-    name: Build & Deploy to cadhy-releases
+    name: Build & Deploy to gh-pages
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout CADHY (source)
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Bun
@@ -38,11 +40,10 @@ jobs:
       - name: Add .nojekyll file
         run: touch apps/web/dist/.nojekyll
 
-      - name: Deploy to cadhy-releases gh-pages
+      - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          personal_token: ${{ secrets.RELEASES_TOKEN }}
-          external_repository: crhistian-cornejo/cadhy-releases
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: apps/web/dist
           user_name: 'github-actions[bot]'
