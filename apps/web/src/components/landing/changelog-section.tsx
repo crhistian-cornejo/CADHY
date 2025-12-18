@@ -8,6 +8,7 @@
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link } from "react-router-dom"
+import { useTranslation } from "@/lib/i18n"
 
 interface ChangelogEntry {
   version: string
@@ -45,7 +46,25 @@ function ChangelogCard({ entry }: { entry: ChangelogEntry }) {
   )
 }
 
+function PlaceholderCard({ comingSoonText }: { comingSoonText: string }) {
+  return (
+    <div className="flex-shrink-0 w-72 border border-dashed border-border/50 bg-muted/20 rounded-xl p-5">
+      <div className="flex items-center gap-3 mb-3">
+        <span className="inline-flex items-center justify-center px-2 py-0.5 border border-border/50 rounded text-xs font-mono text-muted-foreground/50">
+          ?.?.?
+        </span>
+        <span className="text-xs text-muted-foreground/50">{comingSoonText}</span>
+      </div>
+      <p className="text-sm text-muted-foreground/50 leading-relaxed">
+        More features and improvements on the way.
+      </p>
+    </div>
+  )
+}
+
 export function ChangelogSection() {
+  const { t } = useTranslation()
+
   return (
     <section
       className="relative bg-background border-t border-border py-20 px-8 lg:px-16"
@@ -54,7 +73,7 @@ export function ChangelogSection() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <h2 className="text-3xl lg:text-4xl font-bold tracking-tighter text-foreground mb-8">
-          Changelog
+          {t.changelog.title}
         </h2>
 
         {/* Horizontal scroll cards */}
@@ -66,20 +85,10 @@ export function ChangelogSection() {
           {/* Placeholder cards for visual balance */}
           {CHANGELOG_ENTRIES.length < 4 &&
             Array.from({ length: 4 - CHANGELOG_ENTRIES.length }).map((_, i) => (
-              <div
-                key={`placeholder-${i}`}
-                className="flex-shrink-0 w-72 border border-dashed border-border/50 bg-muted/20 rounded-xl p-5"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 border border-border/50 rounded text-xs font-mono text-muted-foreground/50">
-                    ?.?.?
-                  </span>
-                  <span className="text-xs text-muted-foreground/50">Coming soon</span>
-                </div>
-                <p className="text-sm text-muted-foreground/50 leading-relaxed">
-                  More features and improvements on the way.
-                </p>
-              </div>
+              <PlaceholderCard
+                key={`placeholder-${CHANGELOG_ENTRIES.length + i}`}
+                comingSoonText={t.common.comingSoon}
+              />
             ))}
         </div>
 
@@ -88,7 +97,7 @@ export function ChangelogSection() {
           to="/download"
           className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-6"
         >
-          See what's new in CADHY
+          {t.changelog.allReleases}
           <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
         </Link>
       </div>

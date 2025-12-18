@@ -1,0 +1,145 @@
+{
+  "common": {
+    "download": "Descargar",
+    "documentation": "Documentación",
+    "learnMore": "Más información",
+    "viewAll": "Ver todo",
+    "comingSoon": "Próximamente",
+    "loading": "Cargando...",
+    "version": "Versión",
+    "latest": "Última",
+    "available": "DISPONIBLE",
+    "changelog": "Changelog",
+    "language": "Idioma",
+    "english": "Inglés",
+    "spanish": "Español"
+  },
+  "nav": {
+    "product": "Producto",
+    "resources": "Recursos",
+    "features": "Características",
+    "featuresDesc": "Explora las capacidades de CADHY",
+    "roadmap": "Hoja de Ruta",
+    "roadmapDesc": "Ve lo que estamos construyendo",
+    "downloadNav": "Descargar",
+    "downloadDesc": "Obtén CADHY para tu plataforma",
+    "faq": "Preguntas",
+    "faqDesc": "Preguntas frecuentes",
+    "github": "GitHub",
+    "githubDesc": "Releases y descargas",
+    "support": "Soporte",
+    "supportDesc": "Obtén ayuda y reporta problemas",
+    "docs": "Documentación",
+    "downloadFor": "Descargar para"
+  },
+  "hero": {
+    "title": "Análisis Computacional y Diseño",
+    "titleHighlight": "para Hidráulica",
+    "description": "Aplicación de escritorio para diseñar y analizar estructuras hidráulicas de canales abiertos. Motor CAD potente con herramientas de análisis hidráulico en un entorno integrado.",
+    "downloadFor": "Descargar para",
+    "downloadFree": "Descargar Gratis",
+    "viewDownloads": "Ver Descargas"
+  },
+  "stats": {
+    "channelTypes": "Tipos de Canal",
+    "linesOfRust": "Líneas de Rust",
+    "platforms": "Plataformas",
+    "latestRelease": "Última Versión"
+  },
+  "features": {
+    "badge": "CARACTERÍSTICAS",
+    "title": "Todo lo que Necesitas para Análisis Hidráulico",
+    "description": "Desde flujo en canales abiertos hasta estructuras hidráulicas, CADHY proporciona herramientas completas para ingeniería hidráulica.",
+    "3dModeling": {
+      "title": "Modelado 3D de Canales",
+      "description": "Crea canales rectangulares, trapezoidales y triangulares con visualización 3D en tiempo real."
+    },
+    "hydraulicAnalysis": {
+      "title": "Análisis Hidráulico",
+      "description": "Calcula tirante normal, tirante crítico, número de Froude y características de flujo usando la ecuación de Manning."
+    },
+    "structures": {
+      "title": "Estructuras Hidráulicas",
+      "description": "Diseña transiciones, caídas, rápidas y cuencos disipadores de energía (USBR Tipos I-IV, SAF)."
+    },
+    "waterSurface": {
+      "title": "Perfiles de Superficie",
+      "description": "Calcula perfiles de flujo gradualmente variado (FGV) usando el Método del Paso Estándar con clasificación M1, M2, S1, S2."
+    },
+    "cadExport": {
+      "title": "Exportación CAD",
+      "description": "Exporta geometría a formatos STL, OBJ, STEP y glTF para usar en otro software CAD."
+    },
+    "aiAssistant": {
+      "title": "Asistente IA",
+      "description": "Soporte multi-proveedor (Claude, GPT, Gemini) con respuestas en streaming para ayudar con cálculos hidráulicos."
+    }
+  },
+  "changelog": {
+    "badge": "CHANGELOG",
+    "title": "Novedades",
+    "description": "Últimas actualizaciones y mejoras de CADHY.",
+    "viewReleaseNotes": "Ver notas de versión",
+    "allReleases": "Todas las versiones"
+  },
+  "faq": {
+    "badge": "FAQ",
+    "title": "Preguntas Frecuentes",
+    "description": "Preguntas comunes sobre CADHY e ingeniería hidráulica.",
+    "contact": "¿Aún tienes preguntas?",
+    "contactLink": "Abre una discusión en GitHub"
+  },
+  "downloadCta": {
+    "title": "Prueba CADHY ahora.",
+    "downloadFor": "Descargar para",
+    "downloadFree": "Descargar Gratis",
+    "readDocs": "Leer documentación",
+    "availableFor": "Disponible para",
+    "and": "y",
+    "linuxSoon": "Linux (pronto)"
+  },
+  "download": {
+    "title": "Descargar CADHY",
+    "description": "Disponible para macOS y Windows. Linux próximamente.",
+    "downloadFor": "Descargar para",
+    "viewDownloads": "Ver Descargas",
+    "viewReleaseNotes": "Ver notas de versión",
+    "previousVersions": "Versiones Anteriores",
+    "errorFetching": "No se pudieron obtener las releases de GitHub. Visita la página de releases directamente:",
+    "viewOnGithub": "Ver en GitHub",
+    "appleSilicon": "Apple Silicon",
+    "intel": "Intel",
+    "universal": "Universal",
+    "msiInstaller": "Instalador MSI",
+    "exeInstaller": "Instalador EXE"
+  },
+  "roadmap": {
+    "badge": "HOJA DE RUTA",
+    "title": "Próximamente",
+    "description": "Nuestra hoja de ruta de desarrollo. Sigue los hitos completados y las próximas características.",
+    "suggestFeature": "SUGERIR CARACTERÍSTICA",
+    "completed": "COMPLETADO",
+    "inProgress": "EN PROGRESO",
+    "planned": "PLANIFICADO"
+  },
+  "footer": {
+    "product": "Producto",
+    "resources": "Recursos",
+    "engineering": "Ingeniería",
+    "features": "Características",
+    "roadmap": "Hoja de Ruta",
+    "changelog": "Changelog",
+    "downloads": "Descargas",
+    "docs": "Documentación",
+    "gettingStarted": "Primeros Pasos",
+    "apiReference": "Referencia API",
+    "github": "GitHub",
+    "openChannels": "Canales Abiertos",
+    "pipeNetworks": "Redes de Tuberías",
+    "gvfAnalysis": "Análisis FGV",
+    "aiIntegration": "Integración IA",
+    "copyright": "Todos los derechos reservados.",
+    "privacy": "Privacidad",
+    "terms": "Términos"
+  }
+}

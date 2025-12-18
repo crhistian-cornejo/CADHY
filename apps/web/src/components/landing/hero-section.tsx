@@ -9,6 +9,7 @@
 import { ArrowRight01Icon, Download02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link } from "react-router-dom"
+import { useTranslation } from "@/lib/i18n"
 import { useReleases } from "@/lib/use-releases"
 
 // Get base path from Vite (handles GitHub Pages deployment)
@@ -23,6 +24,7 @@ const PlatformNames: Record<string, string> = {
 
 export function HeroSection() {
   const { latestRelease, recommendedDownload, userPlatform, loading } = useReleases()
+  const { t } = useTranslation()
   const platformName = PlatformNames[userPlatform] || "Desktop"
   const version = latestRelease?.version || "0.1.0"
 
@@ -35,13 +37,13 @@ export function HeroSection() {
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-2 px-3 py-1 border border-border bg-card text-xs font-bold text-muted-foreground rounded-full">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />v{version}{" "}
-              AVAILABLE
+              {t.common.available}
             </span>
             <a
               href="#changelog"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
-              Changelog
+              {t.common.changelog}
               <HugeiconsIcon icon={ArrowRight01Icon} size={12} />
             </a>
           </div>
@@ -49,12 +51,10 @@ export function HeroSection() {
           {/* Headline */}
           <div className="space-y-4 max-w-3xl">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter text-foreground leading-[1.1]">
-              Computational Analysis & Design{" "}
-              <span className="text-muted-foreground">for Hydraulics</span>
+              {t.hero.title} <span className="text-muted-foreground">{t.hero.titleHighlight}</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Desktop application for designing and analyzing open channel hydraulic structures.
-              Powerful CAD engine with hydraulic analysis tools in one integrated environment.
+              {t.hero.description}
             </p>
           </div>
 
@@ -63,7 +63,7 @@ export function HeroSection() {
             {loading ? (
               <div className="inline-flex items-center gap-3 px-6 py-3 bg-foreground/10 text-foreground font-bold text-sm rounded-lg">
                 <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
-                Loading...
+                {t.common.loading}
               </div>
             ) : recommendedDownload ? (
               <a
@@ -72,7 +72,7 @@ export function HeroSection() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-3 px-6 py-3 bg-foreground text-background font-bold text-sm hover:bg-foreground/90 transition-colors rounded-lg"
               >
-                Download for {platformName}
+                {t.hero.downloadFor} {platformName}
                 <HugeiconsIcon icon={Download02Icon} size={18} />
               </a>
             ) : (
@@ -81,7 +81,7 @@ export function HeroSection() {
                 className="inline-flex items-center gap-3 px-6 py-3 bg-foreground text-background font-bold text-sm hover:bg-foreground/90 transition-colors rounded-lg"
               >
                 <HugeiconsIcon icon={Download02Icon} size={18} />
-                Download Free
+                {t.hero.downloadFree}
               </Link>
             )}
 
@@ -89,7 +89,7 @@ export function HeroSection() {
               to="/docs"
               className="inline-flex items-center gap-2 px-6 py-3 border border-border bg-card hover:border-foreground/50 text-foreground font-medium text-sm transition-colors rounded-lg"
             >
-              Documentation
+              {t.common.documentation}
               <HugeiconsIcon icon={ArrowRight01Icon} size={14} className="text-muted-foreground" />
             </Link>
           </div>
@@ -128,10 +128,10 @@ export function HeroSection() {
         <div className="mt-16 pt-16 border-t border-border">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { value: "4", label: "Channel Types" },
-              { value: "48K+", label: "Lines of Rust" },
-              { value: "3", label: "Platforms" },
-              { value: `v${version}`, label: "Latest Release" },
+              { value: "4", label: t.stats.channelTypes },
+              { value: "48K+", label: t.stats.linesOfRust },
+              { value: "3", label: t.stats.platforms },
+              { value: `v${version}`, label: t.stats.latestRelease },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-bold text-foreground tracking-tighter mb-1">

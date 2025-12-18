@@ -11,6 +11,7 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { LinuxIcon, MacIcon, WindowsIcon } from "@/components/icons/platform-icons"
 import { SEO } from "@/components/seo"
+import { useTranslation } from "@/lib/i18n"
 import {
   formatSize,
   getAssetsByPlatform,
@@ -37,25 +38,13 @@ const PlatformNames: Record<Platform, string> = {
   unknown: "Other",
 }
 
-function getArchLabel(asset: ReleaseAsset): string {
-  if (asset.platform === "macos") {
-    if (asset.architecture === "arm64") return "Apple Silicon"
-    if (asset.architecture === "x64") return "Intel"
-    if (asset.architecture === "universal") return "Universal"
-  }
-  if (asset.platform === "windows") {
-    const arch = asset.architecture === "arm64" ? "ARM64" : "x64"
-    const type = asset.fileType === "msi" ? "MSI Installer" : "EXE Installer"
-    return `${type} (${arch})`
-  }
-  if (asset.platform === "linux") {
-    const arch = asset.architecture === "arm64" ? "ARM64" : "x64"
-    return `${asset.fileType.toUpperCase()} (${arch})`
-  }
-  return asset.architecture
-}
-
-function AssetRow({ asset }: { asset: ReleaseAsset }) {
+function AssetRow({
+  asset,
+  getArchLabel,
+}: {
+  asset: ReleaseAsset
+  getArchLabel: (asset: ReleaseAsset) => string
+}) {
   return (
     <a
       href={asset.url}
@@ -76,7 +65,17 @@ function AssetRow({ asset }: { asset: ReleaseAsset }) {
   )
 }
 
-function PlatformCard({ platform, assets }: { platform: Platform; assets: ReleaseAsset[] }) {
+function PlatformCard({
+  platform,
+  assets,
+  comingSoonText,
+  getArchLabel,
+}: {
+  platform: Platform
+  assets: ReleaseAsset[]
+  comingSoonText: string
+  getArchLabel: (asset: ReleaseAsset) => string
+}) {
   const Icon = PlatformIcons[platform]
   const name = PlatformNames[platform]
 
@@ -87,7 +86,7 @@ function PlatformCard({ platform, assets }: { platform: Platform; assets: Releas
           <Icon className="w-5 h-5" />
           <span className="font-medium text-foreground">{name}</span>
         </div>
-        <div className="p-5 text-center text-sm text-muted-foreground">Coming soon</div>
+        <div className="p-5 text-center text-sm text-muted-foreground">{comingSoonText}</div>
       </div>
     )
   }
@@ -100,7 +99,7 @@ function PlatformCard({ platform, assets }: { platform: Platform; assets: Releas
       </div>
       <div className="divide-y divide-border">
         {assets.map((asset) => (
-          <AssetRow key={asset.name} asset={asset} />
+          <AssetRow key={asset.name} asset={asset} getArchLabel={getArchLabel} />
         ))}
       </div>
     </div>
@@ -111,10 +110,18 @@ function ReleaseAccordion({
   release,
   isOpen,
   onToggle,
+  latestText,
+  viewReleaseNotesText,
+  comingSoonText,
+  getArchLabel,
 }: {
   release: Release
   isOpen: boolean
   onToggle: () => void
+  latestText: string
+  viewReleaseNotesText: string
+  comingSoonText: string
+  getArchLabel: (asset: ReleaseAsset) => string
 }) {
   const assetsByPlatform = getAssetsByPlatform(release.assets)
 
@@ -131,7 +138,7 @@ function ReleaseAccordion({
           </span>
           {release.isLatest && (
             <span className="text-[10px] font-bold tracking-widest px-2 py-0.5 border border-border bg-muted text-muted-foreground rounded">
-              Latest
+              {latestText}
             </span>
           )}
         </div>
@@ -149,9 +156,24 @@ function ReleaseAccordion({
       {isOpen && (
         <div className="border-t border-border p-5 bg-muted/10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <PlatformCard platform="macos" assets={assetsByPlatform.macos} />
-            <PlatformCard platform="windows" assets={assetsByPlatform.windows} />
-            <PlatformCard platform="linux" assets={assetsByPlatform.linux} />
+            <PlatformCard
+              platform="macos"
+              assets={assetsByPlatform.macos}
+              comingSoonText={comingSoonText}
+              getArchLabel={getArchLabel}
+            />
+            <PlatformCard
+              platform="windows"
+              assets={assetsByPlatform.windows}
+              comingSoonText={comingSoonText}
+              getArchLabel={getArchLabel}
+            />
+            <PlatformCard
+              platform="linux"
+              assets={assetsByPlatform.linux}
+              comingSoonText={comingSoonText}
+              getArchLabel={getArchLabel}
+            />
           </div>
 
           <Link
@@ -160,7 +182,7 @@ function ReleaseAccordion({
             rel="noopener noreferrer"
             className="text-sm text-primary hover:underline flex items-center gap-1"
           >
-            View release notes →
+            {viewReleaseNotesText} →
           </Link>
         </div>
       )}
@@ -172,6 +194,7 @@ export default function DownloadPage() {
   const { releases, latestRelease, recommendedDownload, userPlatform, loading, error } =
     useReleases()
   const [openRelease, setOpenRelease] = useState<string | null>(null)
+  const { t, language } = useTranslation()
 
   // Fallback data if API fails
   const fallbackVersion = "0.1.0"
@@ -183,12 +206,33 @@ export default function DownloadPage() {
   // Latest release assets by platform
   const latestAssets = latestRelease ? getAssetsByPlatform(latestRelease.assets) : null
 
+  // Get architecture label based on language
+  const getArchLabel = (asset: ReleaseAsset): string => {
+    if (asset.platform === "macos") {
+      if (asset.architecture === "arm64") return t.download.appleSilicon
+      if (asset.architecture === "x64") return t.download.intel
+      if (asset.architecture === "universal") return t.download.universal
+    }
+    if (asset.platform === "windows") {
+      const arch = asset.architecture === "arm64" ? "ARM64" : "x64"
+      const type = asset.fileType === "msi" ? t.download.msiInstaller : t.download.exeInstaller
+      return `${type} (${arch})`
+    }
+    if (asset.platform === "linux") {
+      const arch = asset.architecture === "arm64" ? "ARM64" : "x64"
+      return `${asset.fileType.toUpperCase()} (${arch})`
+    }
+    return asset.architecture
+  }
+
+  const seoDescription =
+    language === "es"
+      ? "Descarga CADHY para Windows, macOS y Linux. Software CAD gratuito para ingeniería hidráulica."
+      : "Download CADHY for Windows, macOS, and Linux. Free hydraulic engineering CAD software."
+
   return (
     <>
-      <SEO
-        title="Download"
-        description="Download CADHY for Windows, macOS, and Linux. Free hydraulic engineering CAD software."
-      />
+      <SEO title={t.download.title} description={seoDescription} />
 
       <div className="py-16 px-8 lg:px-16">
         <div className="max-w-5xl mx-auto">
@@ -201,15 +245,15 @@ export default function DownloadPage() {
             />
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">
-                Download CADHY
+                {t.download.title}
               </h1>
-              <p className="text-muted-foreground">Available for macOS, Windows, and Linux.</p>
+              <p className="text-muted-foreground">{t.download.description}</p>
 
               {/* Smart download button */}
               {loading ? (
                 <div className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 border border-border bg-muted rounded-lg text-sm text-muted-foreground">
                   <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-                  Loading...
+                  {t.common.loading}
                 </div>
               ) : recommendedDownload ? (
                 <a
@@ -218,7 +262,7 @@ export default function DownloadPage() {
                   rel="noopener noreferrer"
                   className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 border border-border bg-foreground text-background rounded-lg text-sm font-medium hover:bg-foreground/90 transition-colors"
                 >
-                  Download for {platformName}
+                  {t.download.downloadFor} {platformName}
                   <HugeiconsIcon icon={Download02Icon} size={16} />
                 </a>
               ) : (
@@ -228,7 +272,7 @@ export default function DownloadPage() {
                   rel="noopener noreferrer"
                   className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 border border-border bg-foreground text-background rounded-lg text-sm font-medium hover:bg-foreground/90 transition-colors"
                 >
-                  View Downloads
+                  {t.download.viewDownloads}
                   <HugeiconsIcon icon={Download02Icon} size={16} />
                 </a>
               )}
@@ -243,14 +287,29 @@ export default function DownloadPage() {
                   {displayVersion}
                 </span>
                 <span className="text-[10px] font-bold tracking-widest px-2 py-0.5 border border-border bg-muted text-muted-foreground rounded">
-                  Latest
+                  {t.common.latest}
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <PlatformCard platform="macos" assets={latestAssets.macos} />
-                <PlatformCard platform="windows" assets={latestAssets.windows} />
-                <PlatformCard platform="linux" assets={latestAssets.linux} />
+                <PlatformCard
+                  platform="macos"
+                  assets={latestAssets.macos}
+                  comingSoonText={t.common.comingSoon}
+                  getArchLabel={getArchLabel}
+                />
+                <PlatformCard
+                  platform="windows"
+                  assets={latestAssets.windows}
+                  comingSoonText={t.common.comingSoon}
+                  getArchLabel={getArchLabel}
+                />
+                <PlatformCard
+                  platform="linux"
+                  assets={latestAssets.linux}
+                  comingSoonText={t.common.comingSoon}
+                  getArchLabel={getArchLabel}
+                />
               </div>
 
               <Link
@@ -259,7 +318,7 @@ export default function DownloadPage() {
                 rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline flex items-center gap-1"
               >
-                View release notes →
+                {t.download.viewReleaseNotes} →
               </Link>
             </div>
           )}
@@ -267,16 +326,14 @@ export default function DownloadPage() {
           {/* Error state */}
           {error && !latestRelease && (
             <div className="mb-8 p-6 border border-border bg-card rounded-xl">
-              <p className="text-muted-foreground mb-4">
-                Unable to fetch releases from GitHub. Please visit the releases page directly:
-              </p>
+              <p className="text-muted-foreground mb-4">{t.download.errorFetching}</p>
               <a
                 href="https://github.com/crhistian-cornejo/CADHY/releases"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 border border-border bg-muted rounded-lg text-sm hover:bg-muted/70 transition-colors"
               >
-                View on GitHub
+                {t.download.viewOnGithub}
                 <HugeiconsIcon icon={Download02Icon} size={16} />
               </a>
             </div>
@@ -285,6 +342,9 @@ export default function DownloadPage() {
           {/* Previous versions */}
           {releases.length > 1 && (
             <div className="space-y-3">
+              <h2 className="text-xl font-bold text-foreground mb-4">
+                {t.download.previousVersions}
+              </h2>
               {releases.slice(1).map((release) => (
                 <ReleaseAccordion
                   key={release.tagName}
@@ -293,6 +353,10 @@ export default function DownloadPage() {
                   onToggle={() =>
                     setOpenRelease(openRelease === release.tagName ? null : release.tagName)
                   }
+                  latestText={t.common.latest}
+                  viewReleaseNotesText={t.download.viewReleaseNotes}
+                  comingSoonText={t.common.comingSoon}
+                  getArchLabel={getArchLabel}
                 />
               ))}
             </div>
