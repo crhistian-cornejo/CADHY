@@ -44,10 +44,11 @@ CADHY's first public release brings a powerful desktop application for designing
 - Shape properties analysis
 
 #### Export
-- STL format (ASCII and Binary)
-- OBJ format (Wavefront)
-- STEP format (ISO 10303)
-- glTF/GLB format
+- STL format (ASCII and Binary) — All platforms
+- STEP format (ISO 10303) — All platforms
+- OBJ format (Wavefront) — Windows/macOS only
+- glTF/GLB format — Windows/macOS only
+- PLY format — Windows/macOS only
 
 #### User Interface
 - Modern React-based interface
@@ -66,7 +67,7 @@ CADHY's first public release brings a powerful desktop application for designing
 
 - Circular channel sections not yet exposed in UI (backend ready)
 - Compound channels with bermas not yet in UI (backend ready)
-- Linux builds may have issues with older OCCT versions (v7.5)
+- **Linux:** Limited export formats (STL/STEP only) due to system OpenCASCADE 7.5.x. Full export support (glTF, OBJ, PLY) requires OCCT 7.6+ which is not available in Ubuntu 22.04 repositories
 - macOS x64 builds temporarily disabled (requires dedicated runner)
 
 ---

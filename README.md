@@ -12,7 +12,7 @@
   <a href="https://github.com/crhistian-cornejo/CADHY/releases"><img src="https://img.shields.io/github/v/release/crhistian-cornejo/CADHY?style=flat-square&color=blue" alt="Release"></a>
   <a href="https://github.com/crhistian-cornejo/CADHY/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
   <a href="https://github.com/crhistian-cornejo/CADHY/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/crhistian-cornejo/CADHY/ci.yml?style=flat-square&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux*-lightgrey?style=flat-square" alt="Platform">
 </p>
 
 ---
@@ -55,11 +55,13 @@ Traditional hydraulic design requires switching between multiple tools: spreadsh
 
 Get the latest release for your platform:
 
-| Platform | Download |
-|----------|----------|
-| Windows | [CADHY_x64-setup.exe](https://github.com/crhistian-cornejo/CADHY/releases/latest) |
-| macOS (Apple Silicon) | [CADHY_aarch64.dmg](https://github.com/crhistian-cornejo/CADHY/releases/latest) |
-| Linux | [CADHY_amd64.AppImage](https://github.com/crhistian-cornejo/CADHY/releases/latest) |
+| Platform | Download | Notes |
+|----------|----------|-------|
+| Windows | [CADHY_x64-setup.exe](https://github.com/crhistian-cornejo/CADHY/releases/latest) | Full features |
+| macOS (Apple Silicon) | [CADHY_aarch64.dmg](https://github.com/crhistian-cornejo/CADHY/releases/latest) | Full features |
+| Linux | [CADHY_amd64.AppImage](https://github.com/crhistian-cornejo/CADHY/releases/latest) | Limited export* |
+
+> **\*Linux Note:** Linux builds use system OpenCASCADE 7.5 which lacks glTF, OBJ, and PLY export. STL and STEP export work normally. Full Linux support coming in a future release.
 
 ### Build from Source
 
@@ -112,10 +114,13 @@ bun build
 - Water surface profiles (GVF)
 
 ### Export Formats
-- STL (ASCII and Binary)
-- OBJ (Wavefront)
-- STEP (ISO 10303)
-- glTF/GLB
+- STL (ASCII and Binary) — All platforms
+- STEP (ISO 10303) — All platforms
+- OBJ (Wavefront) — Windows/macOS only*
+- glTF/GLB — Windows/macOS only*
+- PLY — Windows/macOS only*
+
+*See Linux note above regarding export limitations.
 
 ---
 
