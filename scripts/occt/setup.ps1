@@ -4,7 +4,17 @@
 
 $ErrorActionPreference = "Stop"
 
-$PROJECT_ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+# Calculate project root correctly
+# Script is at: scripts/occt/setup.ps1 (3 levels deep from root)
+# In CI, prefer GITHUB_WORKSPACE for reliability
+if ($env:GITHUB_WORKSPACE) {
+    $PROJECT_ROOT = $env:GITHUB_WORKSPACE
+} else {
+    $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path  # scripts/occt
+    $ScriptsDir = Split-Path -Parent $ScriptDir                   # scripts
+    $PROJECT_ROOT = Split-Path -Parent $ScriptsDir                # root
+}
+
 $DEPS_DIR = Join-Path $PROJECT_ROOT "deps"
 $OCCT_VERSION = "7.9.2"
 $OCCT_TAG = "V7_9_2"

@@ -18,9 +18,16 @@
 
 $ErrorActionPreference = "Stop"
 
-# Get project root
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ProjectRoot = Split-Path -Parent (Split-Path -Parent $ScriptDir)
+# Calculate project root correctly
+# Script is at: scripts/occt/copy-dlls.ps1 (3 levels deep from root)
+# In CI, prefer GITHUB_WORKSPACE for reliability
+if ($env:GITHUB_WORKSPACE) {
+    $ProjectRoot = $env:GITHUB_WORKSPACE
+} else {
+    $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path  # scripts/occt
+    $ScriptsDir = Split-Path -Parent $ScriptDir                   # scripts
+    $ProjectRoot = Split-Path -Parent $ScriptsDir                 # root
+}
 
 # Source directories
 $OcctRoot = Join-Path $ProjectRoot "deps\occt-7.9.2"
