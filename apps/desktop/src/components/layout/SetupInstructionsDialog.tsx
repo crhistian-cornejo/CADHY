@@ -33,7 +33,7 @@ import { useTranslation } from "react-i18next"
 // TYPES
 // ============================================================================
 
-export type SetupType = "gemini" | "ollama" | "ollama-cloud"
+export type SetupType = "ollama" | "ollama-cloud"
 
 interface SetupInstructionsDialogProps {
   open: boolean
@@ -168,48 +168,6 @@ export function SetupInstructionsDialog({
   // Get steps based on type
   const getSteps = (): SetupStep[] => {
     switch (type) {
-      case "gemini":
-        return [
-          {
-            id: "install",
-            icon: <HugeiconsIcon icon={Download01Icon} className="size-4" />,
-            title: t("setup.gemini.step1.title", "Install Gemini CLI"),
-            description: t(
-              "setup.gemini.step1.desc",
-              "Install the official Google Gemini CLI tool globally using npm."
-            ),
-            command: "npm install -g @google/gemini-cli",
-          },
-          {
-            id: "run",
-            icon: <HugeiconsIcon icon={CommandLineIcon} className="size-4" />,
-            title: t("setup.gemini.step2.title", "Run Gemini"),
-            description: t(
-              "setup.gemini.step2.desc",
-              "Open a terminal and run the gemini command. This will open a browser for authentication."
-            ),
-            command: "gemini",
-          },
-          {
-            id: "signin",
-            icon: <HugeiconsIcon icon={UserIcon} className="size-4" />,
-            title: t("setup.gemini.step3.title", "Sign in with Google"),
-            description: t(
-              "setup.gemini.step3.desc",
-              "In the browser that opens, sign in with your Google account and authorize the CLI."
-            ),
-          },
-          {
-            id: "restart",
-            icon: <HugeiconsIcon icon={RefreshIcon} className="size-4" />,
-            title: t("setup.gemini.step4.title", "Restart CADHY"),
-            description: t(
-              "setup.gemini.step4.desc",
-              "Close and reopen CADHY. It will automatically detect your Gemini credentials."
-            ),
-          },
-        ]
-
       case "ollama":
         return [
           {
@@ -312,8 +270,6 @@ export function SetupInstructionsDialog({
 
   const getTitle = () => {
     switch (type) {
-      case "gemini":
-        return t("setup.gemini.title", "Set up Gemini OAuth")
       case "ollama":
         return t("setup.ollama.title", "Set up Ollama (Local)")
       case "ollama-cloud":
@@ -325,11 +281,6 @@ export function SetupInstructionsDialog({
 
   const getDescription = () => {
     switch (type) {
-      case "gemini":
-        return t(
-          "setup.gemini.description",
-          "Use AI for free with your Google account. No API key required."
-        )
       case "ollama":
         return t(
           "setup.ollama.description",
