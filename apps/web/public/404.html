@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CADHY - Redirecting...</title>
+    <script>
+      // Single Page Apps for GitHub Pages
+      // https://github.com/rafgraph/spa-github-pages
+      // This script takes the current URL and converts the path and query
+      // string into just a query string, and then redirects the browser
+      // to the new URL with only a query string and hash fragment.
+
+      // Get the repo name from the path (for GitHub Pages)
+      const pathSegments = window.location.pathname.split('/');
+      const repoName = pathSegments[1]; // 'cadhy-releases'
+
+      // Get the path after the repo name
+      const pathAfterRepo = `/${pathSegments.slice(2).join('/')}`;
+
+      // Store the path in sessionStorage for the main app to restore
+      sessionStorage.setItem('spa-redirect-path', pathAfterRepo);
+
+      // Redirect to the base URL
+      window.location.replace(
+        window.location.origin + '/' + repoName + '/' +
+        (window.location.search ? window.location.search : '') +
+        (window.location.hash ? window.location.hash : '')
+      );
+    </script>
+  </head>
+  <body>
+    <p>Redirecting...</p>
+  </body>
+</html>

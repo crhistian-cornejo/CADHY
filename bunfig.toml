@@ -1,0 +1,10 @@
+# Bun configuration for CADHY monorepo
+# https://bun.sh/docs/runtime/bunfig
+
+[test]
+# Preload the desktop test setup to enable DOM environment for React component tests
+# This is required when running `bun test` from the root directory
+preload = ["./apps/desktop/src/__tests__/setup.ts"]
+
+[test.env]
+NODE_ENV = "test"

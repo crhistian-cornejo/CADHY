@@ -1,0 +1,69 @@
+---
+title: Installation
+description: Install CADHY on your system
+---
+
+# Installation
+
+CADHY is available for Windows, macOS, and Linux. Follow the instructions below for your operating system.
+
+## System Requirements
+
+- **OS**: Windows 10+, macOS 10.15+, or Linux (Ubuntu 20.04+)
+- **RAM**: 4 GB minimum, 8 GB recommended
+- **Storage**: 500 MB free space
+- **Display**: 1280x720 minimum resolution
+
+## Windows
+
+1. Download the latest `.msi` installer from the [releases page](https://github.com/cadhy-software/cadhy/releases)
+2. Run the installer and follow the prompts
+3. CADHY will be available in your Start menu
+
+## macOS
+
+1. Download the latest `.dmg` file from the [releases page](https://github.com/cadhy-software/cadhy/releases)
+2. Open the DMG and drag CADHY to your Applications folder
+3. On first launch, you may need to right-click and select "Open" to bypass Gatekeeper
+
+### Apple Silicon (M1/M2/M3)
+
+CADHY runs natively on Apple Silicon. No Rosetta 2 required.
+
+## Linux
+
+### Debian/Ubuntu
+
+```bash
+# Download the .deb package
+wget https://github.com/cadhy-software/cadhy/releases/latest/download/cadhy_0.1.0_amd64.deb
+
+# Install
+sudo dpkg -i cadhy_0.1.0_amd64.deb
+```
+
+### AppImage (Universal)
+
+```bash
+# Download the AppImage
+wget https://github.com/cadhy-software/cadhy/releases/latest/download/CADHY-0.1.0.AppImage
+
+# Make executable
+chmod +x CADHY-0.1.0.AppImage
+
+# Run
+./CADHY-0.1.0.AppImage
+```
+
+## Verify Installation
+
+After installation, launch CADHY and check the version in **Help → About**. You should see:
+
+- Version: 0.1.0
+- Rust Backend: Connected
+- AI Services: Ready (requires API key configuration)
+
+## Next Steps
+
+- [Quick Start Guide](/docs/getting-started/quick-start) - Create your first analysis
+- [Configure AI](/docs/ai-features/quick-start) - Set up AI assistance

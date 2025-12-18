@@ -1,0 +1,17 @@
+[package]
+name = "cadhy-export"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure Rust mesh export for CADHY (STL ASCII/Binary, OBJ)"
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+cadhy-core.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+tempfile = "3.0"
+pretty_assertions.workspace = true

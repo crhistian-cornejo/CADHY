@@ -1,0 +1,62 @@
+<svg width="1024" height="1024" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- GraphCAD Logo - Dark Theme: Black background, White logo -->
+  <!-- Base size: 1024x1024 for Tauri icon generation -->
+  
+  <!-- Black background with rounded corners for macOS icon style -->
+  <rect width="32" height="32" rx="6" ry="6" fill="#000000"/>
+  
+  <!-- Top hexagon/cube (center of composition) -->
+  <g transform="translate(16, 11.25)">
+    <path 
+      d="M 0 -8 L 6.93 -4 L 6.93 4 L 0 8 L -6.93 4 L -6.93 -4 Z" 
+      fill="none" 
+      stroke="#FFFFFF" 
+      stroke-width="0.7" 
+      stroke-linejoin="round"
+    />
+    <path 
+      d="M 0 0 L 0 8 M 0 0 L 6.93 -4 M 0 0 L -6.93 -4" 
+      fill="none" 
+      stroke="#FFFFFF" 
+      stroke-width="0.4" 
+      opacity="0.6"
+    />
+  </g>
+  
+  <!-- Bottom-left hexagon/cube -->
+  <g transform="translate(10.5, 20.75)">
+    <path 
+      d="M 0 -8 L 6.93 -4 L 6.93 4 L 0 8 L -6.93 4 L -6.93 -4 Z" 
+      fill="none" 
+      stroke="#FFFFFF" 
+      stroke-width="0.7" 
+      stroke-linejoin="round"
+    />
+    <path 
+      d="M 0 0 L 0 8 M 0 0 L 6.93 -4 M 0 0 L -6.93 -4" 
+      fill="none" 
+      stroke="#FFFFFF" 
+      stroke-width="0.4" 
+      opacity="0.6"
+    />
+  </g>
+  
+  <!-- Bottom-right hexagon/cube -->
+  <g transform="translate(21.5, 20.75)">
+    <path 
+      d="M 0 -8 L 6.93 -4 L 6.93 4 L 0 8 L -6.93 4 L -6.93 -4 Z" 
+      fill="none" 
+      stroke="#FFFFFF" 
+      stroke-width="0.7" 
+      stroke-linejoin="round"
+    />
+    <path 
+      d="M 0 0 L 0 8 M 0 0 L 6.93 -4 M 0 0 L -6.93 -4" 
+      fill="none" 
+      stroke="#FFFFFF" 
+      stroke-width="0.4" 
+      opacity="0.6"
+    />
+  </g>
+</svg>
+

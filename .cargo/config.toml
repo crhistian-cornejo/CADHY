@@ -1,0 +1,92 @@
+# Cargo configuration for CADHY
+# Optimizations for faster builds and better development experience
+
+# ============================================================================
+# LINKER CONFIGURATION (Faster Linking)
+# ============================================================================
+
+# macOS - Use default linker (lld requires separate installation)
+# Uncomment these lines if you have lld installed via `brew install llvm`
+# [target.x86_64-apple-darwin]
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+# [target.aarch64-apple-darwin]
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+# Linux - Use mold linker if available, otherwise lld
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+# Windows - Use MSVC linker
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+# ============================================================================
+# BUILD SETTINGS
+# ============================================================================
+
+[build]
+# Number of parallel jobs (default: number of CPUs)
+# jobs = 8
+
+# Incremental compilation (enabled by default in dev)
+incremental = true
+
+# ============================================================================
+# PROFILE SETTINGS
+# ============================================================================
+
+[profile.dev]
+# Faster compile times in development
+opt-level = 0
+debug = true
+incremental = true
+
+# Optimize dependencies even in dev mode for faster runtime
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+# Full optimizations for release
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+
+# ============================================================================
+# ALIASES
+# ============================================================================
+
+[alias]
+# Quick commands
+b = "build"
+c = "check"
+t = "test"
+r = "run"
+cl = "clippy"
+
+# Workspace commands
+bw = "build --workspace"
+tw = "test --workspace"
+cw = "check --workspace"
+clw = "clippy --workspace"
+
+# Watch mode (requires cargo-watch)
+w = "watch -x check"
+wt = "watch -x test"
+
+# ============================================================================
+# REGISTRY
+# ============================================================================
+
+[registries.crates-io]
+protocol = "sparse"
+
+# ============================================================================
+# NET SETTINGS
+# ============================================================================
+
+[net]
+# Use git CLI for fetching (more reliable on some systems)
+git-fetch-with-cli = true

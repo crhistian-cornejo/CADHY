@@ -1,0 +1,67 @@
+---
+title: Quick Start
+description: Create your first hydraulic analysis
+---
+
+# Quick Start
+
+Get started with CADHY in 5 minutes. This guide walks you through creating your first open channel analysis.
+
+## Step 1: Create a New Project
+
+1. Launch CADHY
+2. Click **New Project** on the welcome screen
+3. Enter a project name (e.g., "My First Channel")
+4. Choose a save location
+5. Select the **Open Channel** template
+6. Click **Create**
+
+## Step 2: Define the Channel Section
+
+In the modeller view, you'll see a default trapezoidal channel. Let's modify it:
+
+1. Click on the channel in the 3D view to select it
+2. In the **Properties** panel, set:
+   - Bottom width (b): `4.0 m`
+   - Side slope (z): `2:1` (2 horizontal to 1 vertical)
+   - Manning's n: `0.013` (concrete-lined)
+   - Bed slope (S): `0.001` (1 in 1000)
+
+## Step 3: Set Flow Conditions
+
+1. Open the **Analysis** panel
+2. Set the discharge: `Q = 5.0 m³/s`
+3. Click **Calculate Normal Depth**
+
+## Step 4: Review Results
+
+The results panel will show:
+
+| Parameter | Value |
+|-----------|-------|
+| Normal Depth (yn) | 1.24 m |
+| Flow Area (A) | 6.50 m² |
+| Wetted Perimeter (P) | 9.55 m |
+| Hydraulic Radius (R) | 0.68 m |
+| Velocity (V) | 0.77 m/s |
+| Froude Number (Fr) | 0.22 |
+
+The flow is **subcritical** (Fr < 1).
+
+## Step 5: Try the AI Assistant
+
+Click the **AI Chat** button and ask:
+
+> "What if I increase the discharge to 10 m³/s? Will the channel still work?"
+
+The AI will analyze the new conditions and provide recommendations.
+
+## Step 6: Save Your Project
+
+Press `Cmd+S` (macOS) or `Ctrl+S` (Windows/Linux) to save.
+
+## What's Next?
+
+- Learn about [different channel sections](/docs/user-guide/channels)
+- Explore [GVF analysis](/docs/hydraulics/gvf) for backwater curves
+- Set up [AI integration](/docs/ai-features/quick-start) for enhanced assistance

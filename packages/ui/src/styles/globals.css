@@ -1,0 +1,655 @@
+/**
+ * CADHY - Global Styles with Tailwind CSS v4
+ * Based on base-vega style with OKLCH color system
+ */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/noto-sans";
+
+/* Source paths for Tailwind to scan for classes in monorepo */
+@source "../components/**/*.tsx";
+@source "../../../apps/desktop/src/**/*.tsx";
+@source "../node_modules/streamdown/dist/index.js";
+
+/* ============================================
+   SHADCN CUSTOM VARIANTS (for component animations)
+   Source: shadcn/dist/tailwind.css
+   ============================================ */
+
+/* Custom variants for shadcn/ui components */
+@custom-variant data-open {
+
+  &:where([data-state="open"]),
+  &:where([data-open]:not([data-open="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-closed {
+
+  &:where([data-state="closed"]),
+  &:where([data-closed]:not([data-closed="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-checked {
+
+  &:where([data-state="checked"]),
+  &:where([data-checked]:not([data-checked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-unchecked {
+
+  &:where([data-state="unchecked"]),
+  &:where([data-unchecked]:not([data-unchecked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-selected {
+  &:where([data-selected="true"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-disabled {
+
+  &:where([data-disabled="true"]),
+  &:where([data-disabled]:not([data-disabled="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-active {
+
+  &:where([data-state="active"]),
+  &:where([data-active]:not([data-active="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-horizontal {
+  &:where([data-orientation="horizontal"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-vertical {
+  &:where([data-orientation="vertical"]) {
+    @slot;
+  }
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* End of shadcn tailwind.css */
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   LIGHT THEME (Default)
+   ============================================ */
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+  --primary: oklch(0.488 0.243 264.376);
+  --primary-foreground: oklch(0.97 0.014 254.604);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.885);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.705 0.015 286.067);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --radius: 1rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.546 0.245 262.881);
+  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.705 0.015 286.067);
+}
+
+/* ============================================
+   DARK THEME
+   ============================================ */
+
+.dark {
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.21 0.006 285.885);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.42 0.18 266);
+  --primary-foreground: oklch(0.97 0.014 254.604);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.552 0.016 285.938);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.623 0.214 259.815);
+  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.552 0.016 285.938);
+}
+
+/* ============================================
+   THEME CONFIGURATION
+   ============================================ */
+
+@theme inline {
+  --font-sans: "Noto Sans Variable", sans-serif;
+  --font-heading: "Chillax", "Noto Sans Variable", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Accordion animations from shadcn */
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+
+    to {
+      height: var(--radix-accordion-content-height, var(--accordion-panel-height, auto));
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height, var(--accordion-panel-height, auto));
+    }
+
+    to {
+      height: 0;
+    }
+  }
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply font-sans bg-background text-foreground;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #root {
+    @apply w-screen h-screen flex flex-col overflow-hidden;
+  }
+}
+
+/* ============================================
+   DESKTOP APP SPECIFIC STYLES
+   ============================================ */
+
+/* Allow text selection in form elements */
+input,
+textarea,
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
+
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  @apply w-full px-3 py-2 transition-all duration-150;
+  background-color: var(--input);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px oklch(0.488 0.243 264.376 / 0.2);
+  outline: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted-foreground);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Remove number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* ============================================
+   SELECTION
+   ============================================ */
+
+::selection {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+h1 {
+  @apply scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl;
+}
+
+h2 {
+  @apply scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0;
+}
+
+h3 {
+  @apply scroll-m-20 text-2xl font-semibold tracking-tight;
+}
+
+h4 {
+  @apply scroll-m-20 text-xl font-semibold tracking-tight;
+}
+
+h5 {
+  @apply scroll-m-20 text-lg font-semibold tracking-tight;
+}
+
+h6 {
+  @apply scroll-m-20 text-base font-semibold tracking-tight;
+}
+
+.lead {
+  @apply text-xl text-muted-foreground;
+}
+
+.large {
+  @apply text-lg font-semibold;
+}
+
+.small {
+  @apply text-sm font-medium leading-none;
+}
+
+.muted {
+  @apply text-sm text-muted-foreground;
+}
+
+blockquote {
+  @apply mt-6 border-l-2 pl-6 italic;
+}
+
+code {
+  @apply relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold;
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+  }
+}
+
+/* ============================================
+   PANEL COMPONENTS
+   ============================================ */
+
+.panel {
+  @apply flex flex-col h-full overflow-hidden;
+  background-color: var(--card);
+}
+
+.panel-header {
+  @apply flex items-center justify-between px-2 py-1 min-h-8;
+  background-color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+  @apply flex items-center gap-2 text-sm font-medium uppercase tracking-wide;
+  color: var(--muted-foreground);
+}
+
+/* ============================================
+   RESIZE HANDLES
+   ============================================ */
+
+.resize-handle {
+  background-color: var(--border);
+  transition: background-color 0.15s ease;
+}
+
+.resize-handle:hover,
+.resize-handle[data-resize-handle-active] {
+  background-color: var(--primary);
+}
+
+/* ============================================
+   FOLDER COLORS
+   ============================================ */
+
+:root {
+  --folder-back: oklch(0.55 0.12 245);
+  --folder-front: oklch(0.65 0.14 245);
+  --folder-tab: oklch(0.6 0.13 245);
+}
+
+.dark {
+  --folder-back: oklch(0.45 0.1 245);
+  --folder-front: oklch(0.55 0.12 245);
+  --folder-tab: oklch(0.5 0.11 245);
+}
+
+/* Folder color presets via data attribute */
+[data-folder-color="blue"] {
+  --folder-back: oklch(0.55 0.12 245);
+  --folder-front: oklch(0.65 0.14 245);
+  --folder-tab: oklch(0.6 0.13 245);
+}
+
+[data-folder-color="green"] {
+  --folder-back: oklch(0.55 0.14 145);
+  --folder-front: oklch(0.65 0.16 145);
+  --folder-tab: oklch(0.6 0.15 145);
+}
+
+[data-folder-color="orange"] {
+  --folder-back: oklch(0.65 0.16 55);
+  --folder-front: oklch(0.75 0.18 55);
+  --folder-tab: oklch(0.7 0.17 55);
+}
+
+[data-folder-color="purple"] {
+  --folder-back: oklch(0.55 0.15 300);
+  --folder-front: oklch(0.65 0.17 300);
+  --folder-tab: oklch(0.6 0.16 300);
+}
+
+[data-folder-color="red"] {
+  --folder-back: oklch(0.55 0.18 25);
+  --folder-front: oklch(0.65 0.20 25);
+  --folder-tab: oklch(0.6 0.19 25);
+}
+
+[data-folder-color="teal"] {
+  --folder-back: oklch(0.55 0.12 185);
+  --folder-front: oklch(0.65 0.14 185);
+  --folder-tab: oklch(0.6 0.13 185);
+}
+
+[data-folder-color="yellow"] {
+  --folder-back: oklch(0.75 0.14 85);
+  --folder-front: oklch(0.85 0.16 85);
+  --folder-tab: oklch(0.8 0.15 85);
+}
+
+[data-folder-color="pink"] {
+  --folder-back: oklch(0.65 0.15 350);
+  --folder-front: oklch(0.75 0.17 350);
+  --folder-tab: oklch(0.7 0.16 350);
+}
+
+[data-folder-color="gray"] {
+  --folder-back: oklch(0.5 0.01 0);
+  --folder-front: oklch(0.6 0.01 0);
+  --folder-tab: oklch(0.55 0.01 0);
+}
+
+.bg-folder-back {
+  background-color: var(--folder-back);
+}
+
+.bg-folder-front {
+  background-color: var(--folder-front);
+}
+
+.bg-folder-tab {
+  background-color: var(--folder-tab);
+}
+
+/* ============================================
+   FOLDER ANIMATIONS
+   ============================================ */
+
+@keyframes fly-to-folder {
+  0% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.6) translateY(-30px);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(0.2) translateY(-60px);
+    opacity: 0;
+  }
+}
+
+.animate-fly-to-folder {
+  animation: fly-to-folder 300ms ease-in forwards;
+}
+
+/* ============================================
+   STREAMDOWN / SHIKI CODE HIGHLIGHTING
+   ============================================ */
+
+/* Streamdown prose styles for AI responses */
+[data-slot="message-response"] {
+  /* Ensure proper prose rendering */
+  line-height: 1.6;
+}
+
+/* Shiki code block styling - Light mode */
+[data-slot="message-response"] pre {
+  background-color: var(--muted);
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+[data-slot="message-response"] pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* Shiki code block styling - Dark mode */
+.dark [data-slot="message-response"] pre {
+  background-color: oklch(0.18 0.005 285);
+}
+
+/* Shiki theme integration */
+[data-slot="message-response"] .shiki,
+[data-slot="message-response"] .shiki span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+
+.dark [data-slot="message-response"] .shiki,
+.dark [data-slot="message-response"] .shiki span {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+}
+
+/* Copy button styling for code blocks */
+[data-slot="message-response"] pre [data-slot="copy-button"] {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+[data-slot="message-response"] pre:hover [data-slot="copy-button"] {
+  opacity: 1;
+}
+
+/* Streamdown incomplete link handling */
+[data-slot="message-response"] a[href="streamdown:incomplete-link"] {
+  color: var(--muted-foreground);
+  pointer-events: none;
+  text-decoration: none;
+}
+
+/* KaTeX / Math styling */
+[data-slot="message-response"] .katex {
+  font-size: 1em;
+}
+
+[data-slot="message-response"] .katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}

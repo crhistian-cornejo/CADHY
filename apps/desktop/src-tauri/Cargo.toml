@@ -1,0 +1,51 @@
+[package]
+name = "cadhy-desktop"
+version = "0.1.0"
+edition = "2021"
+authors = ["CADHY Team"]
+license = "MIT"
+description = "CADHY Tauri desktop backend for hydraulic analysis"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-os = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2.0"
+dotenvy = "0.15"
+
+# CADHY crates (workspace)
+cadhy-core = { path = "../../../crates/cadhy-core" }
+cadhy-cad = { path = "../../../crates/cadhy-cad" }
+cadhy-hydraulics = { path = "../../../crates/cadhy-hydraulics" }
+cadhy-mesh = { path = "../../../crates/cadhy-mesh" }
+
+# Auth/Security - OS Keychain
+keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native"] }
+
+# Async runtime
+tokio = { version = "1", features = ["time", "sync"] }
+
+# Project management
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "5"
+
+# System info
+hostname = "0.4"
+open = "5"
+
+# HTTP client for OAuth token refresh
+reqwest = { version = "0.12", features = ["json"] }

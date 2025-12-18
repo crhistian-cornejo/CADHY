@@ -1,0 +1,31 @@
+[package]
+name = "cadhy-hydraulics"
+version.workspace = true
+edition.workspace = true
+description = "Hydraulic channel design system for CADHY"
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+# Core
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+# Math - with serde support
+nalgebra.workspace = true
+
+# UUID for IDs
+uuid.workspace = true
+
+# Logging
+tracing.workspace = true
+
+# Internal dependencies
+cadhy-core.workspace = true
+cadhy-cad.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

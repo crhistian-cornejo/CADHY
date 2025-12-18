@@ -1,0 +1,352 @@
+/**
+ * Project Store - CADHY
+ *
+ * Manages project state: current project, settings, and operations.
+ * Coordinates with modeller-store for scene data.
+ *
+ * NOTE: Recent projects are managed by recent-projects-store.
+ * This store only manages the current project state.
+ */
+
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
+import { useShallow } from "zustand/shallow"
+import {
+  createProject as createProjectService,
+  openProject as openProjectService,
+  type ProjectFullData,
+  type ProjectInfo,
+  type ProjectSettings,
+  type ProjectTemplate,
+  saveProjectAs as saveProjectAsService,
+  saveProject as saveProjectService,
+  updateProjectSettings as updateProjectSettingsService,
+} from "@/services/project-service"
+import { captureViewportThumbnailDelayed } from "@/services/thumbnail-service"
+import { useLayoutStore } from "./layout-store"
+import { useModellerStore } from "./modeller-store"
+import { useRecentProjectsStore } from "./recent-projects-store"
+import { useStatusNotificationStore } from "./status-notification-store"
+
+// Lazy import to avoid circular dependency
+let handleProjectChangeRef: ((id: string | null, path: string | null) => Promise<void>) | null =
+  null
+const getHandleProjectChange = async () => {
+  if (!handleProjectChangeRef) {
+    const { handleProjectChange } = await import("./chat-store")
+    handleProjectChangeRef = handleProjectChange
+  }
+  return handleProjectChangeRef
+}
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+// Re-export types for convenience
+export type { ProjectInfo, ProjectSettings, ProjectFullData, ProjectTemplate }
+
+// ============================================================================
+// DEFAULT SETTINGS
+// ============================================================================
+
+const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
+  units: { length: "m", angle: "deg" },
+  precision: 4,
+  theme: "system",
+  autoSave: true,
+  autoSaveInterval: 300,
+}
+
+// ============================================================================
+// STORE
+// ============================================================================
+
+interface ProjectStore {
+  // State
+  currentProject: ProjectInfo | null
+  currentSettings: ProjectSettings
+  isLoading: boolean
+  error: string | null
+
+  // Actions - Basic state
+  setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  clearError: () => void
+
+  // Actions - Project operations (async)
+  createNewProject: (name: string, path: string, template: ProjectTemplate) => Promise<ProjectInfo>
+  openExistingProject: (path: string) => Promise<ProjectFullData>
+  saveCurrentProject: () => Promise<ProjectInfo | null>
+  saveCurrentProjectAs: (newPath: string, newName: string) => Promise<ProjectInfo | null>
+  closeProject: () => Promise<void>
+
+  // Actions - Settings
+  updateSettings: (settings: Partial<ProjectSettings>) => Promise<void>
+}
+
+export const useProjectStore = create<ProjectStore>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      currentProject: null,
+      currentSettings: DEFAULT_PROJECT_SETTINGS,
+      isLoading: false,
+      error: null,
+
+      // Basic state actions
+      setLoading: (loading) => set({ isLoading: loading }),
+      setError: (error) => set({ error }),
+      clearError: () => set({ error: null }),
+
+      // ========== PROJECT OPERATIONS ==========
+
+      createNewProject: async (name, path, template) => {
+        set({ isLoading: true, error: null })
+        try {
+          const projectInfo = await createProjectService({ name, path, template })
+
+          // Reset modeller store to clean state
+          useModellerStore.getState().reset()
+
+          // Update project state
+          set({
+            currentProject: projectInfo,
+            currentSettings: DEFAULT_PROJECT_SETTINGS,
+            isLoading: false,
+          })
+
+          // Add to recent projects store (single source of truth)
+          useRecentProjectsStore.getState().addProject({
+            id: projectInfo.id,
+            name: projectInfo.name,
+            path: projectInfo.path,
+          })
+
+          // Explicitly trigger chat session initialization
+          try {
+            const handleProjectChange = await getHandleProjectChange()
+            await handleProjectChange(projectInfo.id, projectInfo.path)
+          } catch (chatErr) {
+            console.error("[ProjectStore] Failed to initialize chat sessions:", chatErr)
+          }
+
+          return projectInfo
+        } catch (err) {
+          const error = err instanceof Error ? err.message : "Failed to create project"
+          set({ error, isLoading: false })
+          throw new Error(error)
+        }
+      },
+
+      openExistingProject: async (path) => {
+        set({ isLoading: true, error: null })
+        try {
+          const projectData = await openProjectService(path)
+
+          // Load scene into modeller store
+          useModellerStore.getState().loadScene(projectData.scene)
+
+          // Update project state
+          set({
+            currentProject: projectData.info,
+            currentSettings: projectData.settings,
+            isLoading: false,
+          })
+
+          // Add to recent projects store (single source of truth)
+          useRecentProjectsStore.getState().addProject({
+            id: projectData.info.id,
+            name: projectData.info.name,
+            path: projectData.info.path,
+          })
+
+          // Explicitly trigger chat session loading (backup to subscription)
+          // This ensures sessions are loaded even if subscription timing is off
+          try {
+            const handleProjectChange = await getHandleProjectChange()
+            await handleProjectChange(projectData.info.id, projectData.info.path)
+          } catch (chatErr) {
+            console.error("[ProjectStore] Failed to load chat sessions:", chatErr)
+          }
+
+          return projectData
+        } catch (err) {
+          const error = err instanceof Error ? err.message : "Failed to open project"
+          set({ error, isLoading: false })
+          throw new Error(error)
+        }
+      },
+
+      saveCurrentProject: async () => {
+        const { currentProject } = get()
+        if (!currentProject) return null
+
+        set({ isLoading: true, error: null })
+        try {
+          const sceneData = useModellerStore.getState().getSceneData()
+          const projectInfo = await saveProjectService(currentProject.path, sceneData)
+
+          // Mark modeller as clean
+          useModellerStore.getState().markClean()
+
+          // Update project info
+          set({
+            currentProject: projectInfo,
+            isLoading: false,
+          })
+
+          // Capture and save thumbnail (async, non-blocking)
+          captureViewportThumbnailDelayed(200).then((thumbnail) => {
+            if (thumbnail) {
+              useRecentProjectsStore.getState().setThumbnail(projectInfo.id, thumbnail)
+            }
+          })
+
+          // Show subtle save notification in status bar
+          useStatusNotificationStore.getState().showNotification("statusBar.saved", "success")
+
+          return projectInfo
+        } catch (err) {
+          const error = err instanceof Error ? err.message : "Failed to save project"
+          set({ error, isLoading: false })
+          throw new Error(error)
+        }
+      },
+
+      saveCurrentProjectAs: async (newPath, newName) => {
+        const { currentProject } = get()
+        if (!currentProject) return null
+
+        set({ isLoading: true, error: null })
+        try {
+          const sceneData = useModellerStore.getState().getSceneData()
+          const projectInfo = await saveProjectAsService(
+            currentProject.path,
+            newPath,
+            newName,
+            sceneData
+          )
+
+          // Mark modeller as clean
+          useModellerStore.getState().markClean()
+
+          // Update to new project
+          set({
+            currentProject: projectInfo,
+            isLoading: false,
+          })
+
+          // Add to recent projects store (single source of truth)
+          useRecentProjectsStore.getState().addProject({
+            id: projectInfo.id,
+            name: projectInfo.name,
+            path: projectInfo.path,
+          })
+
+          // Capture and save thumbnail (async, non-blocking)
+          captureViewportThumbnailDelayed(200).then((thumbnail) => {
+            if (thumbnail) {
+              useRecentProjectsStore.getState().setThumbnail(projectInfo.id, thumbnail)
+            }
+          })
+
+          // Show subtle save notification in status bar
+          useStatusNotificationStore.getState().showNotification("statusBar.saved", "success")
+
+          return projectInfo
+        } catch (err) {
+          const error = err instanceof Error ? err.message : "Failed to save project"
+          set({ error, isLoading: false })
+          throw new Error(error)
+        }
+      },
+
+      closeProject: async () => {
+        // Reset modeller store
+        useModellerStore.getState().reset()
+
+        // Hide AI chat panel
+        useLayoutStore.getState().setPanel("aiChat", false)
+
+        // Clear chat sessions
+        try {
+          const handleProjectChange = await getHandleProjectChange()
+          await handleProjectChange(null, null)
+        } catch (chatErr) {
+          console.error("[ProjectStore] Failed to clear chat sessions:", chatErr)
+        }
+
+        // Clear project state
+        set({
+          currentProject: null,
+          currentSettings: DEFAULT_PROJECT_SETTINGS,
+        })
+      },
+
+      // ========== SETTINGS ==========
+
+      updateSettings: async (settings) => {
+        const { currentProject, currentSettings } = get()
+        const newSettings = { ...currentSettings, ...settings }
+
+        // Update local state immediately
+        set({ currentSettings: newSettings })
+
+        // Persist to file if project is open
+        if (currentProject) {
+          try {
+            await updateProjectSettingsService(currentProject.path, newSettings)
+          } catch (err) {
+            console.error("Failed to persist settings:", err)
+          }
+        }
+      },
+    }),
+    {
+      name: "cadhy-projects",
+      version: 3, // Bump version to trigger migration
+      partialize: (state) => ({
+        // Only persist settings - recent projects are in recent-projects-store
+        currentSettings: state.currentSettings,
+      }),
+      // Migration to remove old recentProjects data
+      migrate: (persistedState: unknown, version: number) => {
+        if (version < 3) {
+          // Remove recentProjects from old persisted state
+          const state = persistedState as Record<string, unknown>
+          delete state.recentProjects
+        }
+        return persistedState as ProjectStore
+      },
+    }
+  )
+)
+
+// ============================================================================
+// SELECTOR HOOKS
+// ============================================================================
+
+export const useCurrentProject = () => useProjectStore((s) => s.currentProject)
+export const useProjectSettings = () => useProjectStore((s) => s.currentSettings)
+export const useIsProjectLoading = () => useProjectStore((s) => s.isLoading)
+export const useProjectError = () => useProjectStore((s) => s.error)
+export const useIsProjectOpen = () => useProjectStore((s) => s.currentProject !== null)
+
+// Re-export from recent-projects-store for backward compatibility
+// Components that used useRecentProjects from project-store will still work
+export { useProjects as useRecentProjects } from "./recent-projects-store"
+
+export const useProjectActions = () =>
+  useProjectStore(
+    useShallow((s) => ({
+      createNewProject: s.createNewProject,
+      openExistingProject: s.openExistingProject,
+      saveCurrentProject: s.saveCurrentProject,
+      saveCurrentProjectAs: s.saveCurrentProjectAs,
+      closeProject: s.closeProject,
+      updateSettings: s.updateSettings,
+      setError: s.setError,
+      clearError: s.clearError,
+    }))
+  )

@@ -1,0 +1,26 @@
+{
+  "recommendations": [
+    // Core
+    "biomejs.biome",
+    "rust-lang.rust-analyzer",
+    "tauri-apps.tauri-vscode",
+
+    // TypeScript/React
+    "bradlc.vscode-tailwindcss",
+    "dsznajder.es7-react-js-snippets",
+
+    // Git
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Utilities
+    "streetsidesoftware.code-spell-checker",
+    "usernamehw.errorlens",
+    "christian-kohler.path-intellisense",
+
+    // AI Assistants (optional)
+    "github.copilot",
+    "continue.continue"
+  ],
+  "unwantedRecommendations": ["esbenp.prettier-vscode", "dbaeumer.vscode-eslint"]
+}

@@ -1,0 +1,68 @@
+---
+title: Hydraulic Analysis
+description: Hydraulic calculation methods overview
+---
+
+# Hydraulic Analysis
+
+CADHY provides comprehensive tools for hydraulic analysis, from basic uniform flow calculations to complex gradually varied flow profiles.
+
+## Calculation Methods
+
+### Manning's Equation
+
+The foundation of open channel flow calculations:
+
+```
+Q = (1/n) × A × R^(2/3) × S^(1/2)
+```
+
+Where:
+- Q = discharge (m³/s)
+- n = Manning's roughness coefficient
+- A = flow area (m²)
+- R = hydraulic radius (m)
+- S = bed slope
+
+### Critical Flow
+
+For any channel section, there's a critical depth where specific energy is minimum:
+
+```
+Fr = V / √(gD) = 1
+```
+
+Where D is the hydraulic depth (A/T) and T is the top width.
+
+## Analysis Types
+
+| Type | Description |
+|------|-------------|
+| [Normal Depth](/docs/hydraulics/channels) | Uniform flow depth for given Q and S |
+| [Critical Depth](/docs/hydraulics/critical-flow) | Depth where Fr = 1 |
+| [GVF Profiles](/docs/hydraulics/gvf) | Water surface profiles (M1, M2, S1, etc.) |
+
+## Channel Sections
+
+CADHY supports various channel cross-sections:
+
+- **Trapezoidal** - Most common for constructed channels
+- **Rectangular** - Special case (z = 0)
+- **Triangular** - V-shaped ditches
+- **Circular** - Pipes and culverts
+- **Parabolic** - Natural channels
+- **Custom** - User-defined geometry
+
+## Froude Number Classification
+
+| Froude Number | Flow Regime | Characteristics |
+|---------------|-------------|-----------------|
+| Fr < 1 | Subcritical | Tranquil, controlled by downstream |
+| Fr = 1 | Critical | Transition point |
+| Fr > 1 | Supercritical | Rapid, controlled by upstream |
+
+## Next Steps
+
+- [Open Channel Design](/docs/hydraulics/channels) - Detailed channel analysis
+- [GVF Analysis](/docs/hydraulics/gvf) - Water surface profiles
+- [Critical Flow](/docs/hydraulics/critical-flow) - Critical conditions

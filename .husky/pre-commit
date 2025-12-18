@@ -1,0 +1,5 @@
+# CADHY Pre-commit Hook
+# Runs lint-staged for efficient pre-commit checks
+# Only checks files that are staged for commit
+
+bunx lint-staged

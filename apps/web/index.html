@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Professional CAD software for hydraulic engineering. Open channel flow, pipe networks, GVF analysis with AI assistance. Built with OpenCASCADE and Rust." />
+    <meta name="keywords" content="hydraulic engineering, CAD software, open channel flow, Manning equation, GVF analysis, pipe networks, civil engineering, water resources" />
+    <meta name="author" content="CADHY" />
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://crhistian-cornejo.github.io/cadhy-releases/" />
+    <meta property="og:title" content="CADHY - Hydraulic Engineering, Reimagined" />
+    <meta property="og:description" content="Professional CAD software for hydraulic engineering. Open channel flow, pipe networks, GVF analysis with AI assistance." />
+    <meta property="og:image" content="https://crhistian-cornejo.github.io/cadhy-releases/hero/light.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://crhistian-cornejo.github.io/cadhy-releases/" />
+    <meta property="twitter:title" content="CADHY - Hydraulic Engineering, Reimagined" />
+    <meta property="twitter:description" content="Professional CAD software for hydraulic engineering. Open channel flow, pipe networks, GVF analysis with AI assistance." />
+    <meta property="twitter:image" content="https://crhistian-cornejo.github.io/cadhy-releases/hero/light.png" />
+
+    <title>CADHY - Hydraulic Engineering Software</title>
+
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="canonical" href="https://crhistian-cornejo.github.io/cadhy-releases/" />
+
+    <!-- Preconnect to font origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+
+    <!-- Chillax font for headings (from Fontshare) -->
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=chillax@400&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Inter font for UI -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- JetBrains Mono for code -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Prevent theme flash -->
+    <script>
+      const savedTheme = localStorage.getItem('cadhy-web-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+      document.documentElement.classList.add(theme);
+    </script>
+
+    <!-- Handle SPA redirect from 404.html (GitHub Pages) -->
+    <script>
+      (() => {
+        const redirectPath = sessionStorage.getItem('spa-redirect-path');
+        if (redirectPath && redirectPath !== '/') {
+          sessionStorage.removeItem('spa-redirect-path');
+          // Get the base path (repo name)
+          const basePath = '/cadhy-releases';
+          // Reconstruct the full path
+          const fullPath = basePath + redirectPath;
+          window.history.replaceState(null, '', fullPath + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
