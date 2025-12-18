@@ -3,48 +3,42 @@
  *
  * Clean, minimal hero with centered layout.
  * Text on top, app screenshot below.
+ * Smart download button that detects user's platform.
  */
 
-import { ArrowRight01Icon, Download02Icon, PlayIcon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, Download02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link } from "react-router-dom"
-import { RELEASES_URL } from "@/lib/constants"
-import { AnimatedGridBackground } from "./animated-grid-background"
+import { useReleases } from "@/lib/use-releases"
 
 // Get base path from Vite (handles GitHub Pages deployment)
 const basePath = import.meta.env.BASE_URL || "/"
 
+const PlatformNames: Record<string, string> = {
+  macos: "macOS",
+  windows: "Windows",
+  linux: "Linux",
+  unknown: "Desktop",
+}
+
 export function HeroSection() {
-  const scrollToDownloads = () => {
-    const element = document.getElementById("downloads")
-    if (element) {
-      const navbarHeight = 64
-      const elementPosition = element.getBoundingClientRect().top + window.scrollY
-      window.scrollTo({
-        top: elementPosition - navbarHeight - 16,
-        behavior: "smooth",
-      })
-    }
-  }
+  const { latestRelease, recommendedDownload, userPlatform, loading } = useReleases()
+  const platformName = PlatformNames[userPlatform] || "Desktop"
+  const version = latestRelease?.version || "0.1.0"
 
   return (
-    <section className="relative border-b border-border bg-background py-20 px-8 lg:px-16 overflow-hidden">
-      {/* Animated Grid Background */}
-      <AnimatedGridBackground />
-
-      <div className="relative z-10 max-w-7xl mx-auto">
+    <section className="relative border-b border-border bg-background py-20 px-8 lg:px-16">
+      <div className="max-w-7xl mx-auto">
         {/* Content - Centered */}
         <div className="flex flex-col items-center text-center gap-6 mb-12">
           {/* Badge */}
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-2 px-3 py-1 border border-border bg-card text-xs font-bold text-muted-foreground rounded-full">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              v0.1.0 AVAILABLE
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />v{version}{" "}
+              AVAILABLE
             </span>
             <a
-              href={RELEASES_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#changelog"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
               Changelog
@@ -55,29 +49,46 @@ export function HeroSection() {
           {/* Headline */}
           <div className="space-y-4 max-w-3xl">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter text-foreground leading-[1.1]">
-              Hydraulic Engineering, <span className="text-muted-foreground">Reimagined</span>
+              Computational Analysis & Design{" "}
+              <span className="text-muted-foreground">for Hydraulics</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Professional CAD software for open channel flow, pipe networks, and GVF analysis.
-              Built with OpenCASCADE geometry kernel and AI assistance.
+              Desktop application for designing and analyzing open channel hydraulic structures.
+              Powerful CAD engine with hydraulic analysis tools in one integrated environment.
             </p>
           </div>
 
-          {/* CTAs */}
+          {/* CTAs - Smart download button */}
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <button
-              type="button"
-              onClick={scrollToDownloads}
-              className="inline-flex items-center gap-3 px-6 py-3 bg-foreground text-background font-bold text-sm hover:bg-foreground/90 transition-colors rounded-lg"
-            >
-              <HugeiconsIcon icon={Download02Icon} size={18} />
-              Download Free
-            </button>
+            {loading ? (
+              <div className="inline-flex items-center gap-3 px-6 py-3 bg-foreground/10 text-foreground font-bold text-sm rounded-lg">
+                <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
+                Loading...
+              </div>
+            ) : recommendedDownload ? (
+              <a
+                href={recommendedDownload.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 px-6 py-3 bg-foreground text-background font-bold text-sm hover:bg-foreground/90 transition-colors rounded-lg"
+              >
+                Download for {platformName}
+                <HugeiconsIcon icon={Download02Icon} size={18} />
+              </a>
+            ) : (
+              <Link
+                to="/download"
+                className="inline-flex items-center gap-3 px-6 py-3 bg-foreground text-background font-bold text-sm hover:bg-foreground/90 transition-colors rounded-lg"
+              >
+                <HugeiconsIcon icon={Download02Icon} size={18} />
+                Download Free
+              </Link>
+            )}
+
             <Link
               to="/docs"
               className="inline-flex items-center gap-2 px-6 py-3 border border-border bg-card hover:border-foreground/50 text-foreground font-medium text-sm transition-colors rounded-lg"
             >
-              <HugeiconsIcon icon={PlayIcon} size={16} className="text-primary" />
               Documentation
               <HugeiconsIcon icon={ArrowRight01Icon} size={14} className="text-muted-foreground" />
             </Link>
@@ -120,7 +131,7 @@ export function HeroSection() {
               { value: "4", label: "Channel Types" },
               { value: "48K+", label: "Lines of Rust" },
               { value: "3", label: "Platforms" },
-              { value: "v0.1.0", label: "Latest Release" },
+              { value: `v${version}`, label: "Latest Release" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-bold text-foreground tracking-tighter mb-1">

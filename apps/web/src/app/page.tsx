@@ -9,7 +9,6 @@ import { DownloadSection } from "@/components/landing/download-section"
 import { FAQSection } from "@/components/landing/faq-section"
 import { FeaturesSection } from "@/components/landing/features-section"
 import { HeroSection } from "@/components/landing/hero-section"
-import { RoadmapSection } from "@/components/landing/roadmap-section"
 import { LandingSEO } from "@/components/seo"
 
 export default function LandingPage() {
@@ -18,7 +17,6 @@ export default function LandingPage() {
       <LandingSEO />
       <HeroSection />
       <FeaturesSection />
-      <RoadmapSection />
       <ChangelogSection />
       <FAQSection />
       <DownloadSection />

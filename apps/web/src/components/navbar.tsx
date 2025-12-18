@@ -86,8 +86,14 @@ const MENU_GROUPS: MenuGroup[] = [
       {
         title: "Roadmap",
         description: "See what we are building next",
-        href: "/#roadmap",
+        href: "/roadmap",
         icon: RoadLocation01Icon,
+      },
+      {
+        title: "Download",
+        description: "Get CADHY for your platform",
+        href: "/download",
+        icon: Download02Icon,
       },
       {
         title: "Q&A",

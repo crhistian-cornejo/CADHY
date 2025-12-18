@@ -1,203 +1,96 @@
 /**
  * Changelog Section Component
  *
- * Release history with categorized changes.
+ * Horizontal cards showing recent releases with version badges.
+ * Clean, minimal design like Cursor's changelog.
  */
 
-import {
-  ArrowUpRight01Icon,
-  ArtificialIntelligence04Icon,
-  CodeIcon,
-  DropletIcon,
-  GridIcon,
-  TextIcon,
-} from "@hugeicons/core-free-icons"
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Link } from "react-router-dom"
 
 interface ChangelogEntry {
   version: string
   date: string
-  title: string
-  highlights: {
-    category: string
-    items: string[]
-  }[]
-  isLatest?: boolean
+  summary: string
 }
 
+// Static changelog - this could be fetched from GitHub releases in the future
 const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     version: "0.1.0",
-    date: "2025-12-15",
-    title: "Initial Public Release",
-    isLatest: true,
-    highlights: [
-      {
-        category: "Hydraulics",
-        items: [
-          "Manning equation calculations",
-          "Normal and critical depth solvers",
-          "GVF profile analysis (M1, M2, S1, S2)",
-          "4 channel section types",
-        ],
-      },
-      {
-        category: "AI System",
-        items: [
-          "Multi-provider support (Claude, GPT, Gemini)",
-          "Streaming responses with tool calling",
-          "Hydraulic problem understanding",
-          "Natural language input",
-        ],
-      },
-      {
-        category: "Desktop App",
-        items: [
-          "Tauri 2.0 + React 19 frontend",
-          "3D channel visualization",
-          "Project save/load system",
-          "Cross-platform (Win/Mac/Linux)",
-        ],
-      },
-      {
-        category: "Core",
-        items: [
-          "Rust 2024 Edition backend",
-          "64-bit floating point precision",
-          "Workspace monorepo structure",
-          "Comprehensive test suite",
-        ],
-      },
-    ],
+    date: "Dec 15, 2025",
+    summary:
+      "Initial release with Manning calculations, GVF analysis, 3D visualization, and AI assistant.",
   },
+  // Future releases will be added here
+  // {
+  //   version: "0.2.0",
+  //   date: "Jan 2026",
+  //   summary: "Pipe networks, circular channels, and export improvements.",
+  // },
 ]
 
-const CategoryIcons: Record<string, IconSvgElement> = {
-  Hydraulics: DropletIcon,
-  "AI System": ArtificialIntelligence04Icon,
-  "Desktop App": GridIcon,
-  Core: CodeIcon,
-}
-
-function CategoryIcon({ category }: { category: string }) {
-  const Icon = CategoryIcons[category] || TextIcon
-  return <HugeiconsIcon icon={Icon} size={16} className="text-muted-foreground" />
+function ChangelogCard({ entry }: { entry: ChangelogEntry }) {
+  return (
+    <div className="flex-shrink-0 w-72 border border-border bg-card rounded-xl p-5 hover:border-foreground/30 transition-colors">
+      <div className="flex items-center gap-3 mb-3">
+        <span className="inline-flex items-center justify-center px-2 py-0.5 border border-border rounded text-xs font-mono text-muted-foreground">
+          {entry.version}
+        </span>
+        <span className="text-xs text-muted-foreground">{entry.date}</span>
+      </div>
+      <p className="text-sm text-foreground leading-relaxed line-clamp-3">{entry.summary}</p>
+    </div>
+  )
 }
 
 export function ChangelogSection() {
   return (
     <section
-      className="relative bg-background border-t border-border py-24 px-8 lg:px-16"
+      className="relative bg-background border-t border-border py-20 px-8 lg:px-16"
       id="changelog"
     >
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
-
-      <div className="relative z-10 max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-16">
-          <div className="inline-flex items-center gap-2 border border-border bg-card px-3 py-1 mb-6 rounded-full">
-            <HugeiconsIcon icon={TextIcon} size={12} className="text-muted-foreground" />
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground">
-              RELEASE HISTORY
-            </span>
-          </div>
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-            <div>
-              <h2 className="text-4xl lg:text-6xl font-bold tracking-tighter text-foreground mb-4">
-                Changelog
-              </h2>
-              <p className="text-muted-foreground max-w-xl">
-                Track all updates, improvements, and new features in CADHY.
-              </p>
-            </div>
-            <a
-              href="https://github.com/crhistian-cornejo/CADHY/releases"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <span>ALL RELEASES</span>
-              <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} />
-            </a>
-          </div>
-        </div>
+        <h2 className="text-3xl lg:text-4xl font-bold tracking-tighter text-foreground mb-8">
+          Changelog
+        </h2>
 
-        {/* Changelog Entries */}
-        <div className="space-y-12">
+        {/* Horizontal scroll cards */}
+        <div className="flex gap-4 overflow-x-auto pb-4 -mx-8 px-8 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
           {CHANGELOG_ENTRIES.map((entry) => (
-            <div
-              key={entry.version}
-              className="border border-border bg-card overflow-hidden rounded-xl"
-            >
-              {/* Version Header */}
-              <div className="border-b border-border p-6 lg:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-3xl lg:text-4xl font-bold text-foreground tracking-tighter">
-                    v{entry.version}
+            <ChangelogCard key={entry.version} entry={entry} />
+          ))}
+
+          {/* Placeholder cards for visual balance */}
+          {CHANGELOG_ENTRIES.length < 4 &&
+            Array.from({ length: 4 - CHANGELOG_ENTRIES.length }).map((_, i) => (
+              <div
+                key={`placeholder-${i}`}
+                className="flex-shrink-0 w-72 border border-dashed border-border/50 bg-muted/20 rounded-xl p-5"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 border border-border/50 rounded text-xs font-mono text-muted-foreground/50">
+                    ?.?.?
                   </span>
-                  {entry.isLatest && (
-                    <span className="text-[10px] font-bold tracking-widest px-2 py-1 border border-green-600/50 text-green-600 dark:border-green-500/50 dark:text-green-400 bg-green-500/10 rounded">
-                      LATEST
-                    </span>
-                  )}
+                  <span className="text-xs text-muted-foreground/50">Coming soon</span>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="font-mono">{entry.date}</span>
-                  <span className="text-border">|</span>
-                  <span>{entry.title}</span>
-                </div>
+                <p className="text-sm text-muted-foreground/50 leading-relaxed">
+                  More features and improvements on the way.
+                </p>
               </div>
-
-              {/* Categories Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border">
-                {entry.highlights.map((highlight) => (
-                  <div key={highlight.category} className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <CategoryIcon category={highlight.category} />
-                      <h4 className="text-xs font-bold tracking-widest text-muted-foreground">
-                        {highlight.category.toUpperCase()}
-                      </h4>
-                    </div>
-                    <ul className="space-y-2">
-                      {highlight.items.map((item) => (
-                        <li
-                          key={item}
-                          className="text-sm text-muted-foreground flex items-start gap-2"
-                        >
-                          <span className="text-green-600 dark:text-green-400 mt-0.5">+</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
         </div>
 
-        {/* Stats */}
-        <div className="mt-16 grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { label: "RUST LOC", value: "~48K" },
-            { label: "FRONTEND LOC", value: "~20K" },
-            { label: "CHANNEL TYPES", value: "4" },
-            { label: "TAURI COMMANDS", value: "25+" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="border border-border bg-card p-6 text-center rounded-xl"
-            >
-              <div className="text-2xl lg:text-3xl font-bold text-foreground tracking-tighter mb-1">
-                {stat.value}
-              </div>
-              <div className="text-[10px] font-bold tracking-widest text-muted-foreground">
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Link to full changelog */}
+        <Link
+          to="/download"
+          className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-6"
+        >
+          See what's new in CADHY
+          <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
+        </Link>
       </div>
     </section>
   )
