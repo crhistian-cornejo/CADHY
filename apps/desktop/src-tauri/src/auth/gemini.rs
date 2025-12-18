@@ -269,8 +269,8 @@ pub async fn auth_refresh_gemini_oauth() -> Result<GeminiOAuthCredentials, Strin
         .form(&[
             ("grant_type", "refresh_token"),
             ("refresh_token", &refresh_token),
-            ("client_id", client_id),
-            ("client_secret", client_secret),
+            ("client_id", &client_id),
+            ("client_secret", &client_secret),
         ])
         .send()
         .await
