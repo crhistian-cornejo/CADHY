@@ -451,10 +451,12 @@ export function Navbar() {
                   />
                 </SheetTrigger>
                 <SheetContent
-                  side="right"
-                  className="flex w-full flex-col p-0 sm:w-[350px] bg-background/95 backdrop-blur-md"
+                  side="top"
+                  hideDefaultClose
+                  className="flex w-full flex-col p-0 h-auto max-h-[60vh] rounded-b-2xl border-t-0 bg-background/98 backdrop-blur-xl shadow-2xl"
                 >
-                  <SheetHeader className="border-b border-border p-4 h-14 flex-row items-center justify-between">
+                  {/* Header with close button */}
+                  <SheetHeader className="border-b border-border/50 px-4 py-3 flex-row items-center justify-between">
                     <SheetTitle>
                       <Link
                         to="/"
@@ -467,40 +469,59 @@ export function Navbar() {
                         </span>
                       </Link>
                     </SheetTitle>
-                    {/* Placeholder for the hamburger button which is absolute positioned by the trigger */}
-                    <div className="w-9 h-9" />
+                    <button
+                      type="button"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                      aria-label="Close menu"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                      </svg>
+                    </button>
                   </SheetHeader>
 
-                  <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 scrollbar-hide">
+                  {/* Scrollable content */}
+                  <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-hide">
                     <AnimatePresence>
                       <motion.div
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className="flex flex-col gap-6"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="flex flex-col gap-2"
                       >
-                        <Accordion className="flex w-full flex-col gap-2">
+                        <Accordion className="flex w-full flex-col">
                           {menuGroups.map((group) => (
                             <AccordionItem
                               key={group.title}
                               value={group.title}
                               className="border-b-0"
                             >
-                              <AccordionTrigger className="py-3 font-semibold text-foreground hover:no-underline">
+                              <AccordionTrigger className="py-2.5 font-semibold text-foreground hover:no-underline text-sm">
                                 {group.title}
                               </AccordionTrigger>
-                              <AccordionContent className="pb-3 pt-1">
+                              <AccordionContent className="pb-2 pt-0">
                                 <motion.div
                                   initial={{ opacity: 0, y: -5 }}
                                   animate={{ opacity: 1, y: 0 }}
-                                  className="flex flex-col gap-1"
+                                  className="flex flex-col gap-0.5"
                                 >
                                   {group.items.map((item) => (
                                     <button
                                       key={item.title}
                                       type="button"
                                       className={cn(
-                                        "flex items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground",
+                                        "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent hover:text-accent-foreground",
                                         isActive(item.href)
                                           ? "bg-accent/50 text-accent-foreground"
                                           : ""
@@ -509,31 +530,24 @@ export function Navbar() {
                                     >
                                       <div
                                         className={cn(
-                                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border transition-colors",
+                                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border transition-colors",
                                           isActive(item.href)
                                             ? "bg-accent text-accent-foreground border-accent-foreground/20"
                                             : "bg-card text-muted-foreground"
                                         )}
                                       >
-                                        <HugeiconsIcon icon={item.icon} size={18} />
+                                        <HugeiconsIcon icon={item.icon} size={14} />
                                       </div>
-                                      <div>
-                                        <div
-                                          className={cn(
-                                            "text-sm font-medium",
-                                            isActive(item.href)
-                                              ? "text-primary font-semibold"
-                                              : "text-foreground"
-                                          )}
-                                        >
-                                          {item.title}
-                                        </div>
-                                        {item.description && (
-                                          <p className="line-clamp-1 text-xs text-muted-foreground">
-                                            {item.description}
-                                          </p>
+                                      <span
+                                        className={cn(
+                                          "text-sm",
+                                          isActive(item.href)
+                                            ? "text-primary font-medium"
+                                            : "text-foreground"
                                         )}
-                                      </div>
+                                      >
+                                        {item.title}
+                                      </span>
                                     </button>
                                   ))}
                                 </motion.div>
@@ -544,7 +558,7 @@ export function Navbar() {
 
                         <Link
                           to="/docs"
-                          className="py-3 font-semibold text-foreground transition-colors hover:text-primary"
+                          className="py-2.5 font-semibold text-foreground transition-colors hover:text-primary text-sm"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           {t.nav.docs}
@@ -553,16 +567,16 @@ export function Navbar() {
                     </AnimatePresence>
                   </div>
 
-                  {/* Fixed bottom download button */}
-                  <div className="mt-auto border-t border-border p-4 bg-background/50 backdrop-blur-sm">
+                  {/* Download button */}
+                  <div className="border-t border-border/50 p-3 bg-muted/30">
                     <Button
-                      className="w-full rounded-full gap-2 h-11"
+                      className="w-full rounded-full gap-2 h-10 text-sm"
                       onClick={() => {
                         setMobileMenuOpen(false)
                         handleDownloadClick()
                       }}
                     >
-                      <HugeiconsIcon icon={Rocket01Icon} size={18} />
+                      <HugeiconsIcon icon={Rocket01Icon} size={16} />
                       {t.nav.downloadFor} {platformLabel}
                     </Button>
                   </div>

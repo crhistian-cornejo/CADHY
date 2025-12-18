@@ -443,7 +443,7 @@
     "viewChangelog": "Ver Registro de Cambios"
   },
   "about": {
-    "description": "Análisis Computacional y Diseño para Hidráulica",
+    "description": "Computer-Aided Design for HYdraulics (CADHY)",
     "modified": "MODIFICADO",
     "buildInfo": "Información de Compilación",
     "version": "Versión",

@@ -20,7 +20,7 @@ const FAQ_ITEMS_EN: FAQItem[] = [
   {
     question: "What is CADHY?",
     answer:
-      "CADHY (Computer Aided Design for HYdraulics) is a professional desktop application for hydraulic engineering. It combines parametric 3D modeling with computational hydraulics, allowing engineers to design and analyze open channels, pipe networks, and hydraulic structures.",
+      "CADHY stands for Computer-Aided Design for HYdraulics. It's a professional desktop application for hydraulic engineering that combines parametric 3D modeling with computational hydraulics, allowing engineers to design and analyze open channels, pipe networks, and hydraulic structures.",
   },
   {
     question: "Is CADHY free to use?",
@@ -63,7 +63,7 @@ const FAQ_ITEMS_ES: FAQItem[] = [
   {
     question: "¿Qué es CADHY?",
     answer:
-      "CADHY (Computer Aided Design for HYdraulics) es una aplicación de escritorio profesional para ingeniería hidráulica. Combina modelado 3D paramétrico con hidráulica computacional, permitiendo a los ingenieros diseñar y analizar canales abiertos, redes de tuberías y estructuras hidráulicas.",
+      "CADHY significa Computer-Aided Design for HYdraulics (Diseño Asistido por Computadora para Hidráulica). Es una aplicación de escritorio profesional para ingeniería hidráulica que combina modelado 3D paramétrico con hidráulica computacional, permitiendo a los ingenieros diseñar y analizar canales abiertos, redes de tuberías y estructuras hidráulicas.",
   },
   {
     question: "¿CADHY es gratis?",

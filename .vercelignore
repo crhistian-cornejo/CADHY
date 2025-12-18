@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+.bun
+
+# Other apps (not needed for web)
+apps/desktop
+apps/desktop/**
+
+# Build outputs
+dist
+.next
+.turbo
+
+# Development
+.git
+.github
+.vscode
+.idea
+
+# Keys and secrets
+.keys
+*.pem
+*.p12
+
+# Docs source (built into web)
+# docs - needed for MDX content
+
+# Large files
+*.dmg
+*.exe
+*.app
+*.tar.gz
+*.zip
+
+# Rust/Tauri
+**/target
+**/src-tauri
+
+# Tests
+**/__tests__
+**/*.test.*
+**/*.spec.*
+coverage
+
+# Misc
+.DS_Store
+*.log

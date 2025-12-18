@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "bun run --filter @cadhy/web build",
+  "outputDirectory": "apps/web/dist",
+  "installCommand": "bun install",
+  "framework": "vite",
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- apps/web packages/ui docs",
+  "rewrites": [
+    {
+      "source": "/((?!assets/|hero/|favicon|logo|sitemap|robots|manifest).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

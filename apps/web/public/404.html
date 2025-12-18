@@ -5,34 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CADHY - Redirecting...</title>
     <script>
-      // SPA redirect for GitHub Pages
-      // Based on: https://github.com/rafgraph/spa-github-pages
-      // 
-      // This script converts the path into a query parameter and redirects
-      // to the base URL, where index.html will restore the route.
-      
+      // SPA redirect for GitHub Pages with custom domain
+      // Handles both custom domain (cadhy.app) and fallback (github.io/CADHY)
+
       (() => {
-        // Get segments: ['', 'CADHY', 'docs', 'getting-started', 'installation']
         var pathSegments = window.location.pathname.split('/');
-        
-        // For GitHub Pages project site, first segment after '' is the repo name
-        // e.g., /CADHY/docs/foo -> repoName = 'CADHY', remainingPath = '/docs/foo'
-        var repoName = pathSegments[1] || '';
-        var remainingPath = '/' + pathSegments.slice(2).filter(Boolean).join('/');
-        
+        var host = window.location.host;
+        var isCustomDomain = host === 'cadhy.app' || host === 'www.cadhy.app';
+
+        var remainingPath;
+        var baseUrl;
+
+        if (isCustomDomain) {
+          // Custom domain: /docs/foo -> remainingPath = '/docs/foo'
+          remainingPath = window.location.pathname;
+          baseUrl = '/';
+        } else {
+          // GitHub Pages: /CADHY/docs/foo -> remainingPath = '/docs/foo'
+          var repoName = pathSegments[1] || '';
+          remainingPath = '/' + pathSegments.slice(2).filter(Boolean).join('/');
+          baseUrl = '/' + repoName + '/';
+        }
+
         // If there's no remaining path, just go to the root
-        if (remainingPath === '/') {
-          window.location.replace('/' + repoName + '/');
+        if (remainingPath === '/' || remainingPath === '') {
+          window.location.replace(baseUrl);
           return;
         }
-        
+
         // Encode the path and redirect with ?p= query parameter
-        // The main index.html will read this and use history.replaceState
-        var redirectUrl = '/' + repoName + '/?p=' + 
+        var redirectUrl = baseUrl + '?p=' +
           encodeURIComponent(remainingPath) +
           (window.location.search ? '&q=' + encodeURIComponent(window.location.search.slice(1)) : '') +
           (window.location.hash || '');
-        
+
         window.location.replace(redirectUrl);
       })();
     </script>

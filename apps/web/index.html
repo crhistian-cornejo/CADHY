@@ -3,36 +3,119 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Professional CAD software for hydraulic engineering. Open channel flow, pipe networks, GVF analysis with AI assistance. Built with OpenCASCADE and Rust." />
-    <meta name="keywords" content="hydraulic engineering, CAD software, open channel flow, Manning equation, GVF analysis, pipe networks, civil engineering, water resources" />
+
+    <!-- Primary Meta Tags -->
+    <title>CADHY - Computer-Aided Design for HYdraulics</title>
+    <meta name="title" content="CADHY - Computer-Aided Design for HYdraulics" />
+    <meta name="description" content="Professional desktop CAD software for hydraulic engineering. Design open channels, analyze water flow, and create 3D models with AI assistance. Free for Windows, macOS & Linux." />
+    <meta name="keywords" content="CADHY, hydraulic engineering software, CAD software, open channel flow, Manning equation, GVF analysis, pipe networks, civil engineering, water resources, hydraulic design, channel design" />
     <meta name="author" content="CADHY" />
     <meta name="theme-color" content="#0ea5e9" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://cadhy.app/" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://crhistian-cornejo.github.io/CADHY/" />
-    <meta property="og:title" content="CADHY - Hydraulic Engineering, Reimagined" />
-    <meta property="og:description" content="Professional CAD software for hydraulic engineering. Open channel flow, pipe networks, GVF analysis with AI assistance." />
-    <meta property="og:image" content="https://crhistian-cornejo.github.io/CADHY/hero/light.png" />
+    <meta property="og:site_name" content="CADHY" />
+    <meta property="og:url" content="https://cadhy.app/" />
+    <meta property="og:title" content="CADHY - Computer-Aided Design for HYdraulics" />
+    <meta property="og:description" content="Professional desktop CAD software for hydraulic engineering. Design open channels, analyze water flow, and create 3D models with AI assistance." />
+    <meta property="og:image" content="https://cadhy.app/hero/light.png" />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://crhistian-cornejo.github.io/CADHY/" />
-    <meta property="twitter:title" content="CADHY - Hydraulic Engineering, Reimagined" />
-    <meta property="twitter:description" content="Professional CAD software for hydraulic engineering. Open channel flow, pipe networks, GVF analysis with AI assistance." />
-    <meta property="twitter:image" content="https://crhistian-cornejo.github.io/CADHY/hero/light.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://cadhy.app/" />
+    <meta name="twitter:title" content="CADHY - Computer-Aided Design for HYdraulics" />
+    <meta name="twitter:description" content="Professional desktop CAD software for hydraulic engineering. Design open channels, analyze water flow, and create 3D models with AI assistance." />
+    <meta name="twitter:image" content="https://cadhy.app/hero/light.png" />
 
-    <title>CADHY - Hydraulic Engineering Software</title>
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
+    <link rel="manifest" href="/manifest.json" />
 
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
-    <link rel="canonical" href="https://crhistian-cornejo.github.io/CADHY/" />
+    <!-- Schema.org JSON-LD for SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "CADHY",
+      "alternateName": "Computer-Aided Design for HYdraulics",
+      "description": "Professional desktop CAD software for hydraulic engineering. Design open channels, analyze water flow with Manning equation, and create 3D parametric models.",
+      "url": "https://cadhy.app",
+      "downloadUrl": "https://cadhy.app/download",
+      "applicationCategory": "EngineeringApplication",
+      "operatingSystem": ["Windows 10+", "macOS 10.15+", "Linux"],
+      "softwareVersion": "0.1.0",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "5",
+        "ratingCount": "1"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "CADHY",
+        "url": "https://cadhy.app"
+      },
+      "featureList": [
+        "3D Channel Modeling",
+        "Hydraulic Analysis (Manning Equation)",
+        "Normal & Critical Depth Calculation",
+        "Gradually Varied Flow (GVF) Profiles",
+        "AI Engineering Assistant",
+        "CAD Export (STEP, STL, OBJ)",
+        "Cross-platform (Windows, macOS, Linux)"
+      ],
+      "screenshot": "https://cadhy.app/hero/light.png"
+    }
+    </script>
+
+    <!-- Schema.org JSON-LD for Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "CADHY",
+      "url": "https://cadhy.app",
+      "logo": "https://cadhy.app/logo.png",
+      "sameAs": [
+        "https://github.com/crhistian-cornejo/CADHY"
+      ]
+    }
+    </script>
+
+    <!-- Schema.org JSON-LD for WebSite (enables sitelinks search) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "CADHY",
+      "alternateName": "Computer-Aided Design for HYdraulics",
+      "url": "https://cadhy.app",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://cadhy.app/docs?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
 
     <!-- Preconnect to font origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+
+    <!-- DNS Prefetch for external resources -->
+    <link rel="dns-prefetch" href="https://github.com" />
 
     <!-- Chillax font for headings (from Fontshare) -->
     <link
@@ -63,22 +146,17 @@
     <!-- Handle SPA redirect from 404.html (GitHub Pages) -->
     <script>
       (() => {
-        // Check for SPA redirect query parameter from 404.html
         const params = new URLSearchParams(window.location.search);
         const redirectPath = params.get('p');
-        
+
         if (redirectPath) {
-          // Remove the query params and restore the original path
           const query = params.get('q');
           const hash = window.location.hash;
-          const basePath = '/CADHY';
-          
-          // Build the restored URL
-          let restoredUrl = basePath + redirectPath;
+
+          let restoredUrl = redirectPath;
           if (query) restoredUrl += '?' + query;
           if (hash) restoredUrl += hash;
-          
-          // Replace the URL without triggering a navigation
+
           window.history.replaceState(null, '', restoredUrl);
         }
       })();
