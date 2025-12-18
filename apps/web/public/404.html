@@ -12,9 +12,9 @@
         var pathSegments = window.location.pathname.split('/');
         var host = window.location.host;
         var isCustomDomain = host === 'cadhy.app' || host === 'www.cadhy.app';
-
         var remainingPath;
         var baseUrl;
+        var repoName;
 
         if (isCustomDomain) {
           // Custom domain: /docs/foo -> remainingPath = '/docs/foo'
@@ -22,7 +22,7 @@
           baseUrl = '/';
         } else {
           // GitHub Pages: /CADHY/docs/foo -> remainingPath = '/docs/foo'
-          var repoName = pathSegments[1] || '';
+          repoName = pathSegments[1] || '';
           remainingPath = '/' + pathSegments.slice(2).filter(Boolean).join('/');
           baseUrl = '/' + repoName + '/';
         }
