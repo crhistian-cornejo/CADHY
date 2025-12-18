@@ -452,10 +452,9 @@ export function Navbar() {
                 </SheetTrigger>
                 <SheetContent
                   side="right"
-                  hideDefaultClose
-                  className="flex w-full flex-col p-0 sm:w-[350px] bg-background border-l border-border"
+                  className="flex w-full flex-col p-0 sm:w-[350px] bg-background/95 backdrop-blur-md"
                 >
-                  <SheetHeader className="border-b border-border p-4 h-14 justify-center">
+                  <SheetHeader className="border-b border-border p-4 h-14 flex-row items-center justify-between">
                     <SheetTitle>
                       <Link
                         to="/"
@@ -468,16 +467,16 @@ export function Navbar() {
                         </span>
                       </Link>
                     </SheetTitle>
+                    {/* Placeholder for the hamburger button which is absolute positioned by the trigger */}
+                    <div className="w-9 h-9" />
                   </SheetHeader>
 
                   <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 scrollbar-hide">
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence>
                       <motion.div
-                        key="mobile-menu-content"
-                        initial={{ opacity: 0, x: 20 }}
+                        initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        exit={{ opacity: 0, x: 10 }}
                         className="flex flex-col gap-6"
                       >
                         <Accordion className="flex w-full flex-col gap-2">
@@ -492,9 +491,8 @@ export function Navbar() {
                               </AccordionTrigger>
                               <AccordionContent className="pb-3 pt-1">
                                 <motion.div
-                                  initial={{ opacity: 0, y: -10 }}
+                                  initial={{ opacity: 0, y: -5 }}
                                   animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.2 }}
                                   className="flex flex-col gap-1"
                                 >
                                   {group.items.map((item) => (
@@ -546,7 +544,7 @@ export function Navbar() {
 
                         <Link
                           to="/docs"
-                          className="px-0 py-3 font-semibold text-foreground transition-colors hover:text-primary"
+                          className="py-3 font-semibold text-foreground transition-colors hover:text-primary"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           {t.nav.docs}
