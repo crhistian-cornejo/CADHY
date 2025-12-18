@@ -97,8 +97,8 @@ jobs:
           if-no-files-found: error
 
   # ============================================================================
-  # macOS Build (ARM64 + Intel x64)
-  # Each architecture uses its native runner for OpenCASCADE compatibility
+  # macOS Build (ARM64 only - Intel x64 disabled due to runner costs)
+  # macos-13 (Intel free) is retired, macos-15-large (Intel) requires payment
   # ============================================================================
   build-macos:
     name: Build (macOS ${{ matrix.arch }})
@@ -112,10 +112,11 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             arch: arm64
-            runner: macos-14  # ARM64 native runner
-          - target: x86_64-apple-darwin
-            arch: x64
-            runner: macos-15-large  # Intel native runner (macos-13 retired)
+            runner: macos-14  # ARM64 native runner (free)
+          # Intel x64 disabled - macos-15-large requires paid billing
+          # - target: x86_64-apple-darwin
+          #   arch: x64
+          #   runner: macos-15-large
 
     steps:
       - name: Checkout repository
