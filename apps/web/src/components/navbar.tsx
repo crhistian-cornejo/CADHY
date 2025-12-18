@@ -6,12 +6,21 @@
  */
 
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
   Button,
   cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -25,17 +34,18 @@ import {
   Moon02Icon,
   QuestionIcon,
   RoadLocation01Icon,
+  Rocket01Icon,
   Search01Icon,
   SparklesIcon,
   Sun03Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { SearchDialog, useSearchDialog } from "@/components/docs/search-dialog"
 import { LinuxIcon, MacIcon, WindowsIcon } from "@/components/icons/platform-icons"
 import { Logo } from "@/components/logo"
-import { MobileMenu } from "@/components/mobile-menu"
 import { Hamburger } from "@/components/ui/hamburger"
 import { useTranslation } from "@/lib/i18n"
 
@@ -296,6 +306,31 @@ export function Navbar() {
     }
   }
 
+  const handleNavigation = (url: string, external?: boolean) => {
+    setMobileMenuOpen(false)
+    if (external) {
+      window.open(url, "_blank", "noopener,noreferrer")
+      return
+    }
+    if (url.includes("#")) {
+      const [path, hash] = url.split("#")
+      const targetPath = path || "/"
+      if (currentPath === targetPath) {
+        if (hash) scrollToElement(hash)
+      } else {
+        navigate(targetPath)
+        if (hash) setTimeout(() => scrollToElement(hash), 150)
+      }
+    } else {
+      navigate(url)
+    }
+  }
+
+  const isActive = (url: string) => {
+    const [path] = url.split("#")
+    return currentPath === path || (path === "" && currentPath === "/")
+  }
+
   return (
     <>
       <header className="fixed left-0 top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
@@ -406,20 +441,135 @@ export function Navbar() {
                 <HugeiconsIcon icon={theme === "light" ? Moon02Icon : Sun03Icon} size={18} />
               </Button>
 
-              {/* Mobile Menu Trigger */}
-              <Hamburger
-                open={mobileMenuOpen}
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="h-9 w-9"
-              />
+              {/* Mobile Menu */}
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Hamburger
+                    open={mobileMenuOpen}
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    className="h-9 w-9 z-[60]"
+                  />
+                </SheetTrigger>
+                <SheetContent
+                  side="right"
+                  hideDefaultClose
+                  className="flex w-full flex-col p-0 sm:w-[350px] bg-background border-l border-border"
+                >
+                  <SheetHeader className="border-b border-border p-4 h-14 justify-center">
+                    <SheetTitle>
+                      <Link
+                        to="/"
+                        className="flex items-center gap-2"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Logo className="h-6 w-6" />
+                        <span className="text-lg font-bold tracking-tighter">
+                          CAD<span className="text-muted-foreground">HY</span>
+                        </span>
+                      </Link>
+                    </SheetTitle>
+                  </SheetHeader>
 
-              {/* Mobile Menu with Motion animations */}
-              <MobileMenu
-                open={mobileMenuOpen}
-                onOpenChange={setMobileMenuOpen}
-                platformLabel={platformLabel}
-                onDownloadClick={handleDownloadClick}
-              />
+                  <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 scrollbar-hide">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key="mobile-menu-content"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="flex flex-col gap-6"
+                      >
+                        <Accordion className="flex w-full flex-col gap-2">
+                          {menuGroups.map((group) => (
+                            <AccordionItem
+                              key={group.title}
+                              value={group.title}
+                              className="border-b-0"
+                            >
+                              <AccordionTrigger className="py-3 font-semibold text-foreground hover:no-underline">
+                                {group.title}
+                              </AccordionTrigger>
+                              <AccordionContent className="pb-3 pt-1">
+                                <motion.div
+                                  initial={{ opacity: 0, y: -10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="flex flex-col gap-1"
+                                >
+                                  {group.items.map((item) => (
+                                    <button
+                                      key={item.title}
+                                      type="button"
+                                      className={cn(
+                                        "flex items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground",
+                                        isActive(item.href)
+                                          ? "bg-accent/50 text-accent-foreground"
+                                          : ""
+                                      )}
+                                      onClick={() => handleNavigation(item.href, item.external)}
+                                    >
+                                      <div
+                                        className={cn(
+                                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border transition-colors",
+                                          isActive(item.href)
+                                            ? "bg-accent text-accent-foreground border-accent-foreground/20"
+                                            : "bg-card text-muted-foreground"
+                                        )}
+                                      >
+                                        <HugeiconsIcon icon={item.icon} size={18} />
+                                      </div>
+                                      <div>
+                                        <div
+                                          className={cn(
+                                            "text-sm font-medium",
+                                            isActive(item.href)
+                                              ? "text-primary font-semibold"
+                                              : "text-foreground"
+                                          )}
+                                        >
+                                          {item.title}
+                                        </div>
+                                        {item.description && (
+                                          <p className="line-clamp-1 text-xs text-muted-foreground">
+                                            {item.description}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </button>
+                                  ))}
+                                </motion.div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))}
+                        </Accordion>
+
+                        <Link
+                          to="/docs"
+                          className="px-0 py-3 font-semibold text-foreground transition-colors hover:text-primary"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {t.nav.docs}
+                        </Link>
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Fixed bottom download button */}
+                  <div className="mt-auto border-t border-border p-4 bg-background/50 backdrop-blur-sm">
+                    <Button
+                      className="w-full rounded-full gap-2 h-11"
+                      onClick={() => {
+                        setMobileMenuOpen(false)
+                        handleDownloadClick()
+                      }}
+                    >
+                      <HugeiconsIcon icon={Rocket01Icon} size={18} />
+                      {t.nav.downloadFor} {platformLabel}
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>
