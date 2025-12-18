@@ -44,7 +44,11 @@ Traditional hydraulic design requires switching between multiple tools: spreadsh
 ## Screenshots
 
 <p align="center">
-  <em>Coming soon</em>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/hero/dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="apps/web/public/hero/light.png">
+    <img alt="CADHY Application Screenshot" src="apps/web/public/hero/light.png" width="100%">
+  </picture>
 </p>
 
 ---

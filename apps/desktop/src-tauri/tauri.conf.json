@@ -12,7 +12,8 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJFNTEzQjhCRTUzNTM3MzMKUldRek56WGxpenRSTHRkUEgvWWd6NWlaNldUM01yMVFSSlpLSmNUMDM3SzcwS1NXT1pONjEzZGkK",
+      "active": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXkgOUIyODQ4QjRBNEMzQzI3OApSV1I0d3NPa3RFZ29teXN0NDBZMlRLaGVud3M4UXM3OGV5WkJ3MUhUOVROSGlqajdyWU05bjN3Sgo=",
       "endpoints": [
         "https://github.com/crhistian-cornejo/CADHY/releases/latest/download/latest.json"
       ],
@@ -46,6 +47,7 @@
   "bundle": {
     "active": true,
     "targets": ["msi", "nsis", "dmg", "app", "deb", "rpm", "appimage"],
+    "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
     "shortDescription": "Civil-Hydraulic Engineering Analysis Tool",
     "longDescription": "CADHY is a civil-hydraulic engineering application for analyzing open channel flow, water profiles, and hydraulic structures.",

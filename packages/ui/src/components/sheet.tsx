@@ -118,7 +118,7 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-4 right-4 rounded-full"
+                className="fixed top-3 right-3 z-[60] rounded-full"
                 size="icon"
                 aria-label="Close menu"
                 title="Close menu"
