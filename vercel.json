@@ -4,7 +4,6 @@
   "outputDirectory": "apps/web/dist",
   "installCommand": "bun install",
   "framework": "vite",
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- apps/web packages/ui docs",
   "rewrites": [
     {
       "source": "/((?!assets/|hero/|favicon|logo|sitemap|robots|manifest).*)",
