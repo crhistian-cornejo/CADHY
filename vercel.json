@@ -4,7 +4,6 @@
   "outputDirectory": "apps/web/dist",
   "installCommand": "bun install",
   "framework": "vite",
-  "ignoreCommand": "bash -c 'git fetch --depth=2 origin $VERCEL_GIT_COMMIT_REF && git diff --quiet HEAD~1 HEAD -- apps/web packages/ui'",
   "rewrites": [
     {
       "source": "/((?!assets/|hero/|favicon|logo|sitemap|robots|manifest).*)",
