@@ -2,12 +2,13 @@
 
 ## 📖 Required Reading (Session Start)
 
-Before generating ANY code, read these files in order on ".agents/" directory:
+Before generating ANY code, read these files in order:
 
-1. **`.agents/CORE-RULES.md`** - Core principles (READ FIRST)
-2. **`.agents/ARCHITECTURE.md`** - Understand what we're building
-3. **`.agents/CONVENTIONS.md`** - Coding conventions
-4. **`.agents/SHADCN-V2.md`** - shadcn/ui v2 + Tailwind CSS v4 guidelines
+1. **`.agents/QUICKSTART.md`** - 5-minute overview (START HERE)
+2. **`.agents/rules/CORE-RULES.md`** - Core principles
+3. **`.agents/context/ARCHITECTURE.md`** - Understand what we're building
+4. **`.agents/standards/CONVENTIONS.md`** - Coding conventions
+5. **`.agents/standards/SHADCN-V2.md`** - shadcn/ui v2 + Tailwind CSS v4 guidelines
 
 ## 🎯 Project Summary
 
@@ -202,10 +203,26 @@ cargo fmt && cargo clippy
 
 ## 📚 Key Documentation
 
-- `.agents/CORE-RULES.md` - Prime directive & design system
-- `.agents/ARCHITECTURE.md` - Project structure & data flow
-- `.agents/CONVENTIONS.md` - Detailed coding conventions
-- `.agents/SHADCN-V2.md` - shadcn/ui v2 + Tailwind v4
+### Quick Start
+- `.agents/QUICKSTART.md` - 5-minute overview
+- `.agents/README.md` - Full navigation
+
+### Rules
+- `.agents/rules/CORE-RULES.md` - Prime directive & design system
+
+### Context
+- `.agents/context/ARCHITECTURE.md` - Project structure & data flow
+- `.agents/context/VERSION.md` - Current version info
+- `.agents/context/RELEASES.md` - Roadmap & release history
+- `.agents/context/RELEASE-PROCESS.md` - How to release
+
+### Standards
+- `.agents/standards/CONVENTIONS.md` - Detailed coding conventions
+- `.agents/standards/BEST-PRACTICES.md` - Pre-commit checklist
+- `.agents/standards/SHADCN-V2.md` - shadcn/ui v2 + Tailwind v4
+
+### Memories
+- `.agents/memories/MEMORIES.md` - Known bugs & solutions
 
 ## 💡 When Uncertain
 
