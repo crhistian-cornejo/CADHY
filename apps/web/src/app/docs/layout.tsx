@@ -72,6 +72,7 @@ function SidebarSection({ section, currentPath }: { section: DocSection; current
   return (
     <div>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="
           w-full flex items-center justify-between
