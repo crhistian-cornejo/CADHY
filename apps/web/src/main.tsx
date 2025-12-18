@@ -8,6 +8,7 @@ import LandingLayout from "@/app/layout"
 import LandingPage from "@/app/page"
 import PrivacyPage from "@/app/privacy/page"
 import TermsPage from "@/app/terms/page"
+import { ScrollToTop } from "@/components/scroll-to-top"
 
 import "@/styles/globals.css"
 
@@ -79,6 +80,7 @@ function App() {
   return (
     <TooltipProvider delay={300}>
       <RouterProvider router={router} />
+      <ScrollToTop />
     </TooltipProvider>
   )
 }
