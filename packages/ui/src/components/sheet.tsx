@@ -64,7 +64,7 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ease-out",
+        "fixed inset-0 z-50 bg-black/40 backdrop-blur-md transition-opacity duration-300 ease-out",
         "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
         className
       )}
@@ -79,7 +79,7 @@ function SheetContent({
   side = "right",
   showCloseButton = true,
   hideDefaultClose = false,
-  fullHeight = false,
+  fullHeight = true,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
@@ -96,14 +96,12 @@ function SheetContent({
 
   return (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetOverlay className="bg-black/40 backdrop-blur-sm" />
       <SheetPrimitive.Popup
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "bg-background fixed z-50 flex flex-col gap-4 shadow-2xl",
-          fullHeight ? "h-full" : "h-auto max-h-[95vh]",
-          "transition-transform duration-300 ease-out",
+          "bg-background fixed z-50 flex flex-col gap-4 shadow-2xl transition-transform duration-300 ease-out h-full",
           side === "right" &&
             "data-[starting-style]:translate-x-full data-[ending-style]:translate-x-full",
           side === "left" &&
