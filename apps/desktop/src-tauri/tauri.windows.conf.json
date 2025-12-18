@@ -18,6 +18,9 @@
   },
   "bundle": {
     "targets": ["msi", "nsis"],
+    "resources": {
+      "resources/occt-dlls/*.dll": ""
+    },
     "fileAssociations": [
       {
         "ext": ["cadhy"],
