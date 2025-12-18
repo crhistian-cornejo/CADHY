@@ -63,6 +63,20 @@ export default defineConfig({
 
   build: {
     outDir: "dist",
-    sourcemap: true,
+    sourcemap: false, // Disable in production to reduce size
+    minify: "esbuild", // Faster than terser, good compression
+    target: "es2020", // Modern browsers only
+    rollupOptions: {
+      output: {
+        // Manual chunks for better caching
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          motion: ["motion"],
+          mdx: ["@mdx-js/react"],
+        },
+      },
+    },
+    // Reduce chunk size warnings threshold
+    chunkSizeWarningLimit: 600,
   },
 })
