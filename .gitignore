@@ -57,3 +57,5 @@ Thumbs.db
 
 # External reference projects
 athas/
+.vercel
+.env*.local

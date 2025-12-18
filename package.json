@@ -29,7 +29,7 @@
     "changeset:status": "changeset status",
     "version": "changeset version && bun install --frozen-lockfile",
     "release": "bun scripts/release/index.ts",
-    "deploy": "bun scripts/deploy/index.ts",
+    "deploy:web": "bun scripts/deploy/index.ts",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
     "prepare": "husky"
   },

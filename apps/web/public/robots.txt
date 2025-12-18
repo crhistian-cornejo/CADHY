@@ -1,0 +1,15 @@
+# CADHY - Computer-Aided Design for HYdraulics
+# https://cadhy.app
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://cadhy.app/sitemap.xml
+
+# Crawl-delay (optional, be nice to crawlers)
+Crawl-delay: 1
+
+# Disallow admin/private paths (if any)
+Disallow: /api/
+Disallow: /_*

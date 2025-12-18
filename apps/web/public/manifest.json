@@ -1,0 +1,29 @@
+{
+  "name": "CADHY - Computer-Aided Design for HYdraulics",
+  "short_name": "CADHY",
+  "description": "Professional desktop CAD software for hydraulic engineering. Design open channels, analyze water flow, and create 3D models.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "categories": ["engineering", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

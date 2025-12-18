@@ -76,7 +76,7 @@ export async function getSystemInfo(): Promise<SystemInfo> {
     // Build comprehensive info combining backend and frontend data
     const systemInfo: SystemInfo = {
       appName: "CADHY",
-      appDescription: "Computational Analysis and Design for Hydraulics",
+      appDescription: "Computer-Aided Design for HYdraulics (CADHY)",
       build: {
         version: basicInfo.version || "0.1.0",
         gitCommit: __GIT_COMMIT__ || "unknown",
@@ -214,7 +214,7 @@ function getPlatform(os: string): string {
 function getFallbackSystemInfo(): SystemInfo {
   return {
     appName: "CADHY",
-    appDescription: "Computational Analysis and Design for Hydraulics",
+    appDescription: "Computer-Aided Design for HYdraulics (CADHY)",
     build: {
       version: "0.1.0",
       gitCommit: "unknown",
