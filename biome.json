@@ -51,7 +51,8 @@
         "noExplicitAny": "warn",
         "noArrayIndexKey": "warn",
         "noImplicitAnyLet": "warn",
-        "useIterableCallbackReturn": "warn"
+        "useIterableCallbackReturn": "warn",
+        "noDocumentCookie": "warn"
       }
     }
   },
