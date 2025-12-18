@@ -178,79 +178,19 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================================
-  # Linux Build (may fail - Ubuntu OCCT packages are v7.5, we need v7.9.2 features)
+  # Linux Build - DISABLED (Ubuntu OCCT 7.5 lacks required features)
+  # See: .agents/standards/BEST-PRACTICES.md for details
   # ============================================================================
-  build-linux:
-    name: Build (Linux x64)
-    runs-on: ubuntu-22.04
-    continue-on-error: true  # Don't block release if Linux fails
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            libocct-foundation-dev \
-            libocct-modeling-algorithms-dev \
-            libocct-modeling-data-dev \
-            libocct-data-exchange-dev \
-            libocct-visualization-dev
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.1
-
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-          target: x86_64-unknown-linux-gnu
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            . -> target
-            apps/desktop/src-tauri -> apps/desktop/src-tauri/target
-
-      - name: Install Dependencies
-        run: bun install --frozen-lockfile
-        env:
-          HUSKY: 0
-
-      - name: Build App
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: bun run --filter @cadhy/desktop tauri:build
-
-      - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-binaries
-          path: |
-            apps/desktop/src-tauri/target/release/bundle/deb/*.deb
-            apps/desktop/src-tauri/target/release/bundle/rpm/*.rpm
-            apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
-            apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage.sig
-          if-no-files-found: warn
+  # build-linux:
+  #   Disabled until Ubuntu packages OpenCASCADE 7.6+
+  #   or we set up a custom build pipeline
 
   # ============================================================================
   # Create GitHub Release with Update Manifest
   # ============================================================================
   release:
     name: Create Release
-    needs: [build-windows, build-macos, build-linux]
+    needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
     # Run if at least macOS arm64 OR Windows succeeded (allow partial releases)
     if: |
@@ -322,13 +262,8 @@ jobs:
             FIRST=false
           fi
 
-          # Linux
-          if ls artifacts/linux-binaries/*.AppImage.sig 2>/dev/null; then
-            SIG=$(cat artifacts/linux-binaries/*.AppImage.sig)
-            if [ "$FIRST" = false ]; then PLATFORMS+=","; fi
-            PLATFORMS+="\"linux-x86_64\":{\"signature\":\"$SIG\",\"url\":\"https://github.com/${RELEASES_REPO}/releases/download/v${VERSION}/CADHY_${VERSION}_amd64.AppImage\"}"
-            FIRST=false
-          fi
+          # Linux - DISABLED (OCCT 7.5 compatibility issues)
+          # Will be enabled when Ubuntu packages OCCT 7.6+
 
           # Windows
           if ls artifacts/windows-binaries/*.exe.sig 2>/dev/null; then
@@ -361,7 +296,6 @@ jobs:
             artifacts/windows-binaries/**/*
             artifacts/macos-binaries-arm64/**/*
             artifacts/macos-binaries-x64/**/*
-            artifacts/linux-binaries/**/*
             artifacts/latest.json
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, 'alpha') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'rc') }}
