@@ -58,6 +58,8 @@ jobs:
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile
+        env:
+          HUSKY: 0
 
       - name: Build App
         shell: powershell
@@ -130,6 +132,8 @@ jobs:
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile
+        env:
+          HUSKY: 0
 
       - name: Import Apple Certificate
         env:
@@ -221,6 +225,8 @@ jobs:
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile
+        env:
+          HUSKY: 0
 
       - name: Build App
         env:
