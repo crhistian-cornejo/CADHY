@@ -46,7 +46,7 @@ import {
   WaterEnergyIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useMemo, useState } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   type AnySceneObject,
@@ -69,7 +69,9 @@ import {
   useLayers,
   useModellerStore,
   useSelectedIds,
+  useViewportSettings,
 } from "@/stores/modeller-store"
+import { TextureMaterialPanel } from "./properties/TextureMaterialPanelSimple"
 
 // ============================================================================
 // TYPES
@@ -91,7 +93,13 @@ interface SectionProps {
   badge?: string | number
 }
 
-function Section({ title, icon, defaultOpen = true, children, badge }: SectionProps) {
+const Section = React.memo(function Section({
+  title,
+  icon,
+  defaultOpen = true,
+  children,
+  badge,
+}: SectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
   return (
@@ -116,7 +124,7 @@ function Section({ title, icon, defaultOpen = true, children, badge }: SectionPr
       </CollapsibleContent>
     </Collapsible>
   )
-}
+})
 
 // ============================================================================
 // PROPERTY ROW
@@ -127,14 +135,14 @@ interface PropertyRowProps {
   children: React.ReactNode
 }
 
-function PropertyRow({ label, children }: PropertyRowProps) {
+const PropertyRow = React.memo(function PropertyRow({ label, children }: PropertyRowProps) {
   return (
     <div className="flex items-center gap-2">
       <Label className="w-20 shrink-0 text-[10px] text-muted-foreground">{label}</Label>
       <div className="flex-1">{children}</div>
     </div>
   )
-}
+})
 
 // ============================================================================
 // VECTOR INPUT
@@ -147,7 +155,12 @@ interface VectorInputProps {
   precision?: number
 }
 
-function VectorInput({ value, onChange, step = 0.1, precision = 2 }: VectorInputProps) {
+const VectorInput = React.memo(function VectorInput({
+  value,
+  onChange,
+  step = 0.1,
+  precision = 2,
+}: VectorInputProps) {
   const handleChange = (axis: "x" | "y" | "z", newValue: number) => {
     onChange({ ...value, [axis]: newValue })
   }
@@ -192,7 +205,7 @@ function VectorInput({ value, onChange, step = 0.1, precision = 2 }: VectorInput
       </div>
     </div>
   )
-}
+})
 
 // ============================================================================
 // TRANSFORM SECTION
@@ -2518,6 +2531,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
   const selectedIds = useSelectedIds()
   const objects = useModellerStore((s) => s.objects)
   const layers = useLayers()
+  const viewportSettings = useViewportSettings()
   const updateObject = useModellerStore((s) => s.updateObject)
   const deleteSelected = useModellerStore((s) => s.deleteSelected)
   const duplicateSelected = useModellerStore((s) => s.duplicateSelected)
@@ -2642,6 +2656,11 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
                 onUpdate={handleUpdate as (updates: Partial<ShapeObject>) => void}
               />
             )}
+
+            {/* PBR Textures (for all objects when post-processing is enabled) */}
+            <TextureMaterialPanel
+              postProcessingEnabled={viewportSettings.enablePostProcessing ?? false}
+            />
 
             {/* Layer & State */}
             <LayerStateSection object={selectedObject} layers={layers} onUpdate={handleUpdate} />

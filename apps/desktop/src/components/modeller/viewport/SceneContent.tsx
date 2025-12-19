@@ -5,6 +5,7 @@
  * transform gizmos, and navigation helpers.
  */
 
+import { logger } from "@cadhy/shared/logger"
 import {
   ContactShadows,
   Environment,
@@ -20,6 +21,10 @@ import {
 import { useFrame, useThree } from "@react-three/fiber"
 import { useCallback, useEffect, useRef, useState } from "react"
 import * as THREE from "three"
+import type {
+  OrbitControls as OrbitControlsImpl,
+  TransformControls as TransformControlsImpl,
+} from "three-stdlib"
 import {
   type AnySceneObject,
   type ChannelObject,
@@ -82,8 +87,8 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
   // Ref for the currently selected mesh (first selected)
   const selectedMeshRef = useRef<THREE.Mesh | THREE.Group>(null)
-  const transformControlsRef = useRef<any>(null)
-  const orbitControlsRef = useRef<any>(null)
+  const transformControlsRef = useRef<TransformControlsImpl>(null)
+  const orbitControlsRef = useRef<OrbitControlsImpl>(null)
 
   // Animation state for camera focus
   const focusAnimationRef = useRef<{
@@ -122,6 +127,11 @@ export function SceneContent({ showStats }: SceneContentProps) {
       }
     })
   }, [])
+
+  // Reset meshReady when first selected changes
+  useEffect(() => {
+    setMeshReady(false)
+  }, [_firstSelectedId])
 
   // Handle focus object - animate camera to center on object
   useEffect(() => {
@@ -217,13 +227,13 @@ export function SceneContent({ showStats }: SceneContentProps) {
       // Debug: Log animation progress and camera position
       if (Math.floor(newTime * 10) !== Math.floor(playbackTime * 10)) {
         const interpolatedCamera = getCameraAtTime(currentAnimation, newTime)
-        console.log(
+        logger.log(
           `[Camera Animation] Time: ${newTime.toFixed(1)}s / ${currentAnimation.duration}s`
         )
-        console.log(
+        logger.log(
           `  Position: (${interpolatedCamera.position.x.toFixed(2)}, ${interpolatedCamera.position.y.toFixed(2)}, ${interpolatedCamera.position.z.toFixed(2)})`
         )
-        console.log(
+        logger.log(
           `  Target: (${interpolatedCamera.target.x.toFixed(2)}, ${interpolatedCamera.target.y.toFixed(2)}, ${interpolatedCamera.target.z.toFixed(2)})`
         )
       }
@@ -338,7 +348,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
       draggedObjectNameRef.current = firstSelectedObject.name
       // Save state before transformation starts
       useModellerStore.getState().saveStateBeforeAction()
-      console.log("[Transform] Started drag on:", firstSelectedObject.name)
+      logger.log("[Transform] Started drag on:", firstSelectedObject.name)
     }
   }, [firstSelectedObject])
 
@@ -350,7 +360,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
       draggedObjectNameRef.current = null
       // Commit the transformation to history
       useModellerStore.getState().commitToHistory(`Transform: ${objectName}`)
-      console.log("[Transform] Committed to history:", objectName)
+      logger.log("[Transform] Committed to history:", objectName)
     }
   }, [])
 
@@ -359,7 +369,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
   // Callback ref to attach dragging-changed listener when TransformControls mounts
   const transformControlsRefCallback = useCallback(
-    (controls: any) => {
+    (controls: TransformControlsImpl | null) => {
       // Store ref for other uses
       if (transformControlsRef.current !== controls) {
         // Cleanup old listener if any
@@ -375,7 +385,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
       if (!controls) return
 
       const handleDraggingChanged = (event: { value: boolean }) => {
-        console.log("[Transform] dragging-changed event:", event.value)
+        logger.log("[Transform] dragging-changed event:", event.value)
         if (event.value) {
           handleTransformStart()
         } else {
@@ -503,20 +513,9 @@ export function SceneContent({ showStats }: SceneContentProps) {
         enableRotate={!isOrtho}
       />
 
-      {/* Environment & Lighting */}
-      <ambientLight intensity={0.4} />
-      <directionalLight
-        position={[10, 15, 10]}
-        intensity={1}
-        castShadow={viewportSettings.shadows}
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-far={50}
-        shadow-camera-left={-10}
-        shadow-camera-right={10}
-        shadow-camera-top={10}
-        shadow-camera-bottom={-10}
-        shadow-bias={-0.0001}
-      />
+      {/* Environment & Lighting - Optimized */}
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 15, 10]} intensity={0.8} />
       <directionalLight position={[-5, 5, -5]} intensity={0.3} />
 
       {/* Environment map for reflections - using preset that loads from CDN */}
@@ -542,15 +541,16 @@ export function SceneContent({ showStats }: SceneContentProps) {
       {/* Axes Helper */}
       {viewportSettings.showAxes && <axesHelper args={[5]} />}
 
-      {/* Contact Shadows - Optimized */}
-      {viewportSettings.shadows && visibleObjects.length < 20 && (
+      {/* Soft Shadows - Optimized and compatible */}
+      {viewportSettings.shadows && (
         <ContactShadows
-          position={[0, -0.01, 0]}
-          opacity={0.3}
-          scale={20}
-          blur={1.5}
-          far={10}
-          resolution={256}
+          position={[0, 0.005, 0]}
+          opacity={0.5}
+          scale={50}
+          blur={2.5}
+          far={20}
+          resolution={512}
+          color="#000000"
         />
       )}
 

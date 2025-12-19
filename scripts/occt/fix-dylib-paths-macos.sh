@@ -7,6 +7,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ENTITLEMENTS="$PROJECT_ROOT/apps/desktop/src-tauri/entitlements.plist"
 
 # Find the app bundle
 if [ -n "$1" ]; then
@@ -127,11 +128,18 @@ fi
 echo "Signing identity: $SIGN_IDENTITY"
 
 # Sign frameworks first, then the main app
+# Check if entitlements file exists for hardened runtime
+ENTITLEMENTS_ARG=""
+if [ -f "$ENTITLEMENTS" ]; then
+    echo "Using entitlements from: $ENTITLEMENTS"
+    ENTITLEMENTS_ARG="--entitlements $ENTITLEMENTS"
+fi
+
 for dylib in "$FRAMEWORKS_DIR"/*.dylib; do
-    codesign --force --sign "$SIGN_IDENTITY" "$dylib" 2>/dev/null || true
+    codesign --force --sign "$SIGN_IDENTITY" --options runtime $ENTITLEMENTS_ARG "$dylib" 2>/dev/null || true
 done
 
-codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_BUNDLE" 2>&1 || {
+codesign --force --deep --sign "$SIGN_IDENTITY" --options runtime $ENTITLEMENTS_ARG "$APP_BUNDLE" 2>&1 || {
     echo "Signing with identity failed, falling back to ad-hoc"
     codesign --force --deep --sign - "$APP_BUNDLE" 2>&1
 }

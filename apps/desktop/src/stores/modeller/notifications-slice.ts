@@ -10,6 +10,7 @@
  * - Connection problems
  */
 
+import { logger } from "@cadhy/shared/logger"
 import type { StateCreator } from "zustand"
 import type { ModellerStore } from "./store-types"
 import type {
@@ -665,7 +666,7 @@ export const createNotificationsSlice: StateCreator<ModellerStore, [], [], Notif
       }
       // Add more action types as needed
       default:
-        console.warn(`Unknown notification action type: ${action.type}`)
+        logger.warn(`Unknown notification action type: ${action.type}`)
     }
   },
 })

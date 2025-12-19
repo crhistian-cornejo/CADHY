@@ -59,6 +59,7 @@ import {
   type ModelGroup,
   type ProviderAvailability,
 } from "@cadhy/ai"
+import { logger } from "@cadhy/shared/logger"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useCAD } from "@/hooks/useCAD"
 import {
@@ -446,8 +447,8 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
 
   const handleToolResult = useCallback(
     async (result: ToolCallResult): Promise<string> => {
-      console.log("[useAIChat] handleToolResult RAW INPUT:", JSON.stringify(result, null, 2))
-      console.log("[useAIChat] handleToolResult called:", {
+      logger.log("[useAIChat] handleToolResult RAW INPUT:", JSON.stringify(result, null, 2))
+      logger.log("[useAIChat] handleToolResult called:", {
         toolName: result.toolName,
         toolCallId: result.toolCallId,
         args: result.args,
@@ -532,14 +533,14 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       if (result.result && typeof result.result === "object") {
         // Best case: we have the actual tool result
         toolResult = result.result as Record<string, unknown>
-        console.log("[useAIChat] Using result.result:", toolResult)
+        logger.log("[useAIChat] Using result.result:", toolResult)
       } else if (
         result.args &&
         typeof result.args === "object" &&
         Object.keys(result.args).length > 0
       ) {
         // Fallback: build result from args (this happens when SDK doesn't pass result properly)
-        console.log("[useAIChat] Building result from args:", result.args)
+        logger.log("[useAIChat] Building result from args:", result.args)
         const args = result.args as Record<string, unknown>
         const inferredAction = toolNameToAction[result.toolName]
         const shapeType = toolNameToShapeType[result.toolName]
@@ -604,7 +605,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
         const inferredAction = toolNameToAction[result.toolName]
         if (inferredAction) {
           toolResult.action = inferredAction
-          console.log("[useAIChat] Inferred action:", inferredAction)
+          logger.log("[useAIChat] Inferred action:", inferredAction)
         } else {
           console.error("[useAIChat] Could not determine action for tool:", result.toolName)
           return `Error: Could not determine action for tool "${result.toolName}"`
@@ -612,7 +613,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       }
 
       const finalAction = toolResult.action as string
-      console.log("[useAIChat] Processing action:", finalAction)
+      logger.log("[useAIChat] Processing action:", finalAction)
 
       try {
         // Handle CAD shape creation
@@ -701,11 +702,11 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
             )
             if (found) {
               upstreamId = found.id
-              console.log(
+              logger.log(
                 `[useAIChat] Resolved upstream by name: "${channelResult.upstreamChannelName}" → ${upstreamId}`
               )
             } else {
-              console.warn(
+              logger.warn(
                 `[useAIChat] Could not find upstream element by name: "${channelResult.upstreamChannelName}"`
               )
             }
@@ -775,11 +776,11 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
             )
             if (found) {
               upstreamId = found.id
-              console.log(
+              logger.log(
                 `[useAIChat] Resolved upstream by name: "${transitionResult.upstreamChannelName}" → ${upstreamId}`
               )
             } else {
-              console.warn(
+              logger.warn(
                 `[useAIChat] Could not find upstream element by name: "${transitionResult.upstreamChannelName}"`
               )
             }
@@ -793,11 +794,11 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
             )
             if (found) {
               downstreamId = found.id
-              console.log(
+              logger.log(
                 `[useAIChat] Resolved downstream by name: "${transitionResult.downstreamChannelName}" → ${downstreamId}`
               )
             } else {
-              console.warn(
+              logger.warn(
                 `[useAIChat] Could not find downstream element by name: "${transitionResult.downstreamChannelName}"`
               )
             }
@@ -869,11 +870,11 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
             )
             if (found) {
               upstreamId = found.id
-              console.log(
+              logger.log(
                 `[useAIChat] Resolved upstream by name: "${chuteResult.upstreamChannelName}" → ${upstreamId}`
               )
             } else {
-              console.warn(
+              logger.warn(
                 `[useAIChat] Could not find upstream element by name: "${chuteResult.upstreamChannelName}"`
               )
             }
@@ -887,11 +888,11 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
             )
             if (found) {
               downstreamId = found.id
-              console.log(
+              logger.log(
                 `[useAIChat] Resolved downstream by name: "${chuteResult.downstreamChannelName}" → ${downstreamId}`
               )
             } else {
-              console.warn(
+              logger.warn(
                 `[useAIChat] Could not find downstream element by name: "${chuteResult.downstreamChannelName}"`
               )
             }
@@ -1213,9 +1214,9 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
 
         // Handle modifyChannel action
         if (finalAction === "modifyChannel") {
-          console.log("[useAIChat] modifyChannel - starting")
+          logger.log("[useAIChat] modifyChannel - starting")
           const modifyResult = toolResult as unknown as ModifyChannelResult
-          console.log(
+          logger.log(
             "[useAIChat] modifyChannel - channelId:",
             modifyResult.channelId,
             "updates:",
@@ -1223,7 +1224,7 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
           )
 
           const channel = getObjectById(modifyResult.channelId)
-          console.log("[useAIChat] modifyChannel - found channel:", channel?.name, channel?.type)
+          logger.log("[useAIChat] modifyChannel - found channel:", channel?.name, channel?.type)
 
           if (!channel || channel.type !== "channel") {
             console.error("[useAIChat] modifyChannel - channel not found or wrong type")
@@ -1316,9 +1317,9 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
 
         // Handle modifyShape action
         if (finalAction === "modifyShape") {
-          console.log("[useAIChat] modifyShape - starting")
+          logger.log("[useAIChat] modifyShape - starting")
           const modifyResult = toolResult as unknown as ModifyShapeResult
-          console.log(
+          logger.log(
             "[useAIChat] modifyShape - shapeId:",
             modifyResult.shapeId,
             "updates:",
@@ -1327,13 +1328,13 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
 
           // List all available shapes for debugging
           const allShapes = objects.filter((o) => o.type === "shape")
-          console.log(
+          logger.log(
             "[useAIChat] modifyShape - available shapes:",
             allShapes.map((s) => ({ id: s.id, name: s.name }))
           )
 
           const shape = getObjectById(modifyResult.shapeId)
-          console.log("[useAIChat] modifyShape - found shape:", shape?.name, shape?.type)
+          logger.log("[useAIChat] modifyShape - found shape:", shape?.name, shape?.type)
 
           if (!shape || shape.type !== "shape") {
             console.error("[useAIChat] modifyShape - shape not found or wrong type")
@@ -1450,7 +1451,7 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
           }
 
           updateObject(modifyResult.shapeId, updates, true)
-          console.log("[useAIChat] modifyShape - updated successfully:", updatedProps)
+          logger.log("[useAIChat] modifyShape - updated successfully:", updatedProps)
           return `Modified shape "${shapeObj.name}":\n• ${updatedProps.join("\n• ")}`
         }
 
@@ -2803,7 +2804,7 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
         // Only inject scene context into the current (last) user message
         if (isSceneRelated && m.role === "user" && idx === messagesWithUser.length - 1) {
           const sceneContext = formatSceneContextForPrompt()
-          console.log("[useAIChat] Injecting scene context:", sceneContext)
+          logger.log("[useAIChat] Injecting scene context:", sceneContext)
           return {
             role: m.role,
             content: `${m.content}\n\n${sceneContext}`,
@@ -2815,7 +2816,7 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
         }
       })
 
-      console.log(
+      logger.log(
         "[useAIChat] isSceneRelated:",
         isSceneRelated,
         "chatHistory length:",

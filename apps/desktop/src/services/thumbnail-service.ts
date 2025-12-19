@@ -44,7 +44,7 @@ export function getViewportCanvas(): HTMLCanvasElement | null {
  */
 export async function captureViewportThumbnail(): Promise<string | null> {
   if (!viewportCanvas) {
-    console.warn("[Thumbnail] No viewport canvas registered")
+    logger.warn("[Thumbnail] No viewport canvas registered")
     return null
   }
 

@@ -38,8 +38,9 @@ import {
   ViewOffIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useState } from "react"
+import React, { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useVirtualList } from "@/hooks/useVirtualList"
 import { type Layer, useLayers, useModellerStore, useObjects } from "@/stores/modeller-store"
 
 // ============================================================================
@@ -82,7 +83,7 @@ interface ColorPickerProps {
   onChange: (color: string) => void
 }
 
-function ColorPicker({ value, onChange }: ColorPickerProps) {
+const ColorPicker = React.memo(function ColorPicker({ value, onChange }: ColorPickerProps) {
   return (
     <Popover>
       <PopoverTrigger
@@ -125,7 +126,7 @@ function ColorPicker({ value, onChange }: ColorPickerProps) {
       </PopoverContent>
     </Popover>
   )
-}
+})
 
 // ============================================================================
 // LAYER ITEM
@@ -144,7 +145,7 @@ interface LayerItemProps {
   onSelectObjects: () => void
 }
 
-function LayerItem({
+const LayerItem = React.memo(function LayerItem({
   layer,
   objectCount,
   isActive,
@@ -288,7 +289,7 @@ function LayerItem({
       </ContextMenuContent>
     </ContextMenu>
   )
-}
+})
 
 // ============================================================================
 // NEW LAYER DIALOG
@@ -298,7 +299,7 @@ interface NewLayerFormProps {
   onClose: () => void
 }
 
-function NewLayerForm({ onClose }: NewLayerFormProps) {
+const NewLayerForm = React.memo(function NewLayerForm({ onClose }: NewLayerFormProps) {
   const { t } = useTranslation()
   const [name, setName] = useState(t("layersPanel.newLayer"))
   const [color, setColor] = useState("#6366f1")
@@ -341,7 +342,7 @@ function NewLayerForm({ onClose }: NewLayerFormProps) {
       </div>
     </form>
   )
-}
+})
 
 // ============================================================================
 // MAIN COMPONENT
@@ -355,8 +356,15 @@ export function LayersPanel({ className }: LayersPanelProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [showNewLayerForm, setShowNewLayerForm] = useState(false)
 
-  const { updateLayer, deleteLayer, toggleLayerVisibility, toggleLayerLock, selectByLayer } =
-    useModellerStore()
+  const {
+    updateLayer,
+    deleteLayer,
+    toggleLayerVisibility,
+    toggleLayerLock,
+    selectByLayer,
+    setAllLayersVisibility,
+    setAllLayersLock,
+  } = useModellerStore()
 
   // Get object count per layer
   const getObjectCount = useCallback(
@@ -371,30 +379,25 @@ export function LayersPanel({ className }: LayersPanelProps) {
     layer.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Bulk actions
-  const handleShowAll = () => {
-    layers.forEach((layer) => {
-      if (!layer.visible) {
-        toggleLayerVisibility(layer.id)
-      }
-    })
-  }
+  // Virtualization for layer list
+  const { parentRef, virtualItems, totalSize } = useVirtualList({
+    items: filteredLayers,
+    estimateSize: 50, // Estimated height of each LayerItem
+    overscan: 3,
+  })
 
-  const handleHideAll = () => {
-    layers.forEach((layer) => {
-      if (layer.visible) {
-        toggleLayerVisibility(layer.id)
-      }
-    })
-  }
+  // Bulk actions (optimized with batch operations)
+  const handleShowAll = useCallback(() => {
+    setAllLayersVisibility(true)
+  }, [setAllLayersVisibility])
 
-  const handleUnlockAll = () => {
-    layers.forEach((layer) => {
-      if (layer.locked) {
-        toggleLayerLock(layer.id)
-      }
-    })
-  }
+  const handleHideAll = useCallback(() => {
+    setAllLayersVisibility(false)
+  }, [setAllLayersVisibility])
+
+  const handleUnlockAll = useCallback(() => {
+    setAllLayersLock(false)
+  }, [setAllLayersLock])
 
   return (
     <div className={cn("flex h-full flex-col overflow-hidden", className)}>
@@ -466,31 +469,47 @@ export function LayersPanel({ className }: LayersPanelProps) {
         </Button>
       </div>
 
-      {/* Layer List */}
+      {/* Layer List (virtualized for performance) */}
       <ScrollArea className="flex-1 min-h-0">
-        <div className="py-1">
-          {filteredLayers.map((layer) => (
-            <LayerItem
-              key={layer.id}
-              layer={layer}
-              objectCount={getObjectCount(layer.id)}
-              isActive={activeLayerId === layer.id}
-              onSelect={() => setActiveLayerId(layer.id)}
-              onToggleVisibility={() => toggleLayerVisibility(layer.id)}
-              onToggleLock={() => toggleLayerLock(layer.id)}
-              onUpdateColor={(color) => updateLayer(layer.id, { color })}
-              onUpdateName={(name) => updateLayer(layer.id, { name })}
-              onDelete={() => deleteLayer(layer.id)}
-              onSelectObjects={() => selectByLayer(layer.id)}
-            />
-          ))}
-
-          {filteredLayers.length === 0 && (
-            <div className="py-8 text-center">
-              <p className="text-xs text-muted-foreground">{t("layersPanel.noLayersFound")}</p>
+        {filteredLayers.length === 0 ? (
+          <div className="py-8 text-center">
+            <p className="text-xs text-muted-foreground">{t("layersPanel.noLayersFound")}</p>
+          </div>
+        ) : (
+          <div ref={parentRef} className="h-full overflow-auto py-1">
+            <div style={{ height: totalSize, position: "relative" }}>
+              {virtualItems.map((virtualItem) => {
+                const layer = filteredLayers[virtualItem.index]
+                return (
+                  <div
+                    key={layer.id}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualItem.start}px)`,
+                      height: virtualItem.size,
+                    }}
+                  >
+                    <LayerItem
+                      layer={layer}
+                      objectCount={getObjectCount(layer.id)}
+                      isActive={activeLayerId === layer.id}
+                      onSelect={() => setActiveLayerId(layer.id)}
+                      onToggleVisibility={() => toggleLayerVisibility(layer.id)}
+                      onToggleLock={() => toggleLayerLock(layer.id)}
+                      onUpdateColor={(color) => updateLayer(layer.id, { color })}
+                      onUpdateName={(name) => updateLayer(layer.id, { name })}
+                      onDelete={() => deleteLayer(layer.id)}
+                      onSelectObjects={() => selectByLayer(layer.id)}
+                    />
+                  </div>
+                )
+              })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </ScrollArea>
 
       {/* Footer Stats */}

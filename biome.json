@@ -16,7 +16,8 @@
       "!**/.tauri",
       "!**/target",
       "!**/*.min.js",
-      "!**/*.css"
+      "!**/*.css",
+      "!**/src-tauri/gen/**"
     ]
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },

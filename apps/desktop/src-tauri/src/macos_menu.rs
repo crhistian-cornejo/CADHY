@@ -21,6 +21,11 @@ pub fn create_macos_menu<R: Runtime>(app: &AppHandle<R>) -> Result<Menu<R>, Erro
                 .build(),
         ))
         .separator()
+        .item(
+            &MenuItemBuilder::with_id("check_for_updates", "Check for Updates...")
+                .build(app)?,
+        )
+        .separator()
         .services()
         .separator()
         .hide()

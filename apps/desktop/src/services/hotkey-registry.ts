@@ -89,16 +89,28 @@ export function matchesShortcut(event: KeyboardEvent, shortcut: string): boolean
 
   // Normalize key comparison
   const eventKey = event.key.toLowerCase()
+  const eventCode = event.code.toLowerCase()
   const shortcutKey = parsed.key.toLowerCase()
 
-  // Handle special keys
-  const keyMatch =
-    eventKey === shortcutKey ||
-    (shortcutKey === "delete" && (eventKey === "delete" || eventKey === "backspace")) ||
-    (shortcutKey === "escape" && eventKey === "escape") ||
-    (shortcutKey === "enter" && eventKey === "enter") ||
-    (shortcutKey === "tab" && eventKey === "tab") ||
-    (shortcutKey === "space" && eventKey === " ")
+  // Handle numpad keys - shortcut defined as "numpad0" but event.key is "0"
+  // We need to check event.code which will be "numpad0"
+  const isNumpadShortcut = shortcutKey.startsWith("numpad")
+
+  let keyMatch = false
+
+  if (isNumpadShortcut) {
+    // For numpad shortcuts, match against event.code
+    keyMatch = eventCode === shortcutKey
+  } else {
+    // Handle special keys
+    keyMatch =
+      eventKey === shortcutKey ||
+      (shortcutKey === "delete" && (eventKey === "delete" || eventKey === "backspace")) ||
+      (shortcutKey === "escape" && eventKey === "escape") ||
+      (shortcutKey === "enter" && eventKey === "enter") ||
+      (shortcutKey === "tab" && eventKey === "tab") ||
+      (shortcutKey === "space" && eventKey === " ")
+  }
 
   return modifierMatch && altMatch && shiftMatch && keyMatch
 }

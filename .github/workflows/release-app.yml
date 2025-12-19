@@ -200,22 +200,30 @@ jobs:
           ./scripts/occt/copy-dylibs-macos.sh
 
       - name: Import Apple Certificate
+        if: ${{ runner.os == 'macOS' && env.APPLE_CERTIFICATE != '' }}
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          keychain: build
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+
+      - name: Get Apple Signing Identity
+        id: apple-cert
+        if: ${{ runner.os == 'macOS' }}
         run: |
-          if [ -n "$APPLE_CERTIFICATE" ]; then
-            echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
-            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-            security default-keychain -s build.keychain
-            security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-            security set-keychain-settings -t 3600 -u build.keychain
-            security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-            rm certificate.p12
+          # Try to find Developer ID certificate
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain 2>/dev/null | grep "Developer ID Application" || true)
+          if [ -n "$CERT_INFO" ]; then
+            CERT_ID=$(echo "$CERT_INFO" | head -1 | awk -F'"' '{print $2}')
+            echo "APPLE_SIGNING_IDENTITY=$CERT_ID" >> $GITHUB_ENV
+            echo "Found Developer ID: $CERT_ID"
+          elif [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ]; then
+            echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}" >> $GITHUB_ENV
+            echo "Using APPLE_SIGNING_IDENTITY from secrets"
           else
-            echo "No Apple certificate provided, skipping code signing setup"
+            echo "No signing identity found, will use ad-hoc signing"
           fi
 
       - name: Build App and DMG
@@ -223,13 +231,12 @@ jobs:
           # Tauri signing keys for auto-updater
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Apple code signing (signing works, notarization disabled for now)
+          # Apple code signing
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          # Apple notarization - disabled: first-time notarization can take hours
-          # Re-enable after first successful notarization:
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Apple notarization (required for Gatekeeper on macOS)
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           # Build app bundle only first (no DMG yet)
           bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }} --bundles app
@@ -240,6 +247,39 @@ jobs:
         run: |
           chmod +x scripts/occt/fix-dylib-paths-macos.sh
           ./scripts/occt/fix-dylib-paths-macos.sh "target/${{ matrix.target }}/release/bundle/macos/CADHY.app"
+
+      - name: Notarize App Bundle
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          APP_PATH="target/${{ matrix.target }}/release/bundle/macos/CADHY.app"
+          
+          # Skip notarization if credentials not provided
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+            echo "⚠️  Skipping notarization: Apple credentials not configured"
+            echo "Set APPLE_ID, APPLE_PASSWORD, and APPLE_TEAM_ID secrets to enable notarization"
+            exit 0
+          fi
+          
+          echo "Creating ZIP for notarization..."
+          ZIP_PATH="target/${{ matrix.target }}/release/bundle/macos/CADHY-notarize.zip"
+          ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
+          
+          echo "Submitting for notarization..."
+          xcrun notarytool submit "$ZIP_PATH" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --timeout 30m
+          
+          echo "Stapling notarization ticket..."
+          xcrun stapler staple "$APP_PATH"
+          
+          echo "✅ Notarization complete!"
+          rm -f "$ZIP_PATH"
 
       - name: Create DMG from fixed app
         env:

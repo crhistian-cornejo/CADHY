@@ -28,6 +28,7 @@ import {
   streamText,
   type ToolSet,
 } from "@cadhy/ai"
+import { logger } from "@cadhy/shared/logger"
 import { invoke } from "@tauri-apps/api/core"
 import { useSettingsStore } from "@/stores/settings-store"
 
@@ -184,18 +185,18 @@ async function getModel(modelId: string, apiKey?: string) {
   // Get the active provider from the store
   const activeProvider = useSettingsStore.getState().ai.activeProvider
 
-  console.log("[AI Service] getModel called:", { activeProvider, modelId })
+  logger.log("[AI Service] getModel called:", { activeProvider, modelId })
 
   // ============================================================================
   // OLLAMA LOCAL - User's own machine (free, private)
   // ============================================================================
   if (activeProvider === "ollama-local") {
-    console.log("[AI Service] Using Ollama Local...")
+    logger.log("[AI Service] Using Ollama Local...")
     try {
       const ollamaProvider = getOllamaProvider({ mode: "local" })
       // Use preferred Ollama model or default
       const ollamaModelId = useSettingsStore.getState().ai.preferredOllamaModel || "qwen3:8b"
-      console.log("[AI Service] ✓ Using Ollama Local with model:", ollamaModelId)
+      logger.log("[AI Service] ✓ Using Ollama Local with model:", ollamaModelId)
       return ollamaProvider(ollamaModelId)
     } catch (error) {
       console.error("[AI Service] ✗ Ollama Local failed:", error)
@@ -210,7 +211,7 @@ async function getModel(modelId: string, apiKey?: string) {
   // ============================================================================
   // GATEWAY - CADHY managed fallback
   // ============================================================================
-  console.log("[AI Service] Using Gateway for provider:", activeProvider)
+  logger.log("[AI Service] Using Gateway for provider:", activeProvider)
 
   const key = apiKey ?? (await getApiKey()) ?? undefined
   if (!key) {
@@ -219,7 +220,7 @@ async function getModel(modelId: string, apiKey?: string) {
     )
   }
 
-  console.log("[AI Service] ✓ Using Gateway with model:", modelId)
+  logger.log("[AI Service] ✓ Using Gateway with model:", modelId)
   const gateway = getGateway({ apiKey: key })
   return gateway(modelId)
 }
@@ -296,7 +297,7 @@ export async function streamChat(
               const toolInput = (part as { input?: unknown }).input as
                 | Record<string, unknown>
                 | undefined
-              console.log(
+              logger.log(
                 "[AI Service] tool-call:",
                 part.toolName,
                 toolInput,
@@ -320,7 +321,7 @@ export async function streamChat(
               // Try to get args from the event input, fallback to cached args from tool-call
               const cachedArgs = toolCallArgsCache.get(part.toolCallId)
               const args = toolInput ?? cachedArgs
-              console.log("[AI Service] tool-result:", part.toolName, {
+              logger.log("[AI Service] tool-result:", part.toolName, {
                 output: toolOutput,
                 input: toolInput,
                 cachedArgs,
@@ -359,7 +360,7 @@ export async function streamChat(
           }
         }
 
-        console.log(
+        logger.log(
           "[AI Service] Stream finished, fullText length:",
           fullText.length,
           "toolResults:",

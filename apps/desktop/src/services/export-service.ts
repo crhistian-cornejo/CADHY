@@ -6,6 +6,7 @@
  * (channels, transitions) and CAD shapes (primitives, boolean results).
  */
 
+import { logger } from "@cadhy/shared/logger"
 import { save } from "@tauri-apps/plugin-dialog"
 import { shapeIdMap } from "@/hooks/useCAD"
 import type {
@@ -241,7 +242,7 @@ export async function generateMeshForObject(object: AnySceneObject): Promise<Mes
 
       // First, try to get mesh from the object itself
       if (shape.mesh && shape.mesh.vertices && shape.mesh.vertices.length > 0) {
-        console.log("[export-service] Using mesh from shape object:", {
+        logger.log("[export-service] Using mesh from shape object:", {
           id: object.id,
           vertexCount: shape.mesh.vertices.length / 3,
         })
@@ -260,7 +261,7 @@ export async function generateMeshForObject(object: AnySceneObject): Promise<Mes
         backendId = shape.metadata.backendShapeId as string
       }
 
-      console.log("[export-service] Shape mesh not found, checking backend:", {
+      logger.log("[export-service] Shape mesh not found, checking backend:", {
         objectId: object.id,
         backendId,
         shapeIdMapSize: shapeIdMap.size,
@@ -269,9 +270,9 @@ export async function generateMeshForObject(object: AnySceneObject): Promise<Mes
 
       if (backendId) {
         try {
-          console.log("[export-service] Tessellating from backend:", backendId)
+          logger.log("[export-service] Tessellating from backend:", backendId)
           const meshData = await cadService.tessellate(backendId, 0.1)
-          console.log("[export-service] Tessellation successful:", {
+          logger.log("[export-service] Tessellation successful:", {
             vertexCount: meshData.vertices.length / 3,
           })
           return {
@@ -287,7 +288,7 @@ export async function generateMeshForObject(object: AnySceneObject): Promise<Mes
         }
       }
 
-      console.warn("[export-service] Shape has no mesh and no backend ID:", object.id)
+      logger.warn("[export-service] Shape has no mesh and no backend ID:", object.id)
       return null
     }
     default:

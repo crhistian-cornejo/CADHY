@@ -1,4 +1,5 @@
 export { useAIProvider } from "./use-ai-provider"
+export { useAppHotkeys } from "./use-app-hotkeys"
 
 export {
   useAutoSave,

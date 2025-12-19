@@ -64,6 +64,39 @@ export interface SceneObject {
 }
 
 /** 3D Shape object */
+/**
+ * PBR Texture configuration for materials
+ * Textures are stored as IDs to be loaded from texture service
+ */
+export interface PBRTextureConfig {
+  /** Albedo texture ID (from Poly Haven or local) */
+  albedoTextureId?: string
+  /** Normal map texture ID */
+  normalTextureId?: string
+  /** Roughness map texture ID */
+  roughnessTextureId?: string
+  /** Metalness map texture ID */
+  metalnessTextureId?: string
+  /** Ambient occlusion map texture ID */
+  aoTextureId?: string
+  /** UV repeat X */
+  repeatX?: number
+  /** UV repeat Y */
+  repeatY?: number
+}
+
+/**
+ * Material properties shared across all objects
+ */
+export interface MaterialProperties {
+  color: string
+  opacity: number
+  metalness: number
+  roughness: number
+  /** PBR textures (only active when post-processing is enabled) */
+  pbr?: PBRTextureConfig
+}
+
 export interface ShapeObject extends SceneObject {
   type: "shape"
   shapeType: ShapeType
@@ -73,12 +106,7 @@ export interface ShapeObject extends SceneObject {
    */
   parameters: Record<string, number>
   mesh?: MeshData
-  material: {
-    color: string
-    opacity: number
-    metalness: number
-    roughness: number
-  }
+  material: MaterialProperties
 }
 
 /** Alignment point for channel path */
@@ -109,12 +137,7 @@ export interface ChannelObject extends SceneObject {
   endStation: number
   endElevation: number
   mesh?: MeshData
-  material: {
-    color: string
-    opacity: number
-    metalness: number
-    roughness: number
-  }
+  material: MaterialProperties
 }
 
 /** Transition types */
@@ -149,12 +172,7 @@ export interface TransitionObject extends SceneObject {
   /** Optional stilling basin at outlet (for drop transitions) */
   stillingBasin?: StillingBasinConfig | null
   mesh?: MeshData
-  material: {
-    color: string
-    opacity: number
-    metalness: number
-    roughness: number
-  }
+  material: MaterialProperties
 }
 
 // ============================================================================
@@ -332,12 +350,7 @@ export interface ChuteObject extends SceneObject {
   /** Wall/floor thickness (m) */
   thickness: number
   mesh?: MeshData
-  material: {
-    color: string
-    opacity: number
-    metalness: number
-    roughness: number
-  }
+  material: MaterialProperties
 }
 
 /** Hydraulic Structure */

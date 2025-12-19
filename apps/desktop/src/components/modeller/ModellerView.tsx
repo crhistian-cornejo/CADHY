@@ -233,20 +233,13 @@ function NoProjectSelected({ onNewProject, onOpenProject }: NoProjectSelectedPro
 // KEYBOARD SHORTCUTS
 // ============================================================================
 
+/**
+ * ModellerView-specific keyboard shortcuts
+ * Note: Most shortcuts are now handled by useAppHotkeys via hotkeyRegistry.
+ * This hook only handles modeller-specific shortcuts that aren't global.
+ */
 function useKeyboardShortcuts(onToggleLeftPanel?: () => void) {
-  const {
-    setTransformMode,
-    undo,
-    redo,
-    deleteSelected,
-    selectAll,
-    deselectAll,
-    duplicateSelected,
-    setViewportSettings,
-    setSnapMode,
-  } = useModellerStore()
-  const viewportSettings = useViewportSettings()
-  const snapMode = useSnapMode()
+  const { undo, redo } = useModellerStore()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -258,76 +251,16 @@ function useKeyboardShortcuts(onToggleLeftPanel?: () => void) {
       const key = e.key.toLowerCase()
       const isCtrl = e.ctrlKey || e.metaKey
 
-      // Transform modes (without Ctrl)
-      if (key === "v" && !isCtrl) {
-        setTransformMode("none")
-      } else if (key === "g" && !isCtrl && !e.shiftKey) {
-        setTransformMode("translate")
-      } else if (key === "r" && !isCtrl) {
-        setTransformMode("rotate")
-      } else if (key === "s" && !isCtrl && !e.shiftKey) {
-        setTransformMode("scale")
-      }
-      // Toggle Grid (Ctrl+G)
-      else if (key === "g" && isCtrl && !e.shiftKey) {
-        e.preventDefault()
-        setViewportSettings({ showGrid: !viewportSettings.showGrid })
-      }
-      // Toggle Snap (Ctrl+Shift+S)
-      else if (key === "s" && isCtrl && e.shiftKey) {
-        e.preventDefault()
-        setSnapMode(snapMode === "none" ? "grid" : "none")
-      }
-      // Toggle left panel
-      else if (key === "p" && !isCtrl) {
+      // Toggle left panel (P key - modeller specific, not in global registry)
+      if (key === "p" && !isCtrl) {
         onToggleLeftPanel?.()
-      }
-      // Undo/Redo
-      else if (key === "z" && isCtrl && !e.shiftKey) {
-        e.preventDefault()
-        undo()
-      } else if ((key === "y" && isCtrl) || (key === "z" && isCtrl && e.shiftKey)) {
-        e.preventDefault()
-        redo()
-      }
-      // Delete
-      else if (key === "delete" || key === "backspace") {
-        e.preventDefault()
-        deleteSelected()
-      }
-      // Select all
-      else if (key === "a" && isCtrl) {
-        e.preventDefault()
-        selectAll()
-      }
-      // Deselect
-      else if (key === "escape") {
-        deselectAll()
-      }
-      // Duplicate
-      else if (key === "d" && isCtrl) {
-        e.preventDefault()
-        duplicateSelected()
       }
     }
 
     // Use capture phase to ensure we get events before Canvas/OrbitControls
     window.addEventListener("keydown", handleKeyDown, { capture: true })
     return () => window.removeEventListener("keydown", handleKeyDown, { capture: true })
-  }, [
-    setTransformMode,
-    undo,
-    redo,
-    deleteSelected,
-    selectAll,
-    deselectAll,
-    duplicateSelected,
-    onToggleLeftPanel,
-    setViewportSettings,
-    setSnapMode,
-    viewportSettings.showGrid,
-    snapMode,
-  ])
+  }, [onToggleLeftPanel])
 
   // Listen to Tauri menu events for undo/redo (macOS native menu)
   useEffect(() => {

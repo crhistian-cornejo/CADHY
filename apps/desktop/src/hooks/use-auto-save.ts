@@ -5,6 +5,7 @@
  * Respects project settings for auto-save interval.
  */
 
+import { logger } from "@cadhy/shared/logger"
 import { useCallback, useEffect, useRef } from "react"
 import { useIsDirty } from "@/stores/modeller-store"
 import { useCurrentProject, useProjectSettings, useProjectStore } from "@/stores/project-store"
@@ -51,13 +52,13 @@ export function useAutoSave(options: UseAutoSaveOptions = {}) {
 
     try {
       if (debug) {
-        console.log("[AutoSave] Saving project...", currentProject.name)
+        logger.log("[AutoSave] Saving project...", currentProject.name)
       }
 
       await saveCurrentProject()
 
       if (debug) {
-        console.log("[AutoSave] Project saved successfully")
+        logger.log("[AutoSave] Project saved successfully")
       }
 
       onSave?.()
@@ -176,21 +177,21 @@ export function useProjectShortcuts(options: UseProjectShortcutsOptions = {}) {
         e.preventDefault()
 
         if (!currentProject) {
-          if (debug) console.log("[Shortcuts] No project to save")
+          if (debug) logger.log("[Shortcuts] No project to save")
           // Don't trigger new project - just do nothing
           return
         }
 
         if (isSavingRef.current) {
-          if (debug) console.log("[Shortcuts] Already saving, ignoring")
+          if (debug) logger.log("[Shortcuts] Already saving, ignoring")
           return
         }
 
         isSavingRef.current = true
         try {
-          if (debug) console.log("[Shortcuts] Saving project...")
+          if (debug) logger.log("[Shortcuts] Saving project...")
           await saveCurrentProject()
-          if (debug) console.log("[Shortcuts] Project saved")
+          if (debug) logger.log("[Shortcuts] Project saved")
         } catch (err) {
           console.error("[Shortcuts] Failed to save:", err)
         } finally {
@@ -200,25 +201,25 @@ export function useProjectShortcuts(options: UseProjectShortcutsOptions = {}) {
       // Cmd/Ctrl+Shift+S: Save As (TODO: implement dialog)
       else if (key === "s" && isCtrl && isShift) {
         e.preventDefault()
-        if (debug) console.log("[Shortcuts] Save As - not yet implemented")
+        if (debug) logger.log("[Shortcuts] Save As - not yet implemented")
         // TODO: Open Save As dialog
       }
       // Cmd/Ctrl+N: New Project
       else if (key === "n" && isCtrl) {
         e.preventDefault()
-        if (debug) console.log("[Shortcuts] New Project")
+        if (debug) logger.log("[Shortcuts] New Project")
         onNewProject?.()
       }
       // Cmd/Ctrl+O: Open Project
       else if (key === "o" && isCtrl) {
         e.preventDefault()
-        if (debug) console.log("[Shortcuts] Open Project")
+        if (debug) logger.log("[Shortcuts] Open Project")
         onOpenProject?.()
       }
       // Cmd/Ctrl+W: Close Project
       else if (key === "w" && isCtrl && !isShift) {
         e.preventDefault()
-        if (debug) console.log("[Shortcuts] Close Project")
+        if (debug) logger.log("[Shortcuts] Close Project")
         onCloseProject?.()
       }
     }

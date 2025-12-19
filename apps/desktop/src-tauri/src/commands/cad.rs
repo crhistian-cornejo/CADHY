@@ -22,19 +22,25 @@ fn get_registry() -> &'static Mutex<HashMap<String, Shape>> {
 
 fn generate_shape_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    let duration = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("System time is before UNIX epoch");
     format!("shape_{}", duration.as_nanos())
 }
 
-fn store_shape(shape: Shape) -> String {
+fn store_shape(shape: Shape) -> Result<String, String> {
     let id = generate_shape_id();
-    let mut registry = get_registry().lock().unwrap();
+    let mut registry = get_registry()
+        .lock()
+        .map_err(|e| format!("Failed to acquire shape registry lock: {}", e))?;
     registry.insert(id.clone(), shape);
-    id
+    Ok(id)
 }
 
 fn get_shape(id: &str) -> Result<Shape, String> {
-    let registry = get_registry().lock().unwrap();
+    let registry = get_registry()
+        .lock()
+        .map_err(|e| format!("Failed to acquire shape registry lock: {}", e))?;
     registry
         .get(id)
         .cloned()
@@ -42,7 +48,9 @@ fn get_shape(id: &str) -> Result<Shape, String> {
 }
 
 fn remove_shape(id: &str) -> Result<(), String> {
-    let mut registry = get_registry().lock().unwrap();
+    let mut registry = get_registry()
+        .lock()
+        .map_err(|e| format!("Failed to acquire shape registry lock: {}", e))?;
     registry
         .remove(id)
         .map(|_| ())
@@ -121,7 +129,7 @@ pub struct CadMeshResult {
 pub fn cad_create_box(width: f64, depth: f64, height: f64) -> Result<ShapeResult, String> {
     let shape = Primitives::make_box(width, depth, height).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -142,7 +150,7 @@ pub fn cad_create_box_at(
     let shape =
         Primitives::make_box_at(x, y, z, width, depth, height).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -155,7 +163,7 @@ pub fn cad_create_box_at(
 pub fn cad_create_cylinder(radius: f64, height: f64) -> Result<ShapeResult, String> {
     let shape = Primitives::make_cylinder(radius, height).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -178,7 +186,7 @@ pub fn cad_create_cylinder_at(
     let shape = Primitives::make_cylinder_at(x, y, z, axis_x, axis_y, axis_z, radius, height)
         .map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -191,7 +199,7 @@ pub fn cad_create_cylinder_at(
 pub fn cad_create_sphere(radius: f64) -> Result<ShapeResult, String> {
     let shape = Primitives::make_sphere(radius).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -204,7 +212,7 @@ pub fn cad_create_sphere(radius: f64) -> Result<ShapeResult, String> {
 pub fn cad_create_sphere_at(x: f64, y: f64, z: f64, radius: f64) -> Result<ShapeResult, String> {
     let shape = Primitives::make_sphere_at(x, y, z, radius).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -222,7 +230,7 @@ pub fn cad_create_cone(
     let shape =
         Primitives::make_cone(base_radius, top_radius, height).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -235,7 +243,7 @@ pub fn cad_create_cone(
 pub fn cad_create_torus(major_radius: f64, minor_radius: f64) -> Result<ShapeResult, String> {
     let shape = Primitives::make_torus(major_radius, minor_radius).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -248,7 +256,7 @@ pub fn cad_create_torus(major_radius: f64, minor_radius: f64) -> Result<ShapeRes
 pub fn cad_create_wedge(dx: f64, dy: f64, dz: f64, ltx: f64) -> Result<ShapeResult, String> {
     let shape = Primitives::make_wedge(dx, dy, dz, ltx).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -267,7 +275,7 @@ pub fn cad_create_helix(
     let shape =
         Primitives::make_helix(radius, pitch, height, clockwise).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -287,7 +295,7 @@ pub fn cad_boolean_fuse(shape1_id: String, shape2_id: String) -> Result<ShapeRes
 
     let result = Operations::fuse(&shape1, &shape2).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -303,7 +311,7 @@ pub fn cad_boolean_cut(shape1_id: String, shape2_id: String) -> Result<ShapeResu
 
     let result = Operations::cut(&shape1, &shape2).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -319,7 +327,7 @@ pub fn cad_boolean_common(shape1_id: String, shape2_id: String) -> Result<ShapeR
 
     let result = Operations::common(&shape1, &shape2).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -338,7 +346,7 @@ pub fn cad_fillet(shape_id: String, radius: f64) -> Result<ShapeResult, String> 
 
     let result = Operations::fillet(&shape, radius).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -353,7 +361,7 @@ pub fn cad_chamfer(shape_id: String, distance: f64) -> Result<ShapeResult, Strin
 
     let result = Operations::chamfer(&shape, distance).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -368,7 +376,7 @@ pub fn cad_shell(shape_id: String, thickness: f64) -> Result<ShapeResult, String
 
     let result = Operations::shell(&shape, thickness).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -387,7 +395,7 @@ pub fn cad_translate(shape_id: String, dx: f64, dy: f64, dz: f64) -> Result<Shap
 
     let result = Operations::translate(&shape, dx, dy, dz).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -421,7 +429,7 @@ pub fn cad_rotate(
     )
     .map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -443,7 +451,7 @@ pub fn cad_scale(
     let result = Operations::scale(&shape, center_x, center_y, center_z, factor)
         .map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -469,7 +477,7 @@ pub fn cad_mirror(
     )
     .map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -488,7 +496,7 @@ pub fn cad_extrude(shape_id: String, dx: f64, dy: f64, dz: f64) -> Result<ShapeR
 
     let result = Operations::extrude(&shape, dx, dy, dz).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -522,7 +530,7 @@ pub fn cad_revolve(
     )
     .map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
-    let id = store_shape(result);
+    let id = store_shape(result)?;
 
     Ok(ShapeResult {
         id,
@@ -581,7 +589,7 @@ pub fn cad_tessellate(shape_id: String, deflection: f64) -> Result<CadMeshResult
 pub async fn cad_import_step(file_path: String) -> Result<ShapeResult, String> {
     let shape = StepIO::read(&file_path).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
-    let id = store_shape(shape);
+    let id = store_shape(shape)?;
 
     Ok(ShapeResult {
         id,
@@ -667,7 +675,9 @@ pub fn cad_delete_shape(shape_id: String) -> Result<(), String> {
 /// Clear all shapes from the registry
 #[tauri::command]
 pub fn cad_clear_all() -> Result<usize, String> {
-    let mut registry = get_registry().lock().unwrap();
+    let mut registry = get_registry()
+        .lock()
+        .map_err(|e| format!("Failed to acquire shape registry lock: {}", e))?;
     let count = registry.len();
     registry.clear();
     Ok(count)
@@ -676,6 +686,8 @@ pub fn cad_clear_all() -> Result<usize, String> {
 /// Get count of shapes in registry
 #[tauri::command]
 pub fn cad_shape_count() -> Result<usize, String> {
-    let registry = get_registry().lock().unwrap();
+    let registry = get_registry()
+        .lock()
+        .map_err(|e| format!("Failed to acquire shape registry lock: {}", e))?;
     Ok(registry.len())
 }
