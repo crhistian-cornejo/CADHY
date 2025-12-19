@@ -14,6 +14,7 @@ import {
   Target01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { getVersion } from "@tauri-apps/api/app"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { usePlatform } from "@/hooks/use-platform"
@@ -139,6 +140,14 @@ export function StatusBar() {
   const metrics = usePerformanceMetrics()
   const { unitSystem, toggleUnitSystem, lengthLabel } = useUnits()
   const notification = useStatusNotification()
+  const [version, setVersion] = useState<string>("v0.1.0")
+
+  // Get app version dynamically
+  useEffect(() => {
+    getVersion()
+      .then((v) => setVersion(`v${v}`))
+      .catch(() => setVersion("v0.1.0")) // Fallback
+  }, [])
 
   // Mock data - replace with actual store values
   const nodeCount = 0
@@ -378,7 +387,7 @@ export function StatusBar() {
         <span className="text-muted-foreground/50">│</span>
 
         {/* Version */}
-        <span className="text-muted-foreground/60">{t("app.version")}</span>
+        <span className="text-muted-foreground/60">{version}</span>
       </div>
     </footer>
   )
