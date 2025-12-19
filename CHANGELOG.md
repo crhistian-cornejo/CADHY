@@ -5,7 +5,41 @@ All notable changes to CADHY will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.1] - 2025-12-18
+## [0.1.2] - 2025-12-18
+
+### Fixed
+
+#### macOS App Launch Crash (CRITICAL)
+- **v0.1.1 was broken** - app crashed on launch with "Library not loaded: /opt/homebrew/*/libTKernel.7.9.dylib"
+- Root cause: CI workflow was creating DMG before dylib paths were fixed
+- Solution: Restructured build to fix dylib paths BEFORE DMG creation
+- Now uses `hdiutil` directly instead of Tauri's DMG bundler to preserve fixed paths
+
+#### Shape Export
+- Fix export for shapes that were created in previous sessions
+- Add fallback to check `shape.metadata.backendShapeId` when `shapeIdMap` is empty (after page refresh)
+- Add `isExportable()` and `hasExportableObjects()` helper functions
+- Include 'shape' type in export checks (was only checking 'channel' and 'transition')
+
+### Changed
+
+#### Unified Toolbar
+- Consolidate all CAD operations into ViewportToolbar
+- Remove separate CADToolbar component from ModellerView
+- Add Boolean operations (Union, Subtract, Intersect) to ViewportToolbar
+- Add Modify operations (Fillet, Chamfer, Shell) to ViewportToolbar
+- Add Measure tools (Distance, Angle, Area, Volume) to ViewportToolbar
+
+### Improved
+- CreatePanel layout and interaction improvements
+- Better error logging in export service for debugging
+- Minor viewport component refinements
+
+---
+
+## [0.1.1] - 2025-12-18 (BROKEN - DO NOT USE)
+
+> ⚠️ **This release is broken on macOS.** The app crashes on launch. Use v0.1.2 instead.
 
 ### Fixed
 
