@@ -3,7 +3,7 @@
   "productName": "CADHY",
   "identifier": "com.cadhy.desktop",
   "mainBinaryName": "CADHY",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "build": {
     "beforeDevCommand": "bun run dev",
     "beforeBuildCommand": "bun run build",
