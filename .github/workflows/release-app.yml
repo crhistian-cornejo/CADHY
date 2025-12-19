@@ -167,9 +167,20 @@ jobs:
             . -> target
             apps/desktop/src-tauri -> apps/desktop/src-tauri/target
 
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /usr/local/Cellar/opencascade
+            /opt/homebrew/Cellar/opencascade
+          key: homebrew-occt-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: |
+            homebrew-occt-${{ runner.os }}-
+
       - name: Install OpenCASCADE via Homebrew
         run: |
-          brew install opencascade
+          brew install opencascade || true
           echo "OCCT installed at: $(brew --prefix opencascade)"
 
       - name: Install Dependencies
@@ -201,12 +212,13 @@ jobs:
           # Tauri signing keys for auto-updater
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Apple code signing
+          # Apple code signing (signing works, notarization disabled for now)
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          # Apple notarization
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Apple notarization - disabled: first-time notarization can take hours
+          # Re-enable after first successful notarization:
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }}
 
       - name: Get version
