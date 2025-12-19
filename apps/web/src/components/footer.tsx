@@ -282,7 +282,6 @@ export function Footer() {
             <LanguageSwitcher />
           </div>
           <div className="flex items-center gap-6">
-            <span className="font-mono">v0.1.0</span>
             <Link to="/privacy" className="hover:text-foreground transition-colors">
               {t.footer.privacy}
             </Link>
