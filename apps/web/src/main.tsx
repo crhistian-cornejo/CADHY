@@ -1,4 +1,5 @@
 import { TooltipProvider } from "@cadhy/ui"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { createBrowserRouter, Outlet, RouterProvider, ScrollRestoration } from "react-router-dom"
@@ -111,6 +112,7 @@ function App() {
     <LanguageProvider>
       <TooltipProvider delay={300}>
         <RouterProvider router={router} />
+        <SpeedInsights />
       </TooltipProvider>
     </LanguageProvider>
   )

@@ -323,3 +323,93 @@ async fn create_box(...) -> Result<MeshData, CadError> {
 - Cache tessellation results
 - Use arena allocation for temporary shapes
 - Profile with `cargo flamegraph`
+
+---
+
+## 11. Native Library Bundling
+
+### 11.1 macOS OCCT Dylibs
+
+CADHY depends on OpenCASCADE (OCCT) native libraries. For standalone distribution, these must be bundled with the app.
+
+**Problem**: When compiling with Rust, dylibs are linked with absolute Homebrew paths (`/opt/homebrew/opt/opencascade/lib/...`). Users without Homebrew OCCT will get crashes.
+
+**Solution**: Bundle dylibs in `Frameworks/` directory with relative paths.
+
+```
+CADHY.app/
+├── Contents/
+│   ├── MacOS/
+│   │   └── CADHY                    # Main binary
+│   └── Frameworks/
+│       ├── libTKernel.7.9.dylib     # 33 OCCT libs
+│       ├── libTKMath.7.9.dylib
+│       ├── libfreetype.6.dylib      # Dependencies
+│       ├── libpng16.16.dylib
+│       ├── libtbb.12.dylib
+│       └── libtbbmalloc.2.dylib
+```
+
+**Scripts**:
+
+1. `scripts/occt/copy-dylibs-macos.sh` - Copies all 37 dylibs to `frameworks/`
+2. `scripts/occt/fix-dylib-paths-macos.sh` - Rewrites paths and re-signs
+
+**Path rewriting**:
+```bash
+# Before (broken)
+/opt/homebrew/opt/opencascade/lib/libTKernel.7.9.dylib
+
+# After (works standalone)
+@executable_path/../Frameworks/libTKernel.7.9.dylib
+```
+
+**Tauri config** (`tauri.macos.conf.json`):
+```json
+{
+  "bundle": {
+    "macOS": {
+      "frameworks": [
+        "src-tauri/frameworks/libTKernel.7.9.dylib",
+        ...
+      ]
+    }
+  }
+}
+```
+
+### 11.2 Windows OCCT DLLs
+
+Windows bundles OCCT DLLs via `resources` in `tauri.windows.conf.json`:
+- DLLs are copied to app directory alongside executable
+- No path rewriting needed (Windows searches current directory)
+
+### 11.3 CI/CD Integration
+
+The GitHub Actions workflow (`release-app.yml`) handles this automatically:
+
+```yaml
+# macOS
+- name: Install OpenCASCADE via Homebrew
+  run: brew install opencascade freetype libpng tbb
+
+- name: Copy OCCT dylibs for bundling
+  run: chmod +x scripts/occt/*.sh && scripts/occt/copy-dylibs-macos.sh
+
+- name: Build App
+  run: bun run tauri:build --config src-tauri/tauri.macos.conf.json
+
+- name: Fix dylib paths and re-sign
+  run: scripts/occt/fix-dylib-paths-macos.sh
+```
+
+### 11.4 Local Development vs Release
+
+| Environment | OCCT Source | Path Type |
+|-------------|-------------|-----------|
+| Local dev | Homebrew/vcpkg | Absolute (system) |
+| CI release | Bundled in Frameworks | Relative (@executable_path) |
+
+For local development, install OCCT via:
+- **macOS**: `brew install opencascade freetype libpng tbb`
+- **Windows**: Run `scripts/occt/setup.ps1` (uses vcpkg cache)
