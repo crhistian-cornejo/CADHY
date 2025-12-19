@@ -96,6 +96,12 @@ fn main() {
         println!("cargo:rustc-link-lib={}={}", link_type, lib);
     }
 
+    // Set rpath for macOS to find dylibs in Frameworks directory
+    // This allows the bundled app to find OCCT libraries without hardcoded paths
+    if target_os == "macos" {
+        println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../Frameworks");
+    }
+
     // Build C++ bridge with cxx
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
     let cpp_dir = PathBuf::from(&manifest_dir).join("cpp");

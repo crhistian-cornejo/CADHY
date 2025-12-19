@@ -57,14 +57,6 @@ export function OpenProjectDialog({ open, onOpenChange }: OpenProjectDialogProps
   const isLoading = useProjectStore((s) => s.isLoading)
   const { setView } = useNavigationStore()
 
-  // Handle browse for project file
-  const handleBrowse = useCallback(async () => {
-    const path = await openProjectDialog()
-    if (path) {
-      await handleOpenProject(path)
-    }
-  }, [handleOpenProject])
-
   // Handle open project from path
   const handleOpenProject = useCallback(
     (path: string) => {
@@ -89,6 +81,14 @@ export function OpenProjectDialog({ open, onOpenChange }: OpenProjectDialogProps
     },
     [openExistingProject, setView, onOpenChange, t]
   )
+
+  // Handle browse for project file
+  const handleBrowse = useCallback(async () => {
+    const path = await openProjectDialog()
+    if (path) {
+      await handleOpenProject(path)
+    }
+  }, [handleOpenProject])
 
   // Handle open recent project
   const handleOpenRecent = useCallback(
