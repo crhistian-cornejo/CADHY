@@ -405,18 +405,19 @@ export function SceneContent({ showStats }: SceneContentProps) {
       <directionalLight
         position={[10, 15, 10]}
         intensity={1}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
+        castShadow={viewportSettings.shadows}
+        shadow-mapSize={[1024, 1024]}
         shadow-camera-far={50}
         shadow-camera-left={-10}
         shadow-camera-right={10}
         shadow-camera-top={10}
         shadow-camera-bottom={-10}
+        shadow-bias={-0.0001}
       />
       <directionalLight position={[-5, 5, -5]} intensity={0.3} />
 
-      {/* Environment map for reflections */}
-      <Environment preset="city" />
+      {/* Environment map for reflections - lightweight preset */}
+      <Environment preset="sunset" />
 
       {/* Grid */}
       {viewportSettings.showGrid && (
@@ -438,9 +439,16 @@ export function SceneContent({ showStats }: SceneContentProps) {
       {/* Axes Helper */}
       {viewportSettings.showAxes && <axesHelper args={[5]} />}
 
-      {/* Contact Shadows */}
-      {viewportSettings.shadows && (
-        <ContactShadows position={[0, -0.01, 0]} opacity={0.4} scale={20} blur={2} far={10} />
+      {/* Contact Shadows - Optimized */}
+      {viewportSettings.shadows && visibleObjects.length < 20 && (
+        <ContactShadows
+          position={[0, -0.01, 0]}
+          opacity={0.3}
+          scale={20}
+          blur={1.5}
+          far={10}
+          resolution={256}
+        />
       )}
 
       {/* Click handler for deselection */}

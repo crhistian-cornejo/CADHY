@@ -45,7 +45,6 @@ import {
 } from "@/stores/modeller-store"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
 import { BoxLoader } from "./BoxLoader"
-import { CADToolbar } from "./CADToolbar"
 import { CreatePanel } from "./CreatePanel"
 import { LayersPanel } from "./LayersPanel"
 import { NotificationsPanel } from "./NotificationsPanel"
@@ -526,9 +525,6 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
         {/* Center - Viewport */}
         <ResizablePanel id="viewport" order={2} defaultSize={showLeftPanel ? 65 : 100} minSize={50}>
           <div className="h-full flex flex-col">
-            {/* CAD Operations Toolbar */}
-            <CADToolbar />
-
             {/* Viewport Toolbar */}
             <ViewportToolbar
               showLeftPanel={showLeftPanel}
@@ -540,13 +536,6 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
               <ViewerErrorBoundary>
                 <Viewport3D />
               </ViewerErrorBoundary>
-
-              {/* Viewport overlay info */}
-              <div className="absolute bottom-2 left-2 flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded border border-border/40">
-                  WebGL 2.0 • GPU Accelerated
-                </span>
-              </div>
             </div>
           </div>
         </ResizablePanel>

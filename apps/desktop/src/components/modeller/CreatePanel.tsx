@@ -12,6 +12,9 @@
 import {
   Badge,
   Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
   cn,
   Input,
   Label,
@@ -31,6 +34,7 @@ import {
 } from "@cadhy/ui"
 import {
   ArrowDown01Icon,
+  ArrowRight01Icon,
   Building01Icon,
   CircleIcon,
   CubeIcon,
@@ -1152,6 +1156,11 @@ export function CreatePanel({ className }: CreatePanelProps) {
   const showHotkeyHints = useHotkeyStore((s) => s.showHotkeyHints)
   const { addObject } = useModellerStore()
 
+  // Collapsible section states (all expanded by default)
+  const [primitivesOpen, setPrimitivesOpen] = useState(true)
+  const [hydraulicsOpen, setHydraulicsOpen] = useState(true)
+  const [structuresOpen, setStructuresOpen] = useState(true)
+
   // Quick create handler
   const quickCreatePrimitive = useCallback(
     (type: PrimitiveType) => {
@@ -1313,167 +1322,235 @@ export function CreatePanel({ className }: CreatePanelProps) {
       aria-label={t("createPanel.title", "Create Objects")}
     >
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-3 space-y-3">
+        <div className="p-3 space-y-2">
           {/* PRIMITIVES SECTION */}
-          <section aria-labelledby="primitives-heading">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="size-4 rounded bg-muted/50 flex items-center justify-center">
-                <HugeiconsIcon icon={CubeIcon} className="size-2.5 text-muted-foreground" />
+          <Collapsible open={primitivesOpen} onOpenChange={setPrimitivesOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 py-1.5 group hover:bg-muted/30 rounded-md px-1 -mx-1 transition-colors"
+                  >
+                    <HugeiconsIcon
+                      icon={ArrowRight01Icon}
+                      className={cn(
+                        "size-3 text-muted-foreground transition-transform duration-200",
+                        primitivesOpen && "rotate-90"
+                      )}
+                    />
+                    <div className="size-4 rounded bg-muted/50 flex items-center justify-center">
+                      <HugeiconsIcon icon={CubeIcon} className="size-2.5 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-[11px] font-medium text-muted-foreground">
+                      {t("createPanel.primitives")}
+                    </h3>
+                  </button>
+                </CollapsibleTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {primitivesOpen
+                  ? t("createPanel.collapseSection", "Click to collapse")
+                  : t("createPanel.expandSection", "Click to expand")}
+              </TooltipContent>
+            </Tooltip>
+            <CollapsibleContent>
+              <div className="space-y-1 mt-2" role="group" aria-label="Primitive shapes">
+                {PRIMITIVES.map((config) => (
+                  <PrimitiveItemWithForm
+                    key={config.type}
+                    config={config}
+                    isActive={activePrimitive === config.type}
+                    onToggle={() => handlePrimitiveToggle(config.type)}
+                    onQuickCreate={() => quickCreatePrimitive(config.type)}
+                    onCreated={handleCreated}
+                    showHints={showHotkeyHints}
+                  />
+                ))}
               </div>
-              <h3 id="primitives-heading" className="text-[11px] font-medium text-muted-foreground">
-                {t("createPanel.primitives")}
-              </h3>
-            </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-            <div className="space-y-1" role="group" aria-label="Primitive shapes">
-              {PRIMITIVES.map((config) => (
-                <PrimitiveItemWithForm
-                  key={config.type}
-                  config={config}
-                  isActive={activePrimitive === config.type}
-                  onToggle={() => handlePrimitiveToggle(config.type)}
-                  onQuickCreate={() => quickCreatePrimitive(config.type)}
-                  onCreated={handleCreated}
-                  showHints={showHotkeyHints}
-                />
-              ))}
-            </div>
-          </section>
-
-          <Separator className="my-3" />
+          <Separator className="my-2" />
 
           {/* HYDRAULIC ELEMENTS SECTION */}
-          <section aria-labelledby="hydraulic-heading">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="size-4 rounded bg-cyan-500/20 flex items-center justify-center">
-                <HugeiconsIcon icon={WaterEnergyIcon} className="size-2.5 text-cyan-500" />
+          <Collapsible open={hydraulicsOpen} onOpenChange={setHydraulicsOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 py-1.5 group hover:bg-muted/30 rounded-md px-1 -mx-1 transition-colors"
+                  >
+                    <HugeiconsIcon
+                      icon={ArrowRight01Icon}
+                      className={cn(
+                        "size-3 text-muted-foreground transition-transform duration-200",
+                        hydraulicsOpen && "rotate-90"
+                      )}
+                    />
+                    <div className="size-4 rounded bg-cyan-500/20 flex items-center justify-center">
+                      <HugeiconsIcon icon={WaterEnergyIcon} className="size-2.5 text-cyan-500" />
+                    </div>
+                    <h3 className="text-[11px] font-medium text-muted-foreground">
+                      {t("createPanel.hydraulicElements")}
+                    </h3>
+                    <Badge
+                      variant="outline"
+                      className="text-[8px] ml-auto text-cyan-500 border-cyan-500/30 h-4 px-1"
+                    >
+                      CAD
+                    </Badge>
+                  </button>
+                </CollapsibleTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {hydraulicsOpen
+                  ? t("createPanel.collapseSection", "Click to collapse")
+                  : t("createPanel.expandSection", "Click to expand")}
+              </TooltipContent>
+            </Tooltip>
+            <CollapsibleContent>
+              <div className="space-y-1 mt-2">
+                {/* Channel */}
+                <HydraulicButton
+                  icon={WaterEnergyIcon}
+                  label={t("createPanel.openChannel")}
+                  description={t("createPanel.openChannelDesc")}
+                  shortcut="C"
+                  isActive={showChannelCreator}
+                  onToggle={() => {
+                    setShowChannelCreator(!showChannelCreator)
+                    setShowTransitionCreator(false)
+                    setShowChuteCreator(false)
+                    setActivePrimitive(null)
+                  }}
+                  showHints={showHotkeyHints}
+                  colorClass="cyan"
+                >
+                  <ChannelCreator
+                    onClose={() => setShowChannelCreator(false)}
+                    onCreated={handleCreated}
+                  />
+                </HydraulicButton>
+
+                {/* Transition */}
+                <HydraulicButton
+                  icon={WaterfallDown01Icon}
+                  label={t("createPanel.transition", "Transition")}
+                  description={t("createPanel.transitionDesc", "Connect channels")}
+                  shortcut="T"
+                  isActive={showTransitionCreator}
+                  onToggle={() => {
+                    setShowTransitionCreator(!showTransitionCreator)
+                    setShowChannelCreator(false)
+                    setShowChuteCreator(false)
+                    setActivePrimitive(null)
+                  }}
+                  showHints={showHotkeyHints}
+                  colorClass="green"
+                >
+                  <TransitionCreator
+                    onClose={() => setShowTransitionCreator(false)}
+                    onCreated={handleCreated}
+                  />
+                </HydraulicButton>
+
+                {/* Chute */}
+                <HydraulicButton
+                  icon={ArrowDown01Icon}
+                  label={t("createPanel.chute", "Chute")}
+                  description={t("createPanel.chuteDesc", "High-slope channel")}
+                  shortcut="R"
+                  isActive={showChuteCreator}
+                  onToggle={() => {
+                    setShowChuteCreator(!showChuteCreator)
+                    setShowChannelCreator(false)
+                    setShowTransitionCreator(false)
+                    setActivePrimitive(null)
+                  }}
+                  showHints={showHotkeyHints}
+                  colorClass="amber"
+                >
+                  <ChuteCreator
+                    onClose={() => setShowChuteCreator(false)}
+                    onCreated={handleCreated}
+                  />
+                </HydraulicButton>
               </div>
-              <h3 id="hydraulic-heading" className="text-[11px] font-medium text-muted-foreground">
-                {t("createPanel.hydraulicElements")}
-              </h3>
-              <Badge
-                variant="outline"
-                className="text-[8px] ml-auto text-cyan-500 border-cyan-500/30 h-4 px-1"
-              >
-                CAD
-              </Badge>
-            </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-            <div className="space-y-1">
-              {/* Channel */}
-              <HydraulicButton
-                icon={WaterEnergyIcon}
-                label={t("createPanel.openChannel")}
-                description={t("createPanel.openChannelDesc")}
-                shortcut="C"
-                isActive={showChannelCreator}
-                onToggle={() => {
-                  setShowChannelCreator(!showChannelCreator)
-                  setShowTransitionCreator(false)
-                  setShowChuteCreator(false)
-                  setActivePrimitive(null)
-                }}
-                showHints={showHotkeyHints}
-                colorClass="cyan"
-              >
-                <ChannelCreator
-                  onClose={() => setShowChannelCreator(false)}
-                  onCreated={handleCreated}
-                />
-              </HydraulicButton>
-
-              {/* Transition */}
-              <HydraulicButton
-                icon={WaterfallDown01Icon}
-                label={t("createPanel.transition", "Transition")}
-                description={t("createPanel.transitionDesc", "Connect channels")}
-                shortcut="T"
-                isActive={showTransitionCreator}
-                onToggle={() => {
-                  setShowTransitionCreator(!showTransitionCreator)
-                  setShowChannelCreator(false)
-                  setShowChuteCreator(false)
-                  setActivePrimitive(null)
-                }}
-                showHints={showHotkeyHints}
-                colorClass="green"
-              >
-                <TransitionCreator
-                  onClose={() => setShowTransitionCreator(false)}
-                  onCreated={handleCreated}
-                />
-              </HydraulicButton>
-
-              {/* Chute */}
-              <HydraulicButton
-                icon={ArrowDown01Icon}
-                label={t("createPanel.chute", "Chute")}
-                description={t("createPanel.chuteDesc", "High-slope channel")}
-                shortcut="R"
-                isActive={showChuteCreator}
-                onToggle={() => {
-                  setShowChuteCreator(!showChuteCreator)
-                  setShowChannelCreator(false)
-                  setShowTransitionCreator(false)
-                  setActivePrimitive(null)
-                }}
-                showHints={showHotkeyHints}
-                colorClass="amber"
-              >
-                <ChuteCreator
-                  onClose={() => setShowChuteCreator(false)}
-                  onCreated={handleCreated}
-                />
-              </HydraulicButton>
-            </div>
-          </section>
-
-          <Separator className="my-3" />
+          <Separator className="my-2" />
 
           {/* STRUCTURES (Coming Soon) */}
-          <section aria-labelledby="structures-heading">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="size-4 rounded bg-muted/30 flex items-center justify-center">
-                <HugeiconsIcon
-                  icon={Building01Icon}
-                  className="size-2.5 text-muted-foreground/50"
-                />
-              </div>
-              <h3
-                id="structures-heading"
-                className="text-[11px] font-medium text-muted-foreground/50"
-              >
-                {t("createPanel.structures")}
-              </h3>
-              <Badge variant="outline" className="text-[8px] ml-auto h-4 px-1 opacity-50">
-                {t("createPanel.soon")}
-              </Badge>
-            </div>
-
-            <div className="space-y-1 opacity-40 pointer-events-none">
-              {[
-                { name: t("createPanel.dropStructure"), desc: t("createPanel.dropStructureDesc") },
-                { name: t("createPanel.weir"), desc: t("createPanel.weirDesc") },
-                { name: t("createPanel.junction"), desc: t("createPanel.junctionDesc") },
-              ].map((item) => (
-                <div
-                  key={item.name}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border/20 bg-muted/10"
-                >
-                  <div className="size-8 rounded-md bg-muted/20 flex items-center justify-center">
+          <Collapsible open={structuresOpen} onOpenChange={setStructuresOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 py-1.5 group hover:bg-muted/30 rounded-md px-1 -mx-1 transition-colors"
+                  >
                     <HugeiconsIcon
-                      icon={Building01Icon}
-                      className="size-4 text-muted-foreground/40"
+                      icon={ArrowRight01Icon}
+                      className={cn(
+                        "size-3 text-muted-foreground/50 transition-transform duration-200",
+                        structuresOpen && "rotate-90"
+                      )}
                     />
+                    <div className="size-4 rounded bg-muted/30 flex items-center justify-center">
+                      <HugeiconsIcon
+                        icon={Building01Icon}
+                        className="size-2.5 text-muted-foreground/50"
+                      />
+                    </div>
+                    <h3 className="text-[11px] font-medium text-muted-foreground/50">
+                      {t("createPanel.structures")}
+                    </h3>
+                    <Badge variant="outline" className="text-[8px] ml-auto h-4 px-1 opacity-50">
+                      {t("createPanel.soon")}
+                    </Badge>
+                  </button>
+                </CollapsibleTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {structuresOpen
+                  ? t("createPanel.collapseSection", "Click to collapse")
+                  : t("createPanel.expandSection", "Click to expand")}
+              </TooltipContent>
+            </Tooltip>
+            <CollapsibleContent>
+              <div className="space-y-1 mt-2 opacity-40 pointer-events-none">
+                {[
+                  {
+                    name: t("createPanel.dropStructure"),
+                    desc: t("createPanel.dropStructureDesc"),
+                  },
+                  { name: t("createPanel.weir"), desc: t("createPanel.weirDesc") },
+                  { name: t("createPanel.junction"), desc: t("createPanel.junctionDesc") },
+                ].map((item) => (
+                  <div
+                    key={item.name}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border/20 bg-muted/10"
+                  >
+                    <div className="size-8 rounded-md bg-muted/20 flex items-center justify-center">
+                      <HugeiconsIcon
+                        icon={Building01Icon}
+                        className="size-4 text-muted-foreground/40"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-muted-foreground/60 truncate">{item.name}</div>
+                      <div className="text-[10px] text-muted-foreground/40 truncate">
+                        {item.desc}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-muted-foreground/60 truncate">{item.name}</div>
-                    <div className="text-[10px] text-muted-foreground/40 truncate">{item.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </ScrollArea>
     </div>

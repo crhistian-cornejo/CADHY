@@ -13,6 +13,12 @@
 import {
   Button,
   cn,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -21,6 +27,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Input,
   Label,
   Popover,
   PopoverContent,
@@ -46,8 +53,10 @@ import {
   Magnet01Icon,
   MoreHorizontalIcon,
   Move01Icon,
+  PencilEdit02Icon,
   Resize01Icon,
   Rotate01Icon,
+  RulerIcon,
   Settings01Icon,
   SidebarLeft01Icon,
   SquareIcon,
@@ -56,7 +65,16 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { usePlatform } from "@/hooks/use-platform"
-import { EXPORT_FORMATS, type ExportFormat, exportSelection } from "@/services/export-service"
+import { shapeIdMap, useCAD } from "@/hooks/useCAD"
+import * as cadService from "@/services/cad-service"
+import {
+  EXPORT_FORMATS,
+  type ExportFormat,
+  exportScene,
+  exportSelection,
+  hasExportableObjects,
+  isExportable,
+} from "@/services/export-service"
 import { isTauriAvailable } from "@/services/hydraulics-service"
 import {
   type CameraView,
@@ -65,11 +83,18 @@ import {
   useCanRedo,
   useCanUndo,
   useModellerStore,
+  useObjects,
   useSelectedObjects,
   useSnapMode,
   useTransformMode,
   useViewportSettings,
 } from "@/stores/modeller-store"
+
+// ============================================================================
+// CAD OPERATION TYPES
+// ============================================================================
+
+type ParameterOperation = "fillet" | "chamfer" | "shell" | null
 
 // ============================================================================
 // RESPONSIVE BREAKPOINTS
@@ -241,7 +266,34 @@ export function ViewportToolbar({ showLeftPanel = true, onToggleLeftPanel }: Vie
   const canUndo = useCanUndo()
   const canRedo = useCanRedo()
   const selectedObjects = useSelectedObjects()
+  const allObjects = useObjects()
   const [isExporting, setIsExporting] = useState(false)
+
+  // CAD operations
+  const { addObject, deleteObject } = useModellerStore()
+  const { fuseShapes, cutShapes, intersectShapes } = useCAD()
+
+  // Parameter dialog state (for Fillet, Chamfer, Shell)
+  const [parameterDialog, setParameterDialog] = useState<{
+    open: boolean
+    operation: ParameterOperation
+    value: string
+  }>({
+    open: false,
+    operation: null,
+    value: "",
+  })
+
+  // Measure results dialog state
+  const [measureDialog, setMeasureDialog] = useState<{
+    open: boolean
+    title: string
+    results: Array<{ label: string; value: string }>
+  }>({
+    open: false,
+    title: "",
+    results: [],
+  })
 
   // Platform-specific modifier key for shortcuts
   const modKey = useMemo(() => (isMacOS ? "Cmd" : "Ctrl"), [isMacOS])
@@ -315,288 +367,815 @@ export function ViewportToolbar({ showLeftPanel = true, onToggleLeftPanel }: Vie
     [selectedObjects]
   )
 
-  // Check if export is possible
+  const handleExportScene = useCallback(
+    async (format: ExportFormat) => {
+      if (!isTauriAvailable()) {
+        toast.error("Export is only available in the desktop app")
+        return
+      }
+
+      setIsExporting(true)
+      try {
+        const result = await exportScene(allObjects, format)
+        if (result.success) {
+          toast.success(`Scene exported to ${result.filePath}`)
+        } else {
+          toast.error(result.error ?? "Export failed")
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Export failed")
+      } finally {
+        setIsExporting(false)
+      }
+    },
+    [allObjects]
+  )
+
+  // Check if export is possible (channels, transitions, and shapes are exportable)
   const canExport =
-    selectedObjects.length > 0 &&
-    selectedObjects.some((obj) => obj.type === "channel") &&
-    isTauriAvailable()
+    selectedObjects.length > 0 && selectedObjects.some(isExportable) && isTauriAvailable()
+
+  // Check if scene export is possible (at least one exportable object exists)
+  const canExportScene = hasExportableObjects(allObjects) && isTauriAvailable()
+
+  // ============================================================================
+  // CAD OPERATION HANDLERS
+  // ============================================================================
+
+  // Boolean operations require exactly 2 selected objects
+  const canBooleanOp = selectedObjects.length === 2
+
+  // Modify and measure operations require at least 1 selected shape
+  const hasSelectedShapes =
+    selectedObjects.length > 0 && selectedObjects.some((obj) => obj.type === "shape")
+
+  const handleBooleanUnion = useCallback(async () => {
+    if (selectedObjects.length !== 2) {
+      toast.error("Select exactly 2 objects for Boolean Union")
+      return
+    }
+    try {
+      const result = await fuseShapes(selectedObjects[0].id, selectedObjects[1].id, "Union")
+      if (result) {
+        toast.success("Boolean Union completed")
+      }
+    } catch (error) {
+      toast.error(`Boolean Union failed: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }, [selectedObjects, fuseShapes])
+
+  const handleBooleanSubtract = useCallback(async () => {
+    if (selectedObjects.length !== 2) {
+      toast.error("Select exactly 2 objects for Boolean Subtract")
+      return
+    }
+    try {
+      const result = await cutShapes(selectedObjects[0].id, selectedObjects[1].id, "Subtract")
+      if (result) {
+        toast.success("Boolean Subtract completed")
+      }
+    } catch (error) {
+      toast.error(
+        `Boolean Subtract failed: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }, [selectedObjects, cutShapes])
+
+  const handleBooleanIntersect = useCallback(async () => {
+    if (selectedObjects.length !== 2) {
+      toast.error("Select exactly 2 objects for Boolean Intersect")
+      return
+    }
+    try {
+      const result = await intersectShapes(
+        selectedObjects[0].id,
+        selectedObjects[1].id,
+        "Intersect"
+      )
+      if (result) {
+        toast.success("Boolean Intersect completed")
+      }
+    } catch (error) {
+      toast.error(
+        `Boolean Intersect failed: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }, [selectedObjects, intersectShapes])
+
+  // Modify operations
+  const handleFillet = useCallback(() => {
+    if (selectedObjects.length === 0) {
+      toast.error("No objects selected")
+      return
+    }
+    setParameterDialog({ open: true, operation: "fillet", value: "1.0" })
+  }, [selectedObjects])
+
+  const handleChamfer = useCallback(() => {
+    if (selectedObjects.length === 0) {
+      toast.error("No objects selected")
+      return
+    }
+    setParameterDialog({ open: true, operation: "chamfer", value: "0.5" })
+  }, [selectedObjects])
+
+  const handleShell = useCallback(() => {
+    if (selectedObjects.length === 0) {
+      toast.error("No objects selected")
+      return
+    }
+    setParameterDialog({ open: true, operation: "shell", value: "0.5" })
+  }, [selectedObjects])
+
+  // Apply parameter operation
+  const handleApplyParameterOperation = useCallback(async () => {
+    if (!parameterDialog.operation || selectedObjects.length === 0) return
+
+    const value = parseFloat(parameterDialog.value)
+    if (Number.isNaN(value) || value <= 0) {
+      toast.error("Please enter a valid positive number")
+      return
+    }
+
+    const selectedObject = selectedObjects[0]
+    const backendId = shapeIdMap.get(selectedObject.id)
+
+    if (!backendId) {
+      toast.error("Shape not found in backend")
+      return
+    }
+
+    try {
+      let result: { id: string } | undefined
+      let operationName = ""
+
+      switch (parameterDialog.operation) {
+        case "fillet":
+          result = await cadService.fillet(backendId, value)
+          operationName = "Fillet"
+          break
+        case "chamfer":
+          result = await cadService.chamfer(backendId, value)
+          operationName = "Chamfer"
+          break
+        case "shell":
+          result = await cadService.shell(backendId, value)
+          operationName = "Shell"
+          break
+      }
+
+      if (result) {
+        const meshData = await cadService.tessellate(result.id, 0.1)
+        const newObject = {
+          type: "shape" as const,
+          mesh: {
+            vertices: new Float32Array(meshData.vertices),
+            indices: new Uint32Array(meshData.indices),
+            normals: new Float32Array(meshData.normals),
+          },
+          metadata: {
+            backendShapeId: result.id,
+            operation: parameterDialog.operation,
+            sourceId: selectedObject.id,
+            parameter: value,
+          },
+          position: selectedObject.position,
+          rotation: selectedObject.rotation,
+          scale: selectedObject.scale,
+          visible: true,
+          name: `${operationName} ${value}`,
+        }
+
+        deleteObject(selectedObject.id)
+        const newId = addObject(newObject)
+        shapeIdMap.set(newId, result.id)
+
+        toast.success(`${operationName} applied successfully`)
+        setParameterDialog({ open: false, operation: null, value: "" })
+      }
+    } catch (error) {
+      toast.error(
+        `${parameterDialog.operation} failed: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }, [parameterDialog, selectedObjects, addObject, deleteObject])
+
+  // Measure handlers
+  const handleMeasureDistance = useCallback(async () => {
+    if (selectedObjects.length !== 2) {
+      toast.error("Select exactly 2 objects to measure distance")
+      return
+    }
+
+    const backendId1 = shapeIdMap.get(selectedObjects[0].id)
+    const backendId2 = shapeIdMap.get(selectedObjects[1].id)
+
+    if (!backendId1 || !backendId2) {
+      toast.error("Shapes not found in backend")
+      return
+    }
+
+    try {
+      const distance = await cadService.measureDistance(backendId1, backendId2)
+      setMeasureDialog({
+        open: true,
+        title: "Distance Measurement",
+        results: [
+          { label: "Distance", value: `${distance.toFixed(3)} units` },
+          { label: "Object 1", value: selectedObjects[0].name || "Unnamed" },
+          { label: "Object 2", value: selectedObjects[1].name || "Unnamed" },
+        ],
+      })
+    } catch (error) {
+      toast.error(`Measurement failed: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }, [selectedObjects])
+
+  const handleMeasureProperties = useCallback(async () => {
+    if (selectedObjects.length === 0) {
+      toast.error("No objects selected")
+      return
+    }
+
+    const selectedObject = selectedObjects[0]
+    const backendId = shapeIdMap.get(selectedObject.id)
+
+    if (!backendId) {
+      toast.error("Shape not found in backend")
+      return
+    }
+
+    try {
+      const analysis = await cadService.analyze(backendId)
+      const results = [
+        { label: "Valid", value: analysis.is_valid ? "Yes" : "No" },
+        { label: "Vertices", value: analysis.num_vertices.toString() },
+        { label: "Edges", value: analysis.num_edges.toString() },
+        { label: "Faces", value: analysis.num_faces.toString() },
+        { label: "Solids", value: analysis.num_solids.toString() },
+        { label: "Surface Area", value: `${analysis.surface_area.toFixed(3)} units²` },
+        { label: "Volume", value: `${analysis.volume.toFixed(3)} units³` },
+      ]
+
+      if (analysis.bounding_box) {
+        const bbox = analysis.bounding_box
+        results.push(
+          {
+            label: "Bounding Box Min",
+            value: `(${bbox.min_x.toFixed(2)}, ${bbox.min_y.toFixed(2)}, ${bbox.min_z.toFixed(2)})`,
+          },
+          {
+            label: "Bounding Box Max",
+            value: `(${bbox.max_x.toFixed(2)}, ${bbox.max_y.toFixed(2)}, ${bbox.max_z.toFixed(2)})`,
+          }
+        )
+      }
+
+      setMeasureDialog({
+        open: true,
+        title: `Properties: ${selectedObject.name || "Unnamed"}`,
+        results,
+      })
+    } catch (error) {
+      toast.error(`Analysis failed: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }, [selectedObjects])
 
   return (
-    <div
-      ref={containerRef}
-      className="flex items-center gap-1 border-b border-border/40 bg-background/95 px-2 py-1 backdrop-blur-sm"
-    >
-      {/* Toggle Left Panel */}
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant={showLeftPanel ? "secondary" : "ghost"}
-              size="icon-sm"
-              onClick={onToggleLeftPanel}
-              className={cn(
-                "h-7 w-7 shrink-0",
-                showLeftPanel && "bg-primary/20 text-primary hover:bg-primary/30"
-              )}
-            >
-              <HugeiconsIcon icon={SidebarLeft01Icon} className="size-4" />
-            </Button>
-          }
-        />
-        <TooltipContent side="bottom" className="flex items-center gap-2">
-          <span>{showLeftPanel ? t("toolbar.hidePanel") : t("toolbar.showPanel")}</span>
-          <kbd className="rounded bg-background/20 px-1.5 py-0.5 text-[10px] font-mono text-inherit">
-            P
-          </kbd>
-        </TooltipContent>
-      </Tooltip>
+    <>
+      <div
+        ref={containerRef}
+        className="flex items-center gap-1 border-b border-border/40 bg-background/95 px-2 py-1 backdrop-blur-sm"
+      >
+        {/* Toggle Left Panel */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant={showLeftPanel ? "secondary" : "ghost"}
+                size="icon-sm"
+                onClick={onToggleLeftPanel}
+                className={cn(
+                  "h-7 w-7 shrink-0",
+                  showLeftPanel && "bg-primary/20 text-primary hover:bg-primary/30"
+                )}
+              >
+                <HugeiconsIcon icon={SidebarLeft01Icon} className="size-4" />
+              </Button>
+            }
+          />
+          <TooltipContent side="bottom" className="flex items-center gap-2">
+            <span>{showLeftPanel ? t("toolbar.hidePanel") : t("toolbar.showPanel")}</span>
+            <kbd className="rounded bg-background/20 px-1.5 py-0.5 text-[10px] font-mono text-inherit">
+              P
+            </kbd>
+          </TooltipContent>
+        </Tooltip>
 
-      <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
+        <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
 
-      {/* Transform Tools - Always visible */}
-      <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
-        <ToolButton
-          icon={Cursor01Icon}
-          label={t("toolbar.select")}
-          shortcut="V"
-          active={transformMode === "none"}
-          onClick={() => handleTransformMode("none")}
-        />
-        <ToolButton
-          icon={Move01Icon}
-          label={t("toolbar.move")}
-          shortcut="G"
-          active={transformMode === "translate"}
-          onClick={() => handleTransformMode("translate")}
-        />
-        <ToolButton
-          icon={Rotate01Icon}
-          label={t("toolbar.rotate")}
-          shortcut="R"
-          active={transformMode === "rotate"}
-          onClick={() => handleTransformMode("rotate")}
-        />
-        <ToolButton
-          icon={Resize01Icon}
-          label={t("toolbar.scale")}
-          shortcut="S"
-          active={transformMode === "scale"}
-          onClick={() => handleTransformMode("scale")}
-        />
-      </div>
+        {/* Transform Tools - Always visible */}
+        <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+          <ToolButton
+            icon={Cursor01Icon}
+            label={t("toolbar.select")}
+            shortcut="V"
+            active={transformMode === "none"}
+            onClick={() => handleTransformMode("none")}
+          />
+          <ToolButton
+            icon={Move01Icon}
+            label={t("toolbar.move")}
+            shortcut="G"
+            active={transformMode === "translate"}
+            onClick={() => handleTransformMode("translate")}
+          />
+          <ToolButton
+            icon={Rotate01Icon}
+            label={t("toolbar.rotate")}
+            shortcut="R"
+            active={transformMode === "rotate"}
+            onClick={() => handleTransformMode("rotate")}
+          />
+          <ToolButton
+            icon={Resize01Icon}
+            label={t("toolbar.scale")}
+            shortcut="S"
+            active={transformMode === "scale"}
+            onClick={() => handleTransformMode("scale")}
+          />
+        </div>
 
-      {/* Snap & Grid - Hideable */}
-      {showSnapGrid && (
-        <>
-          <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
-          <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
-            <ToolButton
-              icon={GridIcon}
-              label={t("toolbar.toggleGrid")}
-              shortcut={`${modKey}+G`}
-              active={viewportSettings.showGrid}
-              onClick={handleToggleGrid}
-            />
-            <ToolButton
-              icon={Magnet01Icon}
-              label={t("toolbar.snapToGrid")}
-              shortcut={`${modKey}+Shift+S`}
-              active={snapMode !== "none"}
-              onClick={handleToggleSnap}
-            />
-          </div>
-        </>
-      )}
-
-      {/* View Modes - Hideable */}
-      {showViewModes && (
-        <>
-          <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
-          <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
-            <ToolButton
-              icon={CubeIcon}
-              label={t("toolbar.solidView")}
-              active={viewportSettings.viewMode === "solid"}
-              onClick={() => handleViewMode("solid")}
-            />
-            <ToolButton
-              icon={GridIcon}
-              label={t("toolbar.wireframeView")}
-              active={viewportSettings.viewMode === "wireframe"}
-              onClick={() => handleViewMode("wireframe")}
-            />
-            <ToolButton
-              icon={EyeIcon}
-              label={t("toolbar.xrayView")}
-              active={viewportSettings.viewMode === "xray"}
-              onClick={() => handleViewMode("xray")}
-            />
-          </div>
-        </>
-      )}
-
-      {/* Camera Views - Hideable */}
-      {showCameraViews && (
-        <>
-          <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
-          <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
-            <ViewButton
-              view="perspective"
-              icon={CubeIcon}
-              label={t("toolbar.perspective")}
-              currentView={cameraView}
-              onClick={handleCameraView}
-            />
-            <ViewButton
-              view="top"
-              icon={ArrowDown01Icon}
-              label={t("toolbar.planView")}
-              currentView={cameraView}
-              onClick={handleCameraView}
-            />
-            <ViewButton
-              view="front"
-              icon={ArrowRight01Icon}
-              label={t("toolbar.profileView")}
-              currentView={cameraView}
-              onClick={handleCameraView}
-            />
-            <ViewButton
-              view="right"
-              icon={SquareIcon}
-              label={t("toolbar.crossSection")}
-              currentView={cameraView}
-              onClick={handleCameraView}
-            />
-          </div>
-        </>
-      )}
-
-      {/* Spacer */}
-      <div className="flex-1 min-w-2" />
-
-      {/* Overflow Menu - Shows hidden items */}
-      {hasOverflow && (
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <DropdownMenuTrigger className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                  <HugeiconsIcon icon={MoreHorizontalIcon} className="size-4" />
-                </DropdownMenuTrigger>
-              }
-            />
-            <TooltipContent side="bottom">{t("toolbar.moreTools")}</TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="end" className="w-56">
-            {/* Snap & Grid in overflow */}
-            {!showSnapGrid && (
+        {/* CAD Operations - Boolean, Modify, Measure */}
+        <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
+        <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+          {/* Boolean Operations */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <DropdownMenuTrigger
+                    disabled={!canBooleanOp}
+                    className={cn(
+                      "inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-colors",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                      "disabled:pointer-events-none disabled:opacity-50"
+                    )}
+                  >
+                    <HugeiconsIcon icon={CubeIcon} className="size-4" />
+                  </DropdownMenuTrigger>
+                }
+              />
+              <TooltipContent side="bottom">
+                {canBooleanOp
+                  ? t("toolbar.booleanOps", "Boolean Operations")
+                  : t("toolbar.selectTwoObjects", "Select 2 objects for boolean ops")}
+              </TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start">
               <DropdownMenuGroup>
-                <DropdownMenuLabel>{t("toolbar.gridSnap")}</DropdownMenuLabel>
-                <MenuToolButton
-                  icon={GridIcon}
-                  label={t("toolbar.toggleGrid")}
-                  shortcut={`${modKey}+G`}
-                  active={viewportSettings.showGrid}
-                  onClick={handleToggleGrid}
-                />
-                <MenuToolButton
-                  icon={Magnet01Icon}
-                  label={t("toolbar.snapToGrid")}
-                  shortcut={`${modKey}+Shift+S`}
-                  active={snapMode !== "none"}
-                  onClick={handleToggleSnap}
-                />
+                <DropdownMenuLabel>
+                  {t("toolbar.booleanOps", "Boolean Operations")}
+                </DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleBooleanUnion}>
+                  <HugeiconsIcon icon={CubeIcon} className="mr-2 size-4" />
+                  {t("toolbar.union", "Union (Fuse)")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleBooleanSubtract}>
+                  <HugeiconsIcon icon={CubeIcon} className="mr-2 size-4" />
+                  {t("toolbar.subtract", "Subtract (Cut)")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleBooleanIntersect}>
+                  <HugeiconsIcon icon={CubeIcon} className="mr-2 size-4" />
+                  {t("toolbar.intersect", "Intersect (Common)")}
+                </DropdownMenuItem>
               </DropdownMenuGroup>
-            )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {/* View Modes in overflow */}
-            {!showViewModes && (
+          {/* Modify Operations */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <DropdownMenuTrigger
+                    disabled={!hasSelectedShapes}
+                    className={cn(
+                      "inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-colors",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                      "disabled:pointer-events-none disabled:opacity-50"
+                    )}
+                  >
+                    <HugeiconsIcon icon={PencilEdit02Icon} className="size-4" />
+                  </DropdownMenuTrigger>
+                }
+              />
+              <TooltipContent side="bottom">
+                {t("toolbar.modifyOps", "Modify Operations")}
+              </TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start">
               <DropdownMenuGroup>
-                {!showSnapGrid && <DropdownMenuSeparator />}
-                <DropdownMenuLabel>{t("toolbar.viewMode")}</DropdownMenuLabel>
-                <MenuToolButton
-                  icon={CubeIcon}
-                  label={t("toolbar.solidView")}
-                  active={viewportSettings.viewMode === "solid"}
-                  onClick={() => handleViewMode("solid")}
-                />
-                <MenuToolButton
-                  icon={GridIcon}
-                  label={t("toolbar.wireframeView")}
-                  active={viewportSettings.viewMode === "wireframe"}
-                  onClick={() => handleViewMode("wireframe")}
-                />
-                <MenuToolButton
-                  icon={EyeIcon}
-                  label={t("toolbar.xrayView")}
-                  active={viewportSettings.viewMode === "xray"}
-                  onClick={() => handleViewMode("xray")}
-                />
+                <DropdownMenuLabel>{t("toolbar.modifyOps", "Modify Operations")}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleFillet}>
+                  <HugeiconsIcon icon={PencilEdit02Icon} className="mr-2 size-4" />
+                  {t("toolbar.fillet", "Fillet (Round)")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleChamfer}>
+                  <HugeiconsIcon icon={PencilEdit02Icon} className="mr-2 size-4" />
+                  {t("toolbar.chamfer", "Chamfer (Bevel)")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleShell}>
+                  <HugeiconsIcon icon={CubeIcon} className="mr-2 size-4" />
+                  {t("toolbar.shell", "Shell (Hollow)")}
+                </DropdownMenuItem>
               </DropdownMenuGroup>
-            )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {/* Camera Views in overflow */}
-            {!showCameraViews && (
+          {/* Measure */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <DropdownMenuTrigger
+                    disabled={!hasSelectedShapes}
+                    className={cn(
+                      "inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-colors",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                      "disabled:pointer-events-none disabled:opacity-50"
+                    )}
+                  >
+                    <HugeiconsIcon icon={RulerIcon} className="size-4" />
+                  </DropdownMenuTrigger>
+                }
+              />
+              <TooltipContent side="bottom">{t("toolbar.measure", "Measure")}</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start">
               <DropdownMenuGroup>
-                {(!showSnapGrid || !showViewModes) && <DropdownMenuSeparator />}
-                <DropdownMenuLabel>{t("toolbar.cameraView")}</DropdownMenuLabel>
-                <MenuToolButton
-                  icon={CubeIcon}
-                  label={t("toolbar.perspective")}
-                  active={cameraView === "perspective"}
-                  onClick={() => handleCameraView("perspective")}
-                />
-                <MenuToolButton
-                  icon={ArrowDown01Icon}
-                  label={t("toolbar.planView")}
-                  active={cameraView === "top"}
-                  onClick={() => handleCameraView("top")}
-                />
-                <MenuToolButton
-                  icon={ArrowRight01Icon}
-                  label={t("toolbar.profileView")}
-                  active={cameraView === "front"}
-                  onClick={() => handleCameraView("front")}
-                />
-                <MenuToolButton
-                  icon={SquareIcon}
-                  label={t("toolbar.crossSection")}
-                  active={cameraView === "right"}
-                  onClick={() => handleCameraView("right")}
-                />
+                <DropdownMenuLabel>{t("toolbar.measurements", "Measurements")}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleMeasureDistance} disabled={!canBooleanOp}>
+                  <HugeiconsIcon icon={RulerIcon} className="mr-2 size-4" />
+                  {t("toolbar.distance", "Distance")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleMeasureProperties}>
+                  <HugeiconsIcon icon={RulerIcon} className="mr-2 size-4" />
+                  {t("toolbar.properties", "Properties")}
+                </DropdownMenuItem>
               </DropdownMenuGroup>
-            )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-            {/* Right-side tools in overflow (Undo/Redo, Export, Settings) */}
-            {!showRightTools && (
-              <>
+        {/* Snap & Grid - Hideable */}
+        {showSnapGrid && (
+          <>
+            <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
+            <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+              <ToolButton
+                icon={GridIcon}
+                label={t("toolbar.toggleGrid")}
+                shortcut={`${modKey}+G`}
+                active={viewportSettings.showGrid}
+                onClick={handleToggleGrid}
+              />
+              <ToolButton
+                icon={Magnet01Icon}
+                label={t("toolbar.snapToGrid")}
+                shortcut={`${modKey}+Shift+S`}
+                active={snapMode !== "none"}
+                onClick={handleToggleSnap}
+              />
+            </div>
+          </>
+        )}
+
+        {/* View Modes - Hideable */}
+        {showViewModes && (
+          <>
+            <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
+            <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+              <ToolButton
+                icon={CubeIcon}
+                label={t("toolbar.solidView")}
+                active={viewportSettings.viewMode === "solid"}
+                onClick={() => handleViewMode("solid")}
+              />
+              <ToolButton
+                icon={GridIcon}
+                label={t("toolbar.wireframeView")}
+                active={viewportSettings.viewMode === "wireframe"}
+                onClick={() => handleViewMode("wireframe")}
+              />
+              <ToolButton
+                icon={EyeIcon}
+                label={t("toolbar.xrayView")}
+                active={viewportSettings.viewMode === "xray"}
+                onClick={() => handleViewMode("xray")}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Camera Views - Hideable */}
+        {showCameraViews && (
+          <>
+            <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
+            <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+              <ViewButton
+                view="perspective"
+                icon={CubeIcon}
+                label={t("toolbar.perspective")}
+                currentView={cameraView}
+                onClick={handleCameraView}
+              />
+              <ViewButton
+                view="top"
+                icon={ArrowDown01Icon}
+                label={t("toolbar.planView")}
+                currentView={cameraView}
+                onClick={handleCameraView}
+              />
+              <ViewButton
+                view="front"
+                icon={ArrowRight01Icon}
+                label={t("toolbar.profileView")}
+                currentView={cameraView}
+                onClick={handleCameraView}
+              />
+              <ViewButton
+                view="right"
+                icon={SquareIcon}
+                label={t("toolbar.crossSection")}
+                currentView={cameraView}
+                onClick={handleCameraView}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1 min-w-2" />
+
+        {/* Overflow Menu - Shows hidden items */}
+        {hasOverflow && (
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <DropdownMenuTrigger className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                    <HugeiconsIcon icon={MoreHorizontalIcon} className="size-4" />
+                  </DropdownMenuTrigger>
+                }
+              />
+              <TooltipContent side="bottom">{t("toolbar.moreTools")}</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end" className="w-56">
+              {/* Snap & Grid in overflow */}
+              {!showSnapGrid && (
                 <DropdownMenuGroup>
-                  {(!showSnapGrid || !showViewModes || !showCameraViews) && (
-                    <DropdownMenuSeparator />
-                  )}
-                  <DropdownMenuLabel>{t("toolbar.actions")}</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t("toolbar.gridSnap")}</DropdownMenuLabel>
                   <MenuToolButton
-                    icon={ArrowTurnBackwardIcon}
-                    label={t("toolbar.undo")}
-                    shortcut={`${modKey}+Z`}
-                    disabled={!canUndo}
-                    onClick={undo}
+                    icon={GridIcon}
+                    label={t("toolbar.toggleGrid")}
+                    shortcut={`${modKey}+G`}
+                    active={viewportSettings.showGrid}
+                    onClick={handleToggleGrid}
                   />
                   <MenuToolButton
-                    icon={ArrowTurnForwardIcon}
-                    label={t("toolbar.redo")}
-                    shortcut={isMacOS ? `${modKey}+Shift+Z` : `${modKey}+Y`}
-                    disabled={!canRedo}
-                    onClick={redo}
+                    icon={Magnet01Icon}
+                    label={t("toolbar.snapToGrid")}
+                    shortcut={`${modKey}+Shift+S`}
+                    active={snapMode !== "none"}
+                    onClick={handleToggleSnap}
                   />
                 </DropdownMenuGroup>
-                <DropdownMenuSeparator />
+              )}
+
+              {/* View Modes in overflow */}
+              {!showViewModes && (
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>{t("toolbar.exportFormat")}</DropdownMenuLabel>
+                  {!showSnapGrid && <DropdownMenuSeparator />}
+                  <DropdownMenuLabel>{t("toolbar.viewMode")}</DropdownMenuLabel>
+                  <MenuToolButton
+                    icon={CubeIcon}
+                    label={t("toolbar.solidView")}
+                    active={viewportSettings.viewMode === "solid"}
+                    onClick={() => handleViewMode("solid")}
+                  />
+                  <MenuToolButton
+                    icon={GridIcon}
+                    label={t("toolbar.wireframeView")}
+                    active={viewportSettings.viewMode === "wireframe"}
+                    onClick={() => handleViewMode("wireframe")}
+                  />
+                  <MenuToolButton
+                    icon={EyeIcon}
+                    label={t("toolbar.xrayView")}
+                    active={viewportSettings.viewMode === "xray"}
+                    onClick={() => handleViewMode("xray")}
+                  />
+                </DropdownMenuGroup>
+              )}
+
+              {/* Camera Views in overflow */}
+              {!showCameraViews && (
+                <DropdownMenuGroup>
+                  {(!showSnapGrid || !showViewModes) && <DropdownMenuSeparator />}
+                  <DropdownMenuLabel>{t("toolbar.cameraView")}</DropdownMenuLabel>
+                  <MenuToolButton
+                    icon={CubeIcon}
+                    label={t("toolbar.perspective")}
+                    active={cameraView === "perspective"}
+                    onClick={() => handleCameraView("perspective")}
+                  />
+                  <MenuToolButton
+                    icon={ArrowDown01Icon}
+                    label={t("toolbar.planView")}
+                    active={cameraView === "top"}
+                    onClick={() => handleCameraView("top")}
+                  />
+                  <MenuToolButton
+                    icon={ArrowRight01Icon}
+                    label={t("toolbar.profileView")}
+                    active={cameraView === "front"}
+                    onClick={() => handleCameraView("front")}
+                  />
+                  <MenuToolButton
+                    icon={SquareIcon}
+                    label={t("toolbar.crossSection")}
+                    active={cameraView === "right"}
+                    onClick={() => handleCameraView("right")}
+                  />
+                </DropdownMenuGroup>
+              )}
+
+              {/* Right-side tools in overflow (Undo/Redo, Export, Settings) */}
+              {!showRightTools && (
+                <>
+                  <DropdownMenuGroup>
+                    {(!showSnapGrid || !showViewModes || !showCameraViews) && (
+                      <DropdownMenuSeparator />
+                    )}
+                    <DropdownMenuLabel>{t("toolbar.actions")}</DropdownMenuLabel>
+                    <MenuToolButton
+                      icon={ArrowTurnBackwardIcon}
+                      label={t("toolbar.undo")}
+                      shortcut={`${modKey}+Z`}
+                      disabled={!canUndo}
+                      onClick={undo}
+                    />
+                    <MenuToolButton
+                      icon={ArrowTurnForwardIcon}
+                      label={t("toolbar.redo")}
+                      shortcut={isMacOS ? `${modKey}+Shift+Z` : `${modKey}+Y`}
+                      disabled={!canRedo}
+                      onClick={redo}
+                    />
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                      {t("toolbar.exportSelection", "Export Selection")}
+                    </DropdownMenuLabel>
+                    {EXPORT_FORMATS.map((format) => (
+                      <DropdownMenuItem
+                        key={`overflow-selection-${format.id}`}
+                        onClick={() => handleExport(format.id)}
+                        disabled={!canExport || isExporting}
+                      >
+                        <HugeiconsIcon icon={File01Icon} className="mr-2 size-4" />
+                        <span>{format.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                      {t("toolbar.exportScene", "Export Entire Scene")}
+                    </DropdownMenuLabel>
+                    {EXPORT_FORMATS.map((format) => (
+                      <DropdownMenuItem
+                        key={`overflow-scene-${format.id}`}
+                        onClick={() => handleExportScene(format.id)}
+                        disabled={!canExportScene || isExporting}
+                      >
+                        <HugeiconsIcon icon={File01Icon} className="mr-2 size-4" />
+                        <span>{format.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-xs">
+                      {t("toolbar.viewportSettings")}
+                    </DropdownMenuLabel>
+                    <DropdownMenuCheckboxItem
+                      checked={
+                        viewportSettings.backgroundColor === "#f5f5f5" ||
+                        viewportSettings.backgroundColor === "#ffffff"
+                      }
+                      onCheckedChange={(checked) =>
+                        setViewportSettings({ backgroundColor: checked ? "#f5f5f5" : "#1a1a1a" })
+                      }
+                    >
+                      {t("toolbar.lightBackground")}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={viewportSettings.shadows}
+                      onCheckedChange={(checked) => setViewportSettings({ shadows: checked })}
+                    >
+                      {t("toolbar.shadows")}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={viewportSettings.antialiasing}
+                      onCheckedChange={(checked) => setViewportSettings({ antialiasing: checked })}
+                    >
+                      {t("toolbar.antialiasing")}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={viewportSettings.ambientOcclusion}
+                      onCheckedChange={(checked) =>
+                        setViewportSettings({ ambientOcclusion: checked })
+                      }
+                    >
+                      {t("toolbar.ambientOcclusion")}
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={viewportSettings.showAxes}
+                      onCheckedChange={(checked) => setViewportSettings({ showAxes: checked })}
+                    >
+                      {t("toolbar.showAxes")}
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuGroup>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {/* Right-side tools - Hideable (Undo/Redo, Export, Settings) */}
+        {showRightTools && (
+          <>
+            <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+              <ToolButton
+                icon={ArrowTurnBackwardIcon}
+                label={t("toolbar.undo")}
+                shortcut={`${modKey}+Z`}
+                disabled={!canUndo}
+                onClick={undo}
+              />
+              <ToolButton
+                icon={ArrowTurnForwardIcon}
+                label={t("toolbar.redo")}
+                shortcut={isMacOS ? `${modKey}+Shift+Z` : `${modKey}+Y`}
+                disabled={!canRedo}
+                onClick={redo}
+              />
+            </div>
+
+            <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
+
+            {/* Export */}
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <DropdownMenuTrigger
+                      disabled={(!canExport && !canExportScene) || isExporting}
+                      className={cn(
+                        "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm font-medium transition-colors",
+                        "hover:bg-accent hover:text-accent-foreground",
+                        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                        "disabled:pointer-events-none disabled:opacity-50",
+                        isExporting && "animate-pulse"
+                      )}
+                    >
+                      <HugeiconsIcon icon={Download01Icon} className="size-4" />
+                    </DropdownMenuTrigger>
+                  }
+                />
+                <TooltipContent side="bottom">
+                  {canExport || canExportScene
+                    ? t("toolbar.export", "Export")
+                    : t("toolbar.noExportableObjects", "No exportable objects in scene")}
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-56">
+                {/* Export Selection */}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    {t("toolbar.exportSelection", "Export Selection")}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   {EXPORT_FORMATS.map((format) => (
                     <DropdownMenuItem
-                      key={format.id}
+                      key={`selection-${format.id}`}
                       onClick={() => handleExport(format.id)}
                       disabled={!canExport || isExporting}
                     >
@@ -605,258 +1184,276 @@ export function ViewportToolbar({ showLeftPanel = true, onToggleLeftPanel }: Vie
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel className="text-xs">
-                    {t("toolbar.viewportSettings")}
-                  </DropdownMenuLabel>
-                  <DropdownMenuCheckboxItem
-                    checked={
-                      viewportSettings.backgroundColor === "#f5f5f5" ||
-                      viewportSettings.backgroundColor === "#ffffff"
-                    }
-                    onCheckedChange={(checked) =>
-                      setViewportSettings({ backgroundColor: checked ? "#f5f5f5" : "#1a1a1a" })
-                    }
-                  >
-                    {t("toolbar.lightBackground")}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={viewportSettings.shadows}
-                    onCheckedChange={(checked) => setViewportSettings({ shadows: checked })}
-                  >
-                    {t("toolbar.shadows")}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={viewportSettings.antialiasing}
-                    onCheckedChange={(checked) => setViewportSettings({ antialiasing: checked })}
-                  >
-                    {t("toolbar.antialiasing")}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={viewportSettings.ambientOcclusion}
-                    onCheckedChange={(checked) =>
-                      setViewportSettings({ ambientOcclusion: checked })
-                    }
-                  >
-                    {t("toolbar.ambientOcclusion")}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={viewportSettings.showAxes}
-                    onCheckedChange={(checked) => setViewportSettings({ showAxes: checked })}
-                  >
-                    {t("toolbar.showAxes")}
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuGroup>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
 
-      {/* Right-side tools - Hideable (Undo/Redo, Export, Settings) */}
-      {showRightTools && (
-        <>
-          <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
-            <ToolButton
-              icon={ArrowTurnBackwardIcon}
-              label={t("toolbar.undo")}
-              shortcut={`${modKey}+Z`}
-              disabled={!canUndo}
-              onClick={undo}
-            />
-            <ToolButton
-              icon={ArrowTurnForwardIcon}
-              label={t("toolbar.redo")}
-              shortcut={isMacOS ? `${modKey}+Shift+Z` : `${modKey}+Y`}
-              disabled={!canRedo}
-              onClick={redo}
-            />
+                <DropdownMenuSeparator />
+
+                {/* Export Scene */}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    {t("toolbar.exportScene", "Export Entire Scene")}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {EXPORT_FORMATS.map((format) => (
+                    <DropdownMenuItem
+                      key={`scene-${format.id}`}
+                      onClick={() => handleExportScene(format.id)}
+                      disabled={!canExportScene || isExporting}
+                    >
+                      <HugeiconsIcon icon={File01Icon} className="mr-2 size-4" />
+                      <span>{format.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Viewport Settings Popover */}
+            <Popover>
+              <Tooltip>
+                <PopoverTrigger
+                  render={
+                    <TooltipTrigger
+                      render={
+                        <Button variant="ghost" size="icon-sm" className="h-7 w-7 shrink-0">
+                          <HugeiconsIcon icon={Settings01Icon} className="size-4" />
+                        </Button>
+                      }
+                    />
+                  }
+                />
+                <TooltipContent side="bottom">{t("toolbar.viewportSettings")}</TooltipContent>
+              </Tooltip>
+              <PopoverContent align="end" className="w-52 p-2.5">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                    {t("toolbar.viewportSettings")}
+                  </p>
+
+                  {/* Light Background Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="lightBg" className="text-xs font-normal">
+                      {t("toolbar.lightBackground")}
+                    </Label>
+                    <Switch
+                      id="lightBg"
+                      checked={
+                        viewportSettings.backgroundColor === "#f5f5f5" ||
+                        viewportSettings.backgroundColor === "#ffffff"
+                      }
+                      onCheckedChange={(checked) =>
+                        setViewportSettings({ backgroundColor: checked ? "#f5f5f5" : "#1a1a1a" })
+                      }
+                    />
+                  </div>
+
+                  {/* Shadows Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="shadows" className="text-xs font-normal">
+                      {t("toolbar.shadows")}
+                    </Label>
+                    <Switch
+                      id="shadows"
+                      checked={viewportSettings.shadows}
+                      onCheckedChange={(checked) => setViewportSettings({ shadows: checked })}
+                    />
+                  </div>
+
+                  {/* Antialiasing Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="antialiasing" className="text-xs font-normal">
+                      {t("toolbar.antialiasing")}
+                    </Label>
+                    <Switch
+                      id="antialiasing"
+                      checked={viewportSettings.antialiasing}
+                      onCheckedChange={(checked) => setViewportSettings({ antialiasing: checked })}
+                    />
+                  </div>
+
+                  {/* Ambient Occlusion Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="ao" className="text-xs font-normal">
+                      {t("toolbar.ambientOcclusion")}
+                    </Label>
+                    <Switch
+                      id="ao"
+                      checked={viewportSettings.ambientOcclusion}
+                      onCheckedChange={(checked) =>
+                        setViewportSettings({ ambientOcclusion: checked })
+                      }
+                    />
+                  </div>
+
+                  {/* Show Axes Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="axes" className="text-xs font-normal">
+                      {t("toolbar.showAxes")}
+                    </Label>
+                    <Switch
+                      id="axes"
+                      checked={viewportSettings.showAxes}
+                      onCheckedChange={(checked) => setViewportSettings({ showAxes: checked })}
+                    />
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Post-Processing Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="postprocessing" className="text-xs font-normal">
+                      {t("toolbar.postProcessing", "Post-Processing")}
+                    </Label>
+                    <Switch
+                      id="postprocessing"
+                      checked={viewportSettings.enablePostProcessing ?? false}
+                      onCheckedChange={(checked) =>
+                        setViewportSettings({ enablePostProcessing: checked })
+                      }
+                    />
+                  </div>
+
+                  {/* Post-Processing Quality Dropdown */}
+                  {(viewportSettings.enablePostProcessing ?? false) && (
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">
+                        {t("toolbar.quality", "Quality")}
+                      </Label>
+                      <div className="grid grid-cols-4 gap-1">
+                        {(["low", "medium", "high", "ultra"] as const).map((quality) => (
+                          <Button
+                            key={quality}
+                            variant={
+                              (viewportSettings.postProcessingQuality ?? "medium") === quality
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            className={cn(
+                              "h-6 px-1 text-[10px] font-normal capitalize",
+                              (viewportSettings.postProcessingQuality ?? "medium") === quality &&
+                                "bg-primary text-primary-foreground"
+                            )}
+                            onClick={() => setViewportSettings({ postProcessingQuality: quality })}
+                          >
+                            {quality}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </>
+        )}
+      </div>
+
+      {/* Parameter Dialog (Fillet, Chamfer, Shell) */}
+      <Dialog
+        open={parameterDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setParameterDialog({ open: false, operation: null, value: "" })
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {parameterDialog.operation === "fillet" &&
+                t("toolbar.filletTitle", "Fillet (Round Edges)")}
+              {parameterDialog.operation === "chamfer" &&
+                t("toolbar.chamferTitle", "Chamfer (Bevel Edges)")}
+              {parameterDialog.operation === "shell" &&
+                t("toolbar.shellTitle", "Shell (Hollow Out)")}
+            </DialogTitle>
+            <DialogDescription>
+              {parameterDialog.operation === "fillet" &&
+                t("toolbar.filletDesc", "Enter the radius for rounding edges")}
+              {parameterDialog.operation === "chamfer" &&
+                t("toolbar.chamferDesc", "Enter the distance for beveling edges")}
+              {parameterDialog.operation === "shell" &&
+                t("toolbar.shellDesc", "Enter the wall thickness")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="parameter-value">
+                {parameterDialog.operation === "fillet" && t("toolbar.radius", "Radius")}
+                {parameterDialog.operation === "chamfer" && t("toolbar.distance", "Distance")}
+                {parameterDialog.operation === "shell" && t("toolbar.thickness", "Thickness")}
+              </Label>
+              <Input
+                id="parameter-value"
+                type="number"
+                step="0.1"
+                min="0.01"
+                value={parameterDialog.value}
+                onChange={(e) =>
+                  setParameterDialog((prev) => ({
+                    ...prev,
+                    value: e.target.value,
+                  }))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleApplyParameterOperation()
+                  }
+                }}
+              />
+            </div>
           </div>
 
-          <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setParameterDialog({ open: false, operation: null, value: "" })}
+            >
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button onClick={handleApplyParameterOperation}>{t("common.apply", "Apply")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          {/* Export */}
-          <DropdownMenu>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <DropdownMenuTrigger
-                    disabled={!canExport || isExporting}
-                    className={cn(
-                      "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm font-medium transition-colors",
-                      "hover:bg-accent hover:text-accent-foreground",
-                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                      "disabled:pointer-events-none disabled:opacity-50",
-                      isExporting && "animate-pulse"
-                    )}
-                  >
-                    <HugeiconsIcon icon={Download01Icon} className="size-4" />
-                  </DropdownMenuTrigger>
-                }
-              />
-              <TooltipContent side="bottom">
-                {canExport ? t("toolbar.exportSelection") : t("toolbar.selectChannelToExport")}
-              </TooltipContent>
-            </Tooltip>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>{t("toolbar.exportFormat")}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {EXPORT_FORMATS.map((format) => (
-                  <DropdownMenuItem
-                    key={format.id}
-                    onClick={() => handleExport(format.id)}
-                    disabled={isExporting}
-                  >
-                    <HugeiconsIcon icon={File01Icon} className="mr-2 size-4" />
-                    <span>{format.name}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      {/* Measure Results Dialog */}
+      <Dialog
+        open={measureDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMeasureDialog({ open: false, title: "", results: [] })
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{measureDialog.title}</DialogTitle>
+            <DialogDescription>
+              {t("toolbar.measureResults", "Measurement results")}
+            </DialogDescription>
+          </DialogHeader>
 
-          {/* Viewport Settings Popover */}
-          <Popover>
-            <Tooltip>
-              <PopoverTrigger
-                render={
-                  <TooltipTrigger
-                    render={
-                      <Button variant="ghost" size="icon-sm" className="h-7 w-7 shrink-0">
-                        <HugeiconsIcon icon={Settings01Icon} className="size-4" />
-                      </Button>
-                    }
-                  />
-                }
-              />
-              <TooltipContent side="bottom">{t("toolbar.viewportSettings")}</TooltipContent>
-            </Tooltip>
-            <PopoverContent align="end" className="w-52 p-2.5">
-              <div className="space-y-2">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                  {t("toolbar.viewportSettings")}
-                </p>
-
-                {/* Light Background Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="lightBg" className="text-xs font-normal">
-                    {t("toolbar.lightBackground")}
-                  </Label>
-                  <Switch
-                    id="lightBg"
-                    checked={
-                      viewportSettings.backgroundColor === "#f5f5f5" ||
-                      viewportSettings.backgroundColor === "#ffffff"
-                    }
-                    onCheckedChange={(checked) =>
-                      setViewportSettings({ backgroundColor: checked ? "#f5f5f5" : "#1a1a1a" })
-                    }
-                  />
-                </div>
-
-                {/* Shadows Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="shadows" className="text-xs font-normal">
-                    {t("toolbar.shadows")}
-                  </Label>
-                  <Switch
-                    id="shadows"
-                    checked={viewportSettings.shadows}
-                    onCheckedChange={(checked) => setViewportSettings({ shadows: checked })}
-                  />
-                </div>
-
-                {/* Antialiasing Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="antialiasing" className="text-xs font-normal">
-                    {t("toolbar.antialiasing")}
-                  </Label>
-                  <Switch
-                    id="antialiasing"
-                    checked={viewportSettings.antialiasing}
-                    onCheckedChange={(checked) => setViewportSettings({ antialiasing: checked })}
-                  />
-                </div>
-
-                {/* Ambient Occlusion Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="ao" className="text-xs font-normal">
-                    {t("toolbar.ambientOcclusion")}
-                  </Label>
-                  <Switch
-                    id="ao"
-                    checked={viewportSettings.ambientOcclusion}
-                    onCheckedChange={(checked) =>
-                      setViewportSettings({ ambientOcclusion: checked })
-                    }
-                  />
-                </div>
-
-                {/* Show Axes Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="axes" className="text-xs font-normal">
-                    {t("toolbar.showAxes")}
-                  </Label>
-                  <Switch
-                    id="axes"
-                    checked={viewportSettings.showAxes}
-                    onCheckedChange={(checked) => setViewportSettings({ showAxes: checked })}
-                  />
-                </div>
-
-                <Separator className="my-2" />
-
-                {/* Post-Processing Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="postprocessing" className="text-xs font-normal">
-                    {t("toolbar.postProcessing", "Post-Processing")}
-                  </Label>
-                  <Switch
-                    id="postprocessing"
-                    checked={viewportSettings.enablePostProcessing ?? false}
-                    onCheckedChange={(checked) =>
-                      setViewportSettings({ enablePostProcessing: checked })
-                    }
-                  />
-                </div>
-
-                {/* Post-Processing Quality Dropdown */}
-                {(viewportSettings.enablePostProcessing ?? false) && (
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">
-                      {t("toolbar.quality", "Quality")}
-                    </Label>
-                    <div className="grid grid-cols-4 gap-1">
-                      {(["low", "medium", "high", "ultra"] as const).map((quality) => (
-                        <Button
-                          key={quality}
-                          variant={
-                            (viewportSettings.postProcessingQuality ?? "medium") === quality
-                              ? "default"
-                              : "outline"
-                          }
-                          size="sm"
-                          className={cn(
-                            "h-6 px-1 text-[10px] font-normal capitalize",
-                            (viewportSettings.postProcessingQuality ?? "medium") === quality &&
-                              "bg-primary text-primary-foreground"
-                          )}
-                          onClick={() => setViewportSettings({ postProcessingQuality: quality })}
-                        >
-                          {quality}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+          <div className="space-y-3 py-4">
+            {measureDialog.results.map((result, index) => (
+              <div
+                key={index}
+                className="flex justify-between items-center border-b border-border/40 pb-2 last:border-0"
+              >
+                <span className="text-sm font-medium text-muted-foreground">{result.label}</span>
+                <span className="text-sm font-mono">{result.value}</span>
               </div>
-            </PopoverContent>
-          </Popover>
-        </>
-      )}
-    </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setMeasureDialog({ open: false, title: "", results: [] })}>
+              {t("common.close", "Close")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

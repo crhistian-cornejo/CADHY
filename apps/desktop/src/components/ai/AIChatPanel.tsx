@@ -450,7 +450,7 @@ function WelcomeScreen({ onSuggestionClick }: WelcomeScreenProps) {
       icon={
         <div data-slot="welcome-icon" className="relative">
           {/* Main logo container */}
-          <div className="size-16 rounded-2xl bg-gradient-to-br from-blue-500 via-violet-500 to-purple-600 flex items-center justify-center shadow-lg">
+          <div className="size-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
             <CadhyLogo className="size-9 text-white" />
           </div>
           {/* AI Badge */}
