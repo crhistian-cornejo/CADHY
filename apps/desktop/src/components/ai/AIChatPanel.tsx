@@ -6,6 +6,7 @@
  */
 
 import { getModelById } from "@cadhy/ai"
+import { logger } from "@cadhy/shared/logger"
 import {
   Button,
   // Context components for token usage
@@ -796,7 +797,7 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
 
   // Load sessions when project changes or on mount
   useEffect(() => {
-    console.log(
+    logger.log(
       "[AIChatPanel] Project/session effect - project:",
       currentProject?.name,
       "sessionId:",
@@ -804,7 +805,7 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
     )
     // Always try to load sessions when we have a project but no session
     if (currentProject && !currentSessionId) {
-      console.log("[AIChatPanel] Loading sessions for project:", currentProject.name)
+      logger.log("[AIChatPanel] Loading sessions for project:", currentProject.name)
       loadSessions()
     }
   }, [currentProject?.id, currentSessionId, loadSessions, currentProject?.name, currentProject])

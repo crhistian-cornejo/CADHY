@@ -340,7 +340,7 @@ export function TransitionMesh({
         onPointerOut={onPointerOut}
       >
         {/* Main transition mesh */}
-        <mesh ref={internalMeshRef} geometry={geometry} castShadow receiveShadow>
+        <mesh ref={internalMeshRef} geometry={geometry}>
           <meshStandardMaterial {...materialProps} />
           {isSelected && (
             <lineSegments>
@@ -351,7 +351,7 @@ export function TransitionMesh({
         </mesh>
 
         {/* Stilling basin mesh */}
-        <mesh geometry={basinGeometry} castShadow receiveShadow>
+        <mesh geometry={basinGeometry}>
           <meshStandardMaterial {...materialProps} />
           {isSelected && (
             <lineSegments>
@@ -373,8 +373,6 @@ export function TransitionMesh({
       onClick={onClick}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
-      castShadow
-      receiveShadow
     >
       <meshStandardMaterial {...materialProps} />
       {isSelected && (

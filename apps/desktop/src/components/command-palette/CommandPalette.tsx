@@ -2,6 +2,7 @@
  * Command Palette - CADHY
  *
  * A powerful command palette inspired by VS Code and GraphCAD.
+ * Built with Base UI Autocomplete + Dialog components.
  * Supports multiple modes:
  * - Commands (default): Search and execute commands
  * - > : Add/create mode (channels, shapes, etc.)
@@ -11,24 +12,36 @@
 
 import {
   Command,
+  CommandCollection,
   CommandDialog,
+  CommandDialogPopup,
   CommandEmpty,
+  CommandFooter,
   CommandGroup,
+  CommandGroupLabel,
   CommandInput,
   CommandItem,
   CommandList,
+  CommandPanel,
   CommandSeparator,
   CommandShortcut,
+  Kbd,
+  KbdGroup,
 } from "@cadhy/ui"
 import {
+  AiGenerativeIcon,
+  ArrowDown01Icon,
   ArrowTurnBackwardIcon,
   ArrowTurnForwardIcon,
+  ArrowUp01Icon,
   Cancel01Icon,
+  CircleIcon,
   Copy01Icon,
   CubeIcon,
   Cursor01Icon,
   Delete02Icon,
   Download04Icon,
+  EyeIcon,
   File01Icon,
   FloppyDiskIcon,
   FolderOpenIcon,
@@ -38,14 +51,19 @@ import {
   Layers01Icon,
   LayoutGridIcon,
   Maximize01Icon,
+  Moon02Icon,
   Move01Icon,
+  ReturnRequestIcon,
   RotateClockwiseIcon,
+  Search01Icon,
   Settings02Icon,
   SidebarLeft01Icon,
+  Sun03Icon,
   Tick02Icon,
   WaveIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import * as React from "react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -55,6 +73,7 @@ import { useLayoutStore } from "@/stores/layout-store"
 import { useModellerStore } from "@/stores/modeller-store"
 import { useNavigationStore } from "@/stores/navigation-store"
 import { useProjectStore } from "@/stores/project-store"
+import { useThemeStore } from "@/stores/theme-store"
 
 // ============================================================================
 // TYPES
@@ -68,8 +87,9 @@ type CommandCategory =
   | "edit"
   | "view"
   | "transform"
-  | "navigation"
+  | "camera"
   | "workspace"
+  | "theme"
   | "tools"
   | "help"
 
@@ -83,6 +103,12 @@ interface CommandItemDef {
   category: CommandCategory
   keywords?: string[]
   disabled?: boolean
+}
+
+interface GroupedCommands {
+  value: CommandCategory
+  label: string
+  items: CommandItemDef[]
 }
 
 interface CommandPaletteProps {
@@ -104,8 +130,9 @@ const CATEGORY_ORDER: CommandCategory[] = [
   "edit",
   "view",
   "transform",
-  "navigation",
+  "camera",
   "workspace",
+  "theme",
   "tools",
   "help",
 ]
@@ -116,8 +143,9 @@ const CATEGORY_LABELS: Record<CommandCategory, string> = {
   edit: "Edit",
   view: "View",
   transform: "Transform",
-  navigation: "Navigation",
+  camera: "Camera",
   workspace: "Workspace",
+  theme: "Theme",
   tools: "Tools",
   help: "Help",
 }
@@ -125,6 +153,29 @@ const CATEGORY_LABELS: Record<CommandCategory, string> = {
 // ============================================================================
 // COMPONENT
 // ============================================================================
+
+// Modeller actions accessed via getState() - stable references
+const modellerActions = {
+  undo: () => useModellerStore.getState().undo(),
+  redo: () => useModellerStore.getState().redo(),
+  deleteSelected: () => useModellerStore.getState().deleteSelected(),
+  selectAll: () => useModellerStore.getState().selectAll(),
+  deselectAll: () => useModellerStore.getState().deselectAll(),
+  invertSelection: () => useModellerStore.getState().invertSelection(),
+  duplicateSelected: () => useModellerStore.getState().duplicateSelected(),
+  setTransformMode: (mode: "none" | "translate" | "rotate" | "scale") =>
+    useModellerStore.getState().setTransformMode(mode),
+  setViewportSettings: (settings: Record<string, unknown>) =>
+    useModellerStore.getState().setViewportSettings(settings),
+  setSnapMode: (mode: "none" | "grid" | "object" | "vertex") =>
+    useModellerStore.getState().setSnapMode(mode),
+  setCameraView: (view: "perspective" | "top" | "front" | "right" | "back" | "left" | "bottom") =>
+    useModellerStore.getState().setCameraView(view),
+  fitToSelection: () => useModellerStore.getState().fitToSelection(),
+  fitToAll: () => useModellerStore.getState().fitToAll(),
+  analyzeScene: () => useModellerStore.getState().analyzeScene(),
+  toggleNotificationsPanel: () => useModellerStore.getState().toggleNotificationsPanel(),
+}
 
 export function CommandPalette({
   open,
@@ -141,40 +192,43 @@ export function CommandPalette({
   const [mode, setMode] = useState<PaletteMode>("commands")
   const [recentCommandIds, setRecentCommandIds] = useState<string[]>([])
 
-  const modKey = isMacOS ? "Cmd" : "Ctrl"
+  const modKey = isMacOS ? "⌘" : "⌃"
+  const shiftKey = "⇧"
 
-  // Store actions
-  const {
-    objects,
-    undo,
-    redo,
-    deleteSelected,
-    selectAll,
-    deselectAll,
-    duplicateSelected,
-    setTransformMode,
-    setViewportSettings,
-    setSnapMode,
-    setCameraView,
-  } = useModellerStore()
+  // ========== STORE HOOKS ==========
 
+  // Modeller store
+  const objects = useModellerStore((s) => s.objects)
+  const selectedIds = useModellerStore((s) => s.selectedIds)
   const viewportSettings = useModellerStore((s) => s.viewportSettings)
   const snapMode = useModellerStore((s) => s.snapMode)
-  const selectedIds = useModellerStore((s) => s.selectedIds)
 
-  const { togglePanel, toggleSidebarCollapsed } = useLayoutStore()
-  const _panels = useLayoutStore((s) => s.panels)
+  // Theme store
+  const theme = useThemeStore((s) => s.theme)
+  const setTheme = useThemeStore((s) => s.setTheme)
 
-  const { navigateTo } = useNavigationStore()
-  const _currentWorkspace = useNavigationStore((s) => s.currentPage)
+  // Layout store
+  const { togglePanel, toggleSidebarCollapsed, setPanel } = useLayoutStore()
+  const panels = useLayoutStore((s) => s.panels)
 
+  // Navigation store
+  const setView = useNavigationStore((s) => s.setView)
+
+  // Project store
   const { saveCurrentProject, closeProject } = useProjectStore()
   const currentProject = useProjectStore((s) => s.currentProject)
 
   // CAD shape creation functions
-  const { createBoxShape, createCylinderShape, createSphereShape } = useCAD()
+  const {
+    createBoxShape,
+    createCylinderShape,
+    createSphereShape,
+    createConeShape,
+    createTorusShape,
+  } = useCAD()
 
-  // Detect mode from search prefix
+  // ========== MODE DETECTION ==========
+
   useEffect(() => {
     if (search.startsWith(">")) {
       setMode("create")
@@ -187,7 +241,6 @@ export function CommandPalette({
     }
   }, [search])
 
-  // Extract query without prefix
   const searchQuery = useMemo(() => {
     if (search.startsWith(">") || search.startsWith("@") || search.startsWith("#")) {
       return search.slice(1).trim()
@@ -195,7 +248,8 @@ export function CommandPalette({
     return search
   }, [search])
 
-  // Close and run helper
+  // ========== HELPERS ==========
+
   const closeAndRun = useCallback(
     (action: () => void | Promise<void>, commandId?: string) => {
       return () => {
@@ -218,13 +272,13 @@ export function CommandPalette({
 
   const commands: CommandItemDef[] = useMemo(
     () => [
-      // File commands
+      // ===== FILE =====
       {
         id: "file.new",
         label: t("shortcuts.newProject"),
         description: "Create a new project",
         icon: File01Icon,
-        shortcut: `${modKey}+N`,
+        shortcut: `${modKey}N`,
         category: "file",
         keywords: ["new", "create", "project"],
         action: closeAndRun(() => onNewProject?.(), "file.new"),
@@ -234,7 +288,7 @@ export function CommandPalette({
         label: t("shortcuts.openProject"),
         description: "Open an existing project",
         icon: FolderOpenIcon,
-        shortcut: `${modKey}+O`,
+        shortcut: `${modKey}O`,
         category: "file",
         keywords: ["open", "load", "project"],
         action: closeAndRun(() => onOpenProject?.(), "file.open"),
@@ -244,7 +298,7 @@ export function CommandPalette({
         label: t("shortcuts.save"),
         description: "Save the current project",
         icon: FloppyDiskIcon,
-        shortcut: `${modKey}+S`,
+        shortcut: `${modKey}S`,
         category: "file",
         keywords: ["save", "store"],
         disabled: !currentProject,
@@ -257,10 +311,10 @@ export function CommandPalette({
         label: t("shortcuts.export"),
         description: "Export model to file",
         icon: Download04Icon,
-        shortcut: `${modKey}+E`,
+        shortcut: `${modKey}E`,
         category: "file",
         keywords: ["export", "download", "stl", "obj"],
-        disabled: true,
+        disabled: true, // TODO: Enable when export is implemented
         action: closeAndRun(() => {}, "file.export"),
       },
       {
@@ -268,84 +322,94 @@ export function CommandPalette({
         label: t("shortcuts.closeProject"),
         description: "Close the current project",
         icon: Cancel01Icon,
-        shortcut: `${modKey}+W`,
+        shortcut: `${modKey}W`,
         category: "file",
         keywords: ["close", "project", "exit"],
         disabled: !currentProject,
         action: closeAndRun(() => closeProject(), "file.close"),
       },
 
-      // Edit commands
+      // ===== EDIT =====
       {
         id: "edit.undo",
         label: t("shortcuts.undo"),
         description: "Undo the last action",
         icon: ArrowTurnBackwardIcon,
-        shortcut: `${modKey}+Z`,
+        shortcut: `${modKey}Z`,
         category: "edit",
         keywords: ["undo", "back", "revert"],
-        action: closeAndRun(() => undo(), "edit.undo"),
+        action: closeAndRun(() => modellerActions.undo(), "edit.undo"),
       },
       {
         id: "edit.redo",
         label: t("shortcuts.redo"),
         description: "Redo the last undone action",
         icon: ArrowTurnForwardIcon,
-        shortcut: `${modKey}+Y`,
+        shortcut: `${modKey}${shiftKey}Z`,
         category: "edit",
         keywords: ["redo", "forward"],
-        action: closeAndRun(() => redo(), "edit.redo"),
+        action: closeAndRun(() => modellerActions.redo(), "edit.redo"),
       },
       {
         id: "edit.delete",
         label: t("shortcuts.delete"),
         description: "Delete selected objects",
         icon: Delete02Icon,
-        shortcut: "Del",
+        shortcut: "⌫",
         category: "edit",
         keywords: ["delete", "remove", "erase"],
         disabled: selectedIds.length === 0,
-        action: closeAndRun(() => deleteSelected(), "edit.delete"),
+        action: closeAndRun(() => modellerActions.deleteSelected(), "edit.delete"),
       },
       {
         id: "edit.duplicate",
         label: "Duplicate",
         description: "Duplicate selected objects",
         icon: Copy01Icon,
-        shortcut: `${modKey}+D`,
+        shortcut: `${modKey}D`,
         category: "edit",
         keywords: ["duplicate", "copy", "clone"],
         disabled: selectedIds.length === 0,
-        action: closeAndRun(() => duplicateSelected(), "edit.duplicate"),
+        action: closeAndRun(() => modellerActions.duplicateSelected(), "edit.duplicate"),
       },
       {
         id: "edit.selectAll",
         label: t("shortcuts.selectAll"),
-        description: "Select all objects",
+        description: "Select all visible objects",
         icon: Layers01Icon,
-        shortcut: `${modKey}+A`,
+        shortcut: `${modKey}A`,
         category: "edit",
         keywords: ["select", "all"],
-        action: closeAndRun(() => selectAll(), "edit.selectAll"),
+        action: closeAndRun(() => modellerActions.selectAll(), "edit.selectAll"),
       },
       {
         id: "edit.deselectAll",
         label: "Deselect All",
-        description: "Deselect all objects",
+        description: "Clear selection",
         icon: Cancel01Icon,
-        shortcut: "Esc",
+        shortcut: "⎋",
         category: "edit",
         keywords: ["deselect", "clear", "selection"],
-        action: closeAndRun(() => deselectAll(), "edit.deselectAll"),
+        action: closeAndRun(() => modellerActions.deselectAll(), "edit.deselectAll"),
+      },
+      {
+        id: "edit.invertSelection",
+        label: "Invert Selection",
+        description: "Select unselected objects",
+        icon: Layers01Icon,
+        shortcut: `${modKey}I`,
+        category: "edit",
+        keywords: ["invert", "selection", "toggle"],
+        action: closeAndRun(() => modellerActions.invertSelection(), "edit.invertSelection"),
       },
 
-      // View commands
+      // ===== VIEW =====
       {
         id: "view.toggleSidebar",
         label: t("shortcuts.toggleSidebar"),
         description: "Show or hide the sidebar",
         icon: SidebarLeft01Icon,
-        shortcut: `${modKey}+B`,
+        shortcut: `${modKey}B`,
         category: "view",
         keywords: ["sidebar", "toggle", "panel"],
         action: closeAndRun(() => toggleSidebarCollapsed(), "view.toggleSidebar"),
@@ -355,49 +419,67 @@ export function CommandPalette({
         label: t("shortcuts.toggleProperties"),
         description: "Show or hide properties panel",
         icon: GridIcon,
-        shortcut: `${modKey}+2`,
+        shortcut: `${modKey}2`,
         category: "view",
-        keywords: ["properties", "toggle", "panel"],
+        keywords: ["properties", "toggle", "panel", "inspector"],
         action: closeAndRun(() => togglePanel("properties"), "view.toggleProperties"),
       },
       {
         id: "view.toggleAiChat",
         label: "Toggle AI Chat",
-        description: "Show or hide AI chat panel",
-        icon: HelpCircleIcon,
-        shortcut: `${modKey}+Shift+A`,
+        description: panels.aiChat ? "Hide AI chat panel" : "Show AI chat panel",
+        icon: AiGenerativeIcon,
+        shortcut: `${modKey}${shiftKey}A`,
         category: "view",
-        keywords: ["ai", "chat", "assistant"],
+        keywords: ["ai", "chat", "assistant", "copilot"],
         action: closeAndRun(() => togglePanel("aiChat"), "view.toggleAiChat"),
       },
       {
         id: "view.toggleGrid",
-        label: "Toggle Grid",
-        description: "Show or hide the grid",
+        label: viewportSettings.showGrid ? "Hide Grid" : "Show Grid",
+        description: "Toggle viewport grid visibility",
         icon: LayoutGridIcon,
-        shortcut: `${modKey}+G`,
+        shortcut: `${modKey}G`,
         category: "view",
-        keywords: ["grid", "toggle"],
+        keywords: ["grid", "toggle", "show", "hide"],
         action: closeAndRun(
-          () => setViewportSettings({ showGrid: !viewportSettings.showGrid }),
+          () => modellerActions.setViewportSettings({ showGrid: !viewportSettings.showGrid }),
           "view.toggleGrid"
         ),
       },
       {
         id: "view.toggleSnap",
-        label: "Toggle Snap",
-        description: "Enable or disable snapping",
+        label: snapMode === "none" ? "Enable Grid Snap" : "Disable Snap",
+        description: "Toggle snapping mode",
         icon: Tick02Icon,
-        shortcut: `${modKey}+Shift+S`,
+        shortcut: `${modKey}${shiftKey}S`,
         category: "view",
         keywords: ["snap", "toggle", "grid"],
         action: closeAndRun(
-          () => setSnapMode(snapMode === "none" ? "grid" : "none"),
+          () => modellerActions.setSnapMode(snapMode === "none" ? "grid" : "none"),
           "view.toggleSnap"
         ),
       },
+      {
+        id: "view.analyzeScene",
+        label: "Analyze Scene",
+        description: "Check design for issues and warnings",
+        icon: Search01Icon,
+        category: "view",
+        keywords: ["analyze", "check", "design", "issues", "warnings"],
+        action: closeAndRun(() => modellerActions.analyzeScene(), "view.analyzeScene"),
+      },
+      {
+        id: "view.notifications",
+        label: "Toggle Notifications",
+        description: "Show or hide design notifications",
+        icon: HelpCircleIcon,
+        category: "view",
+        keywords: ["notifications", "warnings", "errors"],
+        action: closeAndRun(() => modellerActions.toggleNotificationsPanel(), "view.notifications"),
+      },
 
-      // Transform commands
+      // ===== TRANSFORM =====
       {
         id: "transform.select",
         label: "Select Mode",
@@ -405,8 +487,8 @@ export function CommandPalette({
         icon: Cursor01Icon,
         shortcut: "V",
         category: "transform",
-        keywords: ["select", "cursor", "mode"],
-        action: closeAndRun(() => setTransformMode("none"), "transform.select"),
+        keywords: ["select", "cursor", "mode", "pointer"],
+        action: closeAndRun(() => modellerActions.setTransformMode("none"), "transform.select"),
       },
       {
         id: "transform.translate",
@@ -415,8 +497,11 @@ export function CommandPalette({
         icon: Move01Icon,
         shortcut: "G",
         category: "transform",
-        keywords: ["move", "translate", "grab"],
-        action: closeAndRun(() => setTransformMode("translate"), "transform.translate"),
+        keywords: ["move", "translate", "grab", "position"],
+        action: closeAndRun(
+          () => modellerActions.setTransformMode("translate"),
+          "transform.translate"
+        ),
       },
       {
         id: "transform.rotate",
@@ -425,8 +510,8 @@ export function CommandPalette({
         icon: RotateClockwiseIcon,
         shortcut: "R",
         category: "transform",
-        keywords: ["rotate", "spin"],
-        action: closeAndRun(() => setTransformMode("rotate"), "transform.rotate"),
+        keywords: ["rotate", "spin", "orientation"],
+        action: closeAndRun(() => modellerActions.setTransformMode("rotate"), "transform.rotate"),
       },
       {
         id: "transform.scale",
@@ -435,113 +520,201 @@ export function CommandPalette({
         icon: Maximize01Icon,
         shortcut: "S",
         category: "transform",
-        keywords: ["scale", "resize"],
-        action: closeAndRun(() => setTransformMode("scale"), "transform.scale"),
+        keywords: ["scale", "resize", "size"],
+        action: closeAndRun(() => modellerActions.setTransformMode("scale"), "transform.scale"),
       },
 
-      // Navigation commands
+      // ===== CAMERA =====
       {
-        id: "navigation.viewTop",
+        id: "camera.perspective",
+        label: "Perspective View",
+        description: "3D perspective camera view",
+        icon: CubeIcon,
+        shortcut: "Num0",
+        category: "camera",
+        keywords: ["perspective", "view", "camera", "3d"],
+        action: closeAndRun(
+          () => modellerActions.setCameraView("perspective"),
+          "camera.perspective"
+        ),
+      },
+      {
+        id: "camera.top",
         label: "Top View",
-        description: "Switch to top view",
+        description: "View from above (XZ plane)",
         icon: Home01Icon,
         shortcut: "Num7",
-        category: "navigation",
-        keywords: ["top", "view", "camera"],
-        action: closeAndRun(() => setCameraView("top"), "navigation.viewTop"),
+        category: "camera",
+        keywords: ["top", "view", "camera", "above", "plan"],
+        action: closeAndRun(() => modellerActions.setCameraView("top"), "camera.top"),
       },
       {
-        id: "navigation.viewFront",
+        id: "camera.front",
         label: "Front View",
-        description: "Switch to front view",
+        description: "View from front (XY plane)",
         icon: Home01Icon,
         shortcut: "Num1",
-        category: "navigation",
-        keywords: ["front", "view", "camera"],
-        action: closeAndRun(() => setCameraView("front"), "navigation.viewFront"),
+        category: "camera",
+        keywords: ["front", "view", "camera", "elevation"],
+        action: closeAndRun(() => modellerActions.setCameraView("front"), "camera.front"),
       },
       {
-        id: "navigation.viewRight",
+        id: "camera.right",
         label: "Right View",
-        description: "Switch to right view",
+        description: "View from right side (YZ plane)",
         icon: Home01Icon,
         shortcut: "Num3",
-        category: "navigation",
-        keywords: ["right", "view", "camera"],
-        action: closeAndRun(() => setCameraView("right"), "navigation.viewRight"),
+        category: "camera",
+        keywords: ["right", "side", "view", "camera"],
+        action: closeAndRun(() => modellerActions.setCameraView("right"), "camera.right"),
       },
       {
-        id: "navigation.viewPerspective",
-        label: "Perspective View",
-        description: "Switch to perspective view",
+        id: "camera.back",
+        label: "Back View",
+        description: "View from behind",
         icon: Home01Icon,
-        shortcut: "Num0",
-        category: "navigation",
-        keywords: ["perspective", "view", "camera", "3d"],
-        action: closeAndRun(() => setCameraView("perspective"), "navigation.viewPerspective"),
+        shortcut: `${modKey}Num1`,
+        category: "camera",
+        keywords: ["back", "rear", "view", "camera"],
+        action: closeAndRun(() => modellerActions.setCameraView("back"), "camera.back"),
+      },
+      {
+        id: "camera.left",
+        label: "Left View",
+        description: "View from left side",
+        icon: Home01Icon,
+        shortcut: `${modKey}Num3`,
+        category: "camera",
+        keywords: ["left", "side", "view", "camera"],
+        action: closeAndRun(() => modellerActions.setCameraView("left"), "camera.left"),
+      },
+      {
+        id: "camera.bottom",
+        label: "Bottom View",
+        description: "View from below",
+        icon: Home01Icon,
+        shortcut: `${modKey}Num7`,
+        category: "camera",
+        keywords: ["bottom", "below", "view", "camera"],
+        action: closeAndRun(() => modellerActions.setCameraView("bottom"), "camera.bottom"),
+      },
+      {
+        id: "camera.fitSelection",
+        label: "Fit to Selection",
+        description: "Zoom to fit selected objects",
+        icon: EyeIcon,
+        shortcut: ".",
+        category: "camera",
+        keywords: ["fit", "zoom", "selection", "focus"],
+        disabled: selectedIds.length === 0,
+        action: closeAndRun(() => modellerActions.fitToSelection(), "camera.fitSelection"),
+      },
+      {
+        id: "camera.fitAll",
+        label: "Fit All",
+        description: "Zoom to fit all objects",
+        icon: EyeIcon,
+        shortcut: "Home",
+        category: "camera",
+        keywords: ["fit", "zoom", "all", "scene"],
+        action: closeAndRun(() => modellerActions.fitToAll(), "camera.fitAll"),
       },
 
-      // Workspace commands
+      // ===== WORKSPACE =====
       {
         id: "workspace.modeller",
         label: t("shortcuts.modeller"),
         description: "Switch to 3D Modeller workspace",
         icon: CubeIcon,
-        shortcut: `${modKey}+Shift+M`,
+        shortcut: `${modKey}${shiftKey}M`,
         category: "workspace",
-        keywords: ["modeller", "3d", "workspace"],
-        action: closeAndRun(() => navigateTo("modeller"), "workspace.modeller"),
+        keywords: ["modeller", "3d", "workspace", "cad"],
+        action: closeAndRun(() => setView("modeller"), "workspace.modeller"),
       },
       {
         id: "workspace.mesh",
         label: t("shortcuts.mesh"),
         description: "Switch to Mesh workspace",
         icon: GridIcon,
-        shortcut: `${modKey}+Shift+G`,
+        shortcut: `${modKey}${shiftKey}G`,
         category: "workspace",
-        keywords: ["mesh", "workspace"],
-        action: closeAndRun(() => navigateTo("mesh"), "workspace.mesh"),
+        keywords: ["mesh", "workspace", "grid"],
+        action: closeAndRun(() => setView("mesh"), "workspace.mesh"),
       },
       {
         id: "workspace.cfd",
         label: t("shortcuts.cfd"),
         description: "Switch to CFD workspace",
         icon: WaveIcon,
-        shortcut: `${modKey}+Shift+C`,
+        shortcut: `${modKey}${shiftKey}C`,
         category: "workspace",
-        keywords: ["cfd", "simulation", "workspace"],
-        action: closeAndRun(() => navigateTo("cfd"), "workspace.cfd"),
+        keywords: ["cfd", "simulation", "workspace", "fluid"],
+        action: closeAndRun(() => setView("cfd"), "workspace.cfd"),
       },
       {
         id: "workspace.results",
         label: t("shortcuts.results"),
         description: "Switch to Results workspace",
         icon: LayoutGridIcon,
-        shortcut: `${modKey}+Shift+R`,
+        shortcut: `${modKey}${shiftKey}R`,
         category: "workspace",
-        keywords: ["results", "analysis", "workspace"],
-        action: closeAndRun(() => navigateTo("results"), "workspace.results"),
+        keywords: ["results", "analysis", "workspace", "output"],
+        action: closeAndRun(() => setView("results"), "workspace.results"),
       },
 
-      // Tools/Help commands
+      // ===== THEME =====
+      {
+        id: "theme.light",
+        label: "Light Theme",
+        description: theme === "light" ? "Currently active" : "Switch to light mode",
+        icon: Sun03Icon,
+        category: "theme",
+        keywords: ["light", "theme", "bright", "day"],
+        disabled: theme === "light",
+        action: closeAndRun(() => setTheme("light"), "theme.light"),
+      },
+      {
+        id: "theme.dark",
+        label: "Dark Theme",
+        description: theme === "dark" ? "Currently active" : "Switch to dark mode",
+        icon: Moon02Icon,
+        category: "theme",
+        keywords: ["dark", "theme", "night", "mode"],
+        disabled: theme === "dark",
+        action: closeAndRun(() => setTheme("dark"), "theme.dark"),
+      },
+      {
+        id: "theme.system",
+        label: "System Theme",
+        description: theme === "system" ? "Currently active" : "Follow system preference",
+        icon: Settings02Icon,
+        category: "theme",
+        keywords: ["system", "theme", "auto", "preference"],
+        disabled: theme === "system",
+        action: closeAndRun(() => setTheme("system"), "theme.system"),
+      },
+
+      // ===== TOOLS =====
       {
         id: "tools.settings",
         label: t("common.settings"),
         description: "Open application settings",
         icon: Settings02Icon,
-        shortcut: `${modKey}+,`,
+        shortcut: `${modKey},`,
         category: "tools",
-        keywords: ["settings", "preferences", "options"],
+        keywords: ["settings", "preferences", "options", "config"],
         action: closeAndRun(() => onOpenSettings?.(), "tools.settings"),
       },
+
+      // ===== HELP =====
       {
         id: "help.shortcuts",
         label: t("shortcuts.title"),
         description: "View keyboard shortcuts",
         icon: HelpCircleIcon,
-        shortcut: `${modKey}+/`,
+        shortcut: `${modKey}/`,
         category: "help",
-        keywords: ["shortcuts", "keyboard", "help"],
+        keywords: ["shortcuts", "keyboard", "help", "hotkeys"],
         action: closeAndRun(() => onOpenShortcuts?.(), "help.shortcuts"),
       },
     ],
@@ -553,19 +726,12 @@ export function CommandPalette({
       selectedIds,
       viewportSettings,
       snapMode,
-      undo,
-      redo,
-      deleteSelected,
-      selectAll,
-      deselectAll,
-      duplicateSelected,
-      setTransformMode,
-      setViewportSettings,
-      setSnapMode,
-      setCameraView,
+      theme,
+      panels,
       togglePanel,
       toggleSidebarCollapsed,
-      navigateTo,
+      setView,
+      setTheme,
       saveCurrentProject,
       onNewProject,
       onOpenProject,
@@ -585,22 +751,21 @@ export function CommandPalette({
         description: "Create a hydraulic channel",
         icon: WaveIcon,
         category: "tools",
-        keywords: ["channel", "hydraulic", "create"],
+        keywords: ["channel", "hydraulic", "create", "flow"],
         action: closeAndRun(() => {
-          // Navigate to modeller and ensure sidebar is visible
-          useNavigationStore.getState().setView("modeller")
-          useLayoutStore.getState().setPanel("sidebar", true)
+          setView("modeller")
+          setPanel("sidebar", true)
         }, "create.channel"),
       },
       {
         id: "create.box",
         label: "Box",
-        description: "Create a 1m box primitive",
+        description: "Create a box primitive (1m cube)",
         icon: CubeIcon,
         category: "tools",
-        keywords: ["box", "cube", "primitive"],
+        keywords: ["box", "cube", "primitive", "shape"],
         action: closeAndRun(async () => {
-          useNavigationStore.getState().setView("modeller")
+          setView("modeller")
           await createBoxShape({ width: 1, depth: 1, height: 1, name: "Box" })
         }, "create.box"),
       },
@@ -608,11 +773,11 @@ export function CommandPalette({
         id: "create.cylinder",
         label: "Cylinder",
         description: "Create a cylinder (r=0.5m, h=1m)",
-        icon: CubeIcon,
+        icon: CircleIcon,
         category: "tools",
-        keywords: ["cylinder", "primitive"],
+        keywords: ["cylinder", "primitive", "shape", "pipe"],
         action: closeAndRun(async () => {
-          useNavigationStore.getState().setView("modeller")
+          setView("modeller")
           await createCylinderShape({ radius: 0.5, height: 1, name: "Cylinder" })
         }, "create.cylinder"),
       },
@@ -620,16 +785,49 @@ export function CommandPalette({
         id: "create.sphere",
         label: "Sphere",
         description: "Create a sphere (r=0.5m)",
-        icon: CubeIcon,
+        icon: CircleIcon,
         category: "tools",
-        keywords: ["sphere", "ball", "primitive"],
+        keywords: ["sphere", "ball", "primitive", "shape"],
         action: closeAndRun(async () => {
-          useNavigationStore.getState().setView("modeller")
+          setView("modeller")
           await createSphereShape({ radius: 0.5, name: "Sphere" })
         }, "create.sphere"),
       },
+      {
+        id: "create.cone",
+        label: "Cone",
+        description: "Create a cone (r=0.5m, h=1m)",
+        icon: CubeIcon,
+        category: "tools",
+        keywords: ["cone", "primitive", "shape"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          await createConeShape({ radius: 0.5, height: 1, name: "Cone" })
+        }, "create.cone"),
+      },
+      {
+        id: "create.torus",
+        label: "Torus",
+        description: "Create a torus (donut shape)",
+        icon: CircleIcon,
+        category: "tools",
+        keywords: ["torus", "donut", "ring", "primitive", "shape"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          await createTorusShape({ majorRadius: 0.5, minorRadius: 0.15, name: "Torus" })
+        }, "create.torus"),
+      },
     ],
-    [closeAndRun, createBoxShape, createCylinderShape, createSphereShape]
+    [
+      closeAndRun,
+      setView,
+      setPanel,
+      createBoxShape,
+      createCylinderShape,
+      createSphereShape,
+      createConeShape,
+      createTorusShape,
+    ]
   )
 
   // ========== GO TO COMMANDS (# mode) ==========
@@ -640,7 +838,7 @@ export function CommandPalette({
       label: obj.name,
       description: `${obj.type} - ${obj.id.slice(0, 8)}`,
       icon: obj.type === "channel" ? WaveIcon : CubeIcon,
-      category: "navigation" as CommandCategory,
+      category: "camera" as CommandCategory,
       keywords: [obj.id, obj.type, obj.name.toLowerCase()],
       action: closeAndRun(() => {
         useModellerStore.getState().select(obj.id)
@@ -652,20 +850,17 @@ export function CommandPalette({
   // ========== SEARCH COMMANDS (@ mode) ==========
 
   const searchCommands: CommandItemDef[] = useMemo(() => {
-    // Combine objects and layers for search
-    const objectCommands = objects.map((obj) => ({
+    return objects.map((obj) => ({
       id: `search.object.${obj.id}`,
       label: obj.name,
       description: `Object: ${obj.type}`,
       icon: obj.type === "channel" ? WaveIcon : CubeIcon,
-      category: "navigation" as CommandCategory,
+      category: "camera" as CommandCategory,
       keywords: [obj.name.toLowerCase(), obj.type],
       action: closeAndRun(() => {
         useModellerStore.getState().select(obj.id)
       }),
     }))
-
-    return objectCommands
   }, [objects, closeAndRun])
 
   // ========== RECENT COMMANDS ==========
@@ -713,7 +908,7 @@ export function CommandPalette({
 
   // ========== GROUPED COMMANDS ==========
 
-  const groupedCommands = useMemo(() => {
+  const groupedCommands: GroupedCommands[] = useMemo(() => {
     const groups = CATEGORY_ORDER.map((category) => {
       let items: CommandItemDef[]
 
@@ -724,7 +919,7 @@ export function CommandPalette({
       }
 
       return {
-        category,
+        value: category,
         label: CATEGORY_LABELS[category],
         items,
       }
@@ -756,61 +951,109 @@ export function CommandPalette({
     }
   }, [open])
 
+  // Custom filter
+  const filterItems = useCallback((item: CommandItemDef, query: string) => {
+    if (!query) return true
+    const q = query.toLowerCase()
+    return (
+      item.label.toLowerCase().includes(q) ||
+      item.description?.toLowerCase().includes(q) ||
+      item.keywords?.some((k) => k.includes(q)) ||
+      false
+    )
+  }, [])
+
   return (
-    <CommandDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t("shortcuts.commandPalette")}
-      description="Search for commands, objects, or actions"
-    >
-      <Command className="rounded-lg border shadow-md" loop>
-        <CommandInput placeholder={placeholder} value={search} onValueChange={setSearch} />
+    <CommandDialog onOpenChange={onOpenChange} open={open}>
+      <CommandDialogPopup>
+        <Command
+          filter={filterItems}
+          items={groupedCommands}
+          itemToStringValue={(item: CommandItemDef) => item.label}
+          onValueChange={setSearch}
+          value={search}
+        >
+          <CommandInput placeholder={placeholder} />
 
-        {/* Mode indicator */}
-        {mode !== "commands" && (
-          <div className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border/50 flex items-center gap-2">
-            <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-              {mode === "create" && "> Add Object"}
-              {mode === "goto" && "# Go to Object"}
-              {mode === "search" && "@ Search Project"}
-            </span>
-            <span>Press Escape to clear</span>
-          </div>
-        )}
-
-        <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-
-          {groupedCommands.map((group, groupIndex) => (
-            <div key={group.category}>
-              {groupIndex > 0 && <CommandSeparator />}
-              <CommandGroup heading={group.label}>
-                {group.items.map((item) => (
-                  <CommandItem
-                    key={item.id}
-                    value={`${item.label} ${item.description || ""} ${item.keywords?.join(" ") || ""}`}
-                    onSelect={item.action}
-                    disabled={item.disabled}
-                  >
-                    {item.icon && (
-                      <HugeiconsIcon icon={item.icon} className="size-4 text-muted-foreground" />
-                    )}
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <span className="truncate">{item.label}</span>
-                      {item.description && (
-                        <span className="text-xs text-muted-foreground truncate">
-                          {item.description}
-                        </span>
-                      )}
-                    </div>
-                    {item.shortcut && <CommandShortcut>{item.shortcut}</CommandShortcut>}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+          {/* Mode indicator */}
+          {mode !== "commands" && (
+            <div className="flex items-center gap-2 border-b border-border/50 px-3 py-1.5 text-muted-foreground text-xs">
+              <span className="rounded bg-accent px-1.5 py-0.5 font-medium text-accent-foreground">
+                {mode === "create" && "> Add Object"}
+                {mode === "goto" && "# Go to Object"}
+                {mode === "search" && "@ Search Project"}
+              </span>
+              <span>Press Escape to clear</span>
             </div>
-          ))}
-        </CommandList>
-      </Command>
+          )}
+
+          <CommandPanel>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandList>
+              {(group: GroupedCommands, index: number) => (
+                <React.Fragment key={group.value}>
+                  <CommandGroup items={group.items}>
+                    <CommandGroupLabel>{group.label}</CommandGroupLabel>
+                    <CommandCollection>
+                      {(item: CommandItemDef) => (
+                        <CommandItem key={item.id} onClick={() => item.action()} value={item}>
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
+                            {item.icon && (
+                              <HugeiconsIcon
+                                className="size-4 shrink-0 text-muted-foreground"
+                                icon={item.icon}
+                              />
+                            )}
+                            <div className="flex min-w-0 flex-1 flex-col">
+                              <span className="truncate">{item.label}</span>
+                              {item.description && (
+                                <span className="truncate text-muted-foreground text-xs">
+                                  {item.description}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {item.shortcut && <CommandShortcut>{item.shortcut}</CommandShortcut>}
+                        </CommandItem>
+                      )}
+                    </CommandCollection>
+                  </CommandGroup>
+                  {index < groupedCommands.length - 1 && <CommandSeparator />}
+                </React.Fragment>
+              )}
+            </CommandList>
+          </CommandPanel>
+
+          <CommandFooter>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <KbdGroup>
+                  <Kbd>
+                    <HugeiconsIcon className="size-3" icon={ArrowUp01Icon} />
+                  </Kbd>
+                  <Kbd>
+                    <HugeiconsIcon className="size-3" icon={ArrowDown01Icon} />
+                  </Kbd>
+                </KbdGroup>
+                <span>Navigate</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Kbd>
+                  <HugeiconsIcon className="size-3" icon={ReturnRequestIcon} />
+                </Kbd>
+                <span>Select</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <KbdGroup>
+                <Kbd>{modKey}</Kbd>
+                <Kbd>K</Kbd>
+              </KbdGroup>
+              <span>Close</span>
+            </div>
+          </CommandFooter>
+        </Command>
+      </CommandDialogPopup>
     </CommandDialog>
   )
 }
@@ -822,18 +1065,8 @@ export function CommandPalette({
 export function useCommandPalette() {
   const [open, setOpen] = useState(false)
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd+K to toggle
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault()
-        setOpen((prev) => !prev)
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [])
+  // Keyboard shortcut (Ctrl+K) is now handled by useAppHotkeys via hotkeyRegistry
+  // This hook only manages the open/close state
 
   return { open, setOpen }
 }

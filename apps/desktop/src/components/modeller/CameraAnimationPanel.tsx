@@ -327,7 +327,7 @@ export function CameraAnimationPanel({ className, onClose }: CameraAnimationPane
               <Label className="text-xs">
                 {t("animation.selectAnimation", "Select Animation")}
               </Label>
-              <Select value={currentAnimationId || ""} onValueChange={setCurrentAnimation}>
+              <Select value={currentAnimationId ?? undefined} onValueChange={setCurrentAnimation}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder={t("animation.selectOne", "Select an animation...")} />
                 </SelectTrigger>

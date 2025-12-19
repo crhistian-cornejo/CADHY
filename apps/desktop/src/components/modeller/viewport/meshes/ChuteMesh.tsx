@@ -240,8 +240,6 @@ export function ChuteMesh({
       onClick={onClick}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
-      castShadow
-      receiveShadow
     >
       <meshStandardMaterial
         color={error ? "#ef4444" : color}

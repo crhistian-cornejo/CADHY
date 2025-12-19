@@ -339,7 +339,7 @@ mod tests {
     fn test_get_gemini_creds_path() {
         let path = get_gemini_creds_path();
         assert!(path.is_some());
-        let path = path.unwrap();
+        let path = path.expect("Failed to get Gemini credentials path");
         assert!(path.ends_with(".gemini/oauth_creds.json"));
     }
 

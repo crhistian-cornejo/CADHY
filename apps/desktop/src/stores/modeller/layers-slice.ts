@@ -29,6 +29,11 @@ export interface LayersSliceActions {
   toggleLayerVisibility: (id: string) => void
   toggleLayerLock: (id: string) => void
   moveObjectToLayer: (objectId: string, layerId: string) => void
+  // Batch actions for performance
+  setAllLayersVisibility: (visible: boolean) => void
+  setAllLayersLock: (locked: boolean) => void
+  setMultipleLayersVisibility: (layerIds: string[], visible: boolean) => void
+  setMultipleLayersLock: (layerIds: string[], locked: boolean) => void
 }
 
 export type LayersSlice = LayersSliceState & LayersSliceActions
@@ -132,5 +137,63 @@ export const createLayersSlice: StateCreator<ModellerStore, [], [], LayersSlice>
         obj.id === objectId ? { ...obj, layerId, updatedAt: Date.now() } : obj
       ),
     }))
+  },
+
+  // ============================================================================
+  // BATCH ACTIONS (Performance optimized)
+  // ============================================================================
+
+  setAllLayersVisibility: (visible) => {
+    set(
+      (state) => ({
+        layers: state.layers.map((layer) => ({ ...layer, visible })),
+        objects: state.objects.map((obj) => ({ ...obj, visible })),
+      }),
+      false,
+      "setAllLayersVisibility"
+    )
+  },
+
+  setAllLayersLock: (locked) => {
+    set(
+      (state) => ({
+        layers: state.layers.map((layer) => ({ ...layer, locked })),
+        objects: state.objects.map((obj) => ({ ...obj, locked })),
+      }),
+      false,
+      "setAllLayersLock"
+    )
+  },
+
+  setMultipleLayersVisibility: (layerIds, visible) => {
+    const layerIdSet = new Set(layerIds)
+    set(
+      (state) => ({
+        layers: state.layers.map((layer) =>
+          layerIdSet.has(layer.id) ? { ...layer, visible } : layer
+        ),
+        objects: state.objects.map((obj) =>
+          layerIdSet.has(obj.layerId) ? { ...obj, visible } : obj
+        ),
+      }),
+      false,
+      "setMultipleLayersVisibility"
+    )
+  },
+
+  setMultipleLayersLock: (layerIds, locked) => {
+    const layerIdSet = new Set(layerIds)
+    set(
+      (state) => ({
+        layers: state.layers.map((layer) =>
+          layerIdSet.has(layer.id) ? { ...layer, locked } : layer
+        ),
+        objects: state.objects.map((obj) =>
+          layerIdSet.has(obj.layerId) ? { ...obj, locked } : obj
+        ),
+      }),
+      false,
+      "setMultipleLayersLock"
+    )
   },
 })

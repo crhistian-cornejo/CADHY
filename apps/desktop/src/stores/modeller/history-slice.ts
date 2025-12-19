@@ -7,6 +7,7 @@
  * - clearPendingHistory, clearHistory
  */
 
+import { logger } from "@cadhy/shared/logger"
 import { nanoid } from "nanoid"
 import type { StateCreator } from "zustand"
 import type { ModellerStore } from "./store-types"
@@ -87,7 +88,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
 
     // Only save if we don't already have a pending state
     if (!pendingHistoryState) {
-      console.log(
+      logger.log(
         "[History] saveStateBeforeAction - historyIndex:",
         historyIndex,
         "historyLen:",
@@ -108,7 +109,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
   commitToHistory: (action) => {
     const { objects, selectedIds, history, historyIndex, pendingHistoryState } = get()
 
-    console.log(
+    logger.log(
       "[History] commitToHistory -",
       action,
       "hasPending:",
@@ -143,7 +144,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
       newHistory.shift()
     }
 
-    console.log(
+    logger.log(
       "[History] New historyIndex:",
       newHistory.length - 1,
       "historyLen:",
@@ -164,14 +165,14 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
 
   undo: () => {
     const { history, historyIndex } = get()
-    console.log("[History] undo - historyIndex:", historyIndex, "historyLen:", history.length)
+    logger.log("[History] undo - historyIndex:", historyIndex, "historyLen:", history.length)
     if (historyIndex <= 0) {
-      console.log("[History] undo - cannot undo, at beginning")
+      logger.log("[History] undo - cannot undo, at beginning")
       return
     }
 
     const previousEntry = history[historyIndex - 1]
-    console.log("[History] undo - restoring entry:", previousEntry.action)
+    logger.log("[History] undo - restoring entry:", previousEntry.action)
     set({
       objects: previousEntry.objects,
       selectedIds: previousEntry.selection,

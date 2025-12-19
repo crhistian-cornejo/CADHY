@@ -9,6 +9,7 @@
  * - Full accessibility support (ARIA, focus management)
  */
 
+import { logger } from "@cadhy/shared/logger"
 import {
   Badge,
   Button,
@@ -356,7 +357,7 @@ function PrimitiveInlineForm({ config, onClose, onCreated }: PrimitiveInlineForm
           )
           break
         default: {
-          console.warn(`Unsupported shape type: ${config.type}`)
+          logger.warn(`Unsupported shape type: ${config.type}`)
           // Fallback to old method for unsupported shapes
           const shapeData: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
             name,

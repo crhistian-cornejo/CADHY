@@ -140,6 +140,7 @@ export const AnimatedFolder = memo(function AnimatedFolder({
             "relative flex flex-col items-center justify-center p-6 rounded-xl cursor-pointer",
             "bg-card border border-border/40 hover:border-border/60 transition-all duration-300",
             "hover:shadow-lg group",
+            isHovered && "z-50", // Ensure folder is on top when hovered
             className
           )}
           style={{

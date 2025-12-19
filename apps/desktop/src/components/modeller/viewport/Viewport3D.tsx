@@ -67,7 +67,7 @@ export function Viewport3D({
     <AIGlowBorder active={isAnalyzingScene} borderWidth={60} duration={3}>
       <div className={cn("relative h-full w-full", className)}>
         <Canvas
-          shadows={viewportSettings.shadows}
+          shadows={false}
           dpr={[1, 1.5]}
           frameloop="demand"
           gl={{

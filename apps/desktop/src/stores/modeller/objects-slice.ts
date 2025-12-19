@@ -31,6 +31,14 @@ export interface ObjectsSliceActions {
   getVisibleObjects: () => AnySceneObject[]
   getObjectsByLayer: (layerId: string) => AnySceneObject[]
   getObjectsByType: (type: string) => AnySceneObject[]
+  // Batch actions for performance
+  deleteMultiple: (ids: string[], saveHistory?: boolean) => void
+  updateMultiple: (
+    updates: Array<{ id: string; changes: Partial<AnySceneObject> }>,
+    saveHistory?: boolean
+  ) => void
+  setMultipleObjectsVisibility: (ids: string[], visible: boolean) => void
+  setMultipleObjectsLock: (ids: string[], locked: boolean) => void
 }
 
 export type ObjectsSlice = ObjectsSliceState & ObjectsSliceActions
@@ -309,5 +317,81 @@ export const createObjectsSlice: StateCreator<ModellerStore, [], [], ObjectsSlic
 
   getObjectsByType: (type) => {
     return get().objects.filter((o) => o.type === type)
+  },
+
+  // ============================================================================
+  // BATCH ACTIONS (Performance optimized)
+  // ============================================================================
+
+  deleteMultiple: (ids, saveHistory = true) => {
+    const idsSet = new Set(ids)
+    const objectsToDelete = get().objects.filter((o) => idsSet.has(o.id))
+
+    if (objectsToDelete.length === 0) return
+
+    set(
+      (state) => ({
+        objects: state.objects.filter((o) => !idsSet.has(o.id)),
+        selectedIds: state.selectedIds.filter((id) => !idsSet.has(id)),
+      }),
+      false,
+      "deleteMultiple"
+    )
+
+    if (saveHistory) {
+      get().saveToHistory(`Delete ${objectsToDelete.length} objects`)
+    }
+  },
+
+  updateMultiple: (updates, saveHistory = false) => {
+    if (updates.length === 0) return
+
+    if (saveHistory && !get().pendingHistoryState) {
+      get().saveStateBeforeAction()
+    }
+
+    const updatesMap = new Map(updates.map((u) => [u.id, u.changes]))
+    const now = Date.now()
+
+    set(
+      (state) => ({
+        objects: state.objects.map((obj) => {
+          const changes = updatesMap.get(obj.id)
+          return changes ? { ...obj, ...changes, updatedAt: now } : obj
+        }),
+      }),
+      false,
+      "updateMultiple"
+    )
+
+    if (saveHistory) {
+      get().saveToHistory(`Update ${updates.length} objects`)
+    }
+  },
+
+  setMultipleObjectsVisibility: (ids, visible) => {
+    const idsSet = new Set(ids)
+    set(
+      (state) => ({
+        objects: state.objects.map((obj) =>
+          idsSet.has(obj.id) ? { ...obj, visible, updatedAt: Date.now() } : obj
+        ),
+      }),
+      false,
+      "setMultipleObjectsVisibility"
+    )
+  },
+
+  setMultipleObjectsLock: (ids, locked) => {
+    const idsSet = new Set(ids)
+    set(
+      (state) => ({
+        objects: state.objects.map((obj) =>
+          idsSet.has(obj.id) ? { ...obj, locked, updatedAt: Date.now() } : obj
+        ),
+      }),
+      false,
+      "setMultipleObjectsLock"
+    )
   },
 })

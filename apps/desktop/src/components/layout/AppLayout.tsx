@@ -80,7 +80,12 @@ import { CommandPalette, useCommandPalette } from "@/components/command-palette"
 import { ChatErrorBoundary, UpdateBadge } from "@/components/common"
 import { ModellerView } from "@/components/modeller"
 import { NewProjectDialog, OpenProjectDialog, ProjectsView } from "@/components/project"
-import { useAutoSave, useProjectShortcuts, useUnsavedChangesWarning } from "@/hooks"
+import {
+  useAppHotkeys,
+  useAutoSave,
+  useGlobalHotkeyHandler,
+  useUnsavedChangesWarning,
+} from "@/hooks"
 import { useIsFullscreen, usePlatform } from "@/hooks/use-platform"
 import { type LanguageCode, languages } from "@/i18n"
 import { useLayoutStore } from "@/stores/layout-store"
@@ -144,13 +149,40 @@ export function AppLayout() {
     privacy: false,
   })
 
-  // Project hooks - auto-save, unsaved warning, and keyboard shortcuts
+  // Dialog actions - defined early so hotkeys can use them
+  const dialogActions: DialogActions = {
+    openHelp: () => setDialogs((prev) => ({ ...prev, help: true })),
+    openAbout: () => setDialogs((prev) => ({ ...prev, about: true })),
+    openShortcuts: () => setDialogs((prev) => ({ ...prev, shortcuts: true })),
+    openProfile: () => setDialogs((prev) => ({ ...prev, profile: true })),
+    openNotifications: () => setDialogs((prev) => ({ ...prev, notifications: true })),
+    openPrivacy: () => setDialogs((prev) => ({ ...prev, privacy: true })),
+    closeAll: () =>
+      setDialogs({
+        help: false,
+        about: false,
+        shortcuts: false,
+        profile: false,
+        notifications: false,
+        privacy: false,
+      }),
+    setDialog: (dialog, open) => setDialogs((prev) => ({ ...prev, [dialog]: open })),
+  }
+
+  // Project hooks - auto-save and unsaved warning
   useAutoSave()
   useUnsavedChangesWarning()
-  useProjectShortcuts({
+
+  // Global keyboard shortcut handler - processes all registered hotkeys
+  useGlobalHotkeyHandler()
+
+  // Register all application hotkeys
+  useAppHotkeys({
+    onOpenCommandPalette: () => commandPalette.setOpen(true),
+    onOpenSettings: () => dialogActions.setDialog("profile", true),
+    onOpenShortcuts: () => dialogActions.setDialog("shortcuts", true),
     onNewProject: () => setNewProjectOpen(true),
     onOpenProject: () => setOpenProjectOpen(true),
-    onCloseProject: () => closeProject(),
   })
 
   // Listen to native menu events from Tauri (macOS/Windows)
@@ -176,26 +208,6 @@ export function AppLayout() {
       unlisten.then((fn) => fn())
     }
   }, [closeProject])
-
-  // Dialog actions
-  const dialogActions: DialogActions = {
-    openHelp: () => setDialogs((prev) => ({ ...prev, help: true })),
-    openAbout: () => setDialogs((prev) => ({ ...prev, about: true })),
-    openShortcuts: () => setDialogs((prev) => ({ ...prev, shortcuts: true })),
-    openProfile: () => setDialogs((prev) => ({ ...prev, profile: true })),
-    openNotifications: () => setDialogs((prev) => ({ ...prev, notifications: true })),
-    openPrivacy: () => setDialogs((prev) => ({ ...prev, privacy: true })),
-    closeAll: () =>
-      setDialogs({
-        help: false,
-        about: false,
-        shortcuts: false,
-        profile: false,
-        notifications: false,
-        privacy: false,
-      }),
-    setDialog: (dialog, open) => setDialogs((prev) => ({ ...prev, [dialog]: open })),
-  }
 
   return (
     <TooltipProvider delay={300}>

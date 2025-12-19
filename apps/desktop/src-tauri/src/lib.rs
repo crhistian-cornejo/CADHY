@@ -7,7 +7,7 @@
 //! The Rust backend handles hydraulic computations and authentication.
 
 use std::sync::Mutex;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, RunEvent};
 
 // Command modules
 mod commands;
@@ -55,21 +55,50 @@ pub fn run() {
     // Load environment variables from .env files
     load_env_files();
 
-    tauri::Builder::default()
+    // Check if updater should be enabled (only when signing key is available)
+    let updater_enabled = option_env!("TAURI_SIGNING_PRIVATE_KEY").is_some();
+    let app_version = env!("CARGO_PKG_VERSION");
+
+    // Build the application with all plugins
+    let mut builder = tauri::Builder::default()
+        // Core plugins
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        // Persistence plugins (OpenCode pattern)
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        // State management
         .manage(AppState::default())
-        .setup(|_app| {
+        .setup(move |app| {
+            // Inject runtime configuration into the frontend (OpenCode pattern)
+            // This allows the frontend to access runtime state without IPC calls
+            if let Some(window) = app.get_webview_window("main") {
+                let init_script = format!(
+                    r#"
+                    window.__CADHY__ = window.__CADHY__ || {{}};
+                    window.__CADHY__.version = "{}";
+                    window.__CADHY__.updaterEnabled = {};
+                    window.__CADHY__.platform = "{}";
+                    window.__CADHY__.debug = {};
+                    "#,
+                    app_version,
+                    updater_enabled,
+                    std::env::consts::OS,
+                    cfg!(debug_assertions)
+                );
+                let _ = window.eval(&init_script);
+            }
+
             // Initialize macOS native menu bar
             #[cfg(target_os = "macos")]
             {
-                match macos_menu::create_macos_menu(_app.handle()) {
+                match macos_menu::create_macos_menu(app.handle()) {
                     Ok(menu) => {
-                        if let Err(e) = _app.set_menu(menu) {
+                        if let Err(e) = app.set_menu(menu) {
                             eprintln!("[CADHY] Failed to set macOS menu: {}", e);
                         } else {
                             eprintln!("[CADHY] macOS native menu initialized");
@@ -80,6 +109,11 @@ pub fn run() {
                     }
                 }
             }
+
+            eprintln!(
+                "[CADHY] Application started (v{}, updater: {})",
+                app_version, updater_enabled
+            );
 
             Ok(())
         })
@@ -172,9 +206,44 @@ pub fn run() {
             auth::gemini::auth_check_gemini_oauth,
             auth::gemini::auth_read_gemini_oauth_credentials,
             auth::gemini::auth_refresh_gemini_oauth,
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running CADHY Tauri application");
+        ]);
+
+    // Conditionally add updater plugin (OpenCode pattern)
+    // Only enabled when TAURI_SIGNING_PRIVATE_KEY is set at build time
+    if updater_enabled {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+        eprintln!("[CADHY] Updater plugin enabled");
+    } else {
+        eprintln!("[CADHY] Updater plugin disabled (no signing key at build time)");
+    }
+
+    // Build and run with graceful shutdown handling
+    builder
+        .build(tauri::generate_context!())
+        .expect("error while building CADHY Tauri application")
+        .run(|app, event| {
+            match event {
+                RunEvent::Exit => {
+                    eprintln!("[CADHY] Application exiting, cleaning up...");
+                    // Cleanup any managed resources
+                    if let Some(state) = app.try_state::<AppState>() {
+                        if let Ok(mut project) = state.project.lock() {
+                            *project = None;
+                        }
+                    }
+                }
+                RunEvent::ExitRequested { api, code, .. } => {
+                    // Could prompt for unsaved changes here in the future
+                    eprintln!(
+                        "[CADHY] Exit requested (code: {:?})",
+                        code
+                    );
+                    // Don't prevent exit for now
+                    let _ = api;
+                }
+                _ => {}
+            }
+        });
 }
 
 /// Load environment variables from .env files

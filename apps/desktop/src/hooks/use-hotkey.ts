@@ -99,6 +99,7 @@ export function useHotkeyById(id: string): HotkeyDefinition | undefined {
 
 /**
  * Global keyboard event handler for hotkeys
+ * Uses capture phase to ensure hotkeys are processed before Canvas/OrbitControls
  */
 export function useGlobalHotkeyHandler(context?: HotkeyDefinition["context"]): void {
   useEffect(() => {
@@ -118,8 +119,9 @@ export function useGlobalHotkeyHandler(context?: HotkeyDefinition["context"]): v
       hotkeyRegistry.handleKeyboardEvent(event, context)
     }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    // Use capture phase to ensure we get events before Canvas/OrbitControls
+    window.addEventListener("keydown", handleKeyDown, { capture: true })
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true })
   }, [context])
 }
 

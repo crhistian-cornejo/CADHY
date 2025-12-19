@@ -314,8 +314,6 @@ export function SceneObjectMesh({
       onClick={handleClick}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
-      castShadow
-      receiveShadow
     >
       <meshStandardMaterial
         color={isHovered ? "#3b82f6" : color}

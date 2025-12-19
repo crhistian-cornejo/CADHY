@@ -11,6 +11,7 @@
  * - Different variants for different contexts
  */
 
+import { logger } from "@cadhy/shared/logger"
 import { Button } from "@cadhy/ui"
 import { AlertCircleIcon, Home01Icon, RefreshIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -60,8 +61,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to console in development
-    console.error("[ErrorBoundary] Caught error:", error, errorInfo)
+    // Log error (always logged in production too since it's an error)
+    logger.error("[ErrorBoundary] Caught error:", error, errorInfo)
 
     // Update state with error info
     this.setState({ errorInfo })
@@ -213,7 +214,7 @@ export function ViewerErrorBoundary({ children }: { children: ReactNode }) {
       context="3D Viewer"
       variant="default"
       onError={(error, info) => {
-        console.error("[Viewer Error]", error, info)
+        logger.error("[Viewer Error]", error, info)
       }}
     >
       {children}
@@ -230,7 +231,7 @@ export function ChatErrorBoundary({ children }: { children: ReactNode }) {
       context="AI Chat"
       variant="minimal"
       onError={(error, info) => {
-        console.error("[Chat Error]", error, info)
+        logger.error("[Chat Error]", error, info)
       }}
     >
       {children}
@@ -253,7 +254,7 @@ export function PanelErrorBoundary({
       context={context}
       variant="minimal"
       onError={(error, info) => {
-        console.error(`[${context} Error]`, error, info)
+        logger.error(`[${context} Error]`, error, info)
       }}
     >
       {children}
@@ -270,7 +271,7 @@ export function AppErrorBoundary({ children }: { children: ReactNode }) {
       context="Application"
       variant="fullscreen"
       onError={(error, info) => {
-        console.error("[App Error]", error, info)
+        logger.error("[App Error]", error, info)
         // In production, you might want to send this to an error tracking service
         // sendToErrorTracker(error, info);
       }}

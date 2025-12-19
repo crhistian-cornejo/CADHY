@@ -85,7 +85,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   const [projectName, setProjectName] = useState("New Project")
   const [projectPath, setProjectPath] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate>("empty")
-  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined)
+  const [selectedFolderId, setSelectedFolderId] = useState<string>("none")
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -101,7 +101,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
 
   // Check if selected folder can accept more projects
   const canAssignToSelectedFolder = useMemo(() => {
-    if (!selectedFolderId) return true
+    if (selectedFolderId === "none") return true
     return canAddToFolder(selectedFolderId)
   }, [selectedFolderId, canAddToFolder])
 
@@ -125,7 +125,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
       return
     }
 
-    if (selectedFolderId && !canAssignToSelectedFolder) {
+    if (selectedFolderId !== "none" && !canAssignToSelectedFolder) {
       setError("Selected folder is full. Please choose another folder or leave unassigned.")
       return
     }
@@ -137,16 +137,17 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
       const projectInfo = await createNewProject(projectName.trim(), projectPath, selectedTemplate)
 
       // Add to recent projects store with folder assignment
+      const actualFolderId = selectedFolderId === "none" ? undefined : selectedFolderId
       addProject({
         id: projectInfo.id,
         name: projectInfo.name,
         path: projectInfo.path,
-        folderId: selectedFolderId,
+        folderId: actualFolderId,
       })
 
       // If folder is selected, explicitly assign (redundant but ensures consistency)
-      if (selectedFolderId) {
-        assignProjectToFolder(projectInfo.id, selectedFolderId)
+      if (actualFolderId) {
+        assignProjectToFolder(projectInfo.id, actualFolderId)
       }
 
       onOpenChange(false)
@@ -156,7 +157,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
       setProjectName("New Project")
       setProjectPath("")
       setSelectedTemplate("empty")
-      setSelectedFolderId(undefined)
+      setSelectedFolderId("none")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project")
     } finally {
@@ -232,10 +233,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               <Label className="text-xs">
                 Assign to Folder <span className="text-muted-foreground">(optional)</span>
               </Label>
-              <Select
-                value={selectedFolderId ?? "none"}
-                onValueChange={(value) => setSelectedFolderId(value === "none" ? undefined : value)}
-              >
+              <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="No folder" />
                 </SelectTrigger>

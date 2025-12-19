@@ -5,6 +5,7 @@
  * Creates shapes via OpenCASCADE and adds them to the 3D scene.
  */
 
+import { logger } from "@cadhy/shared/logger"
 import { useCallback } from "react"
 import {
   booleanCommon,
@@ -106,19 +107,19 @@ export function useCAD() {
       try {
         const { width, depth, height, name = "Box", color = "#6366f1" } = options
 
-        console.log("[useCAD] Creating box:", { width, depth, height })
+        logger.log("[useCAD] Creating box:", { width, depth, height })
         // Create shape in backend
         const result = await createBox(width, depth, height)
-        console.log("[useCAD] createBox result:", result)
+        logger.log("[useCAD] createBox result:", result)
 
         if (!result || !result.id) {
           throw new Error("createBox returned invalid result - missing id")
         }
 
         // Tessellate for rendering
-        console.log("[useCAD] Tessellating shape with id:", result.id)
+        logger.log("[useCAD] Tessellating shape with id:", result.id)
         const meshData = await tessellate(result.id, 0.1)
-        console.log("[useCAD] Tessellation complete, vertices:", meshData.vertex_count)
+        logger.log("[useCAD] Tessellation complete, vertices:", meshData.vertex_count)
 
         // Create scene object
         const shapeObject: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
@@ -169,17 +170,17 @@ export function useCAD() {
       try {
         const { radius, height, name = "Cylinder", color = "#22c55e" } = options
 
-        console.log("[useCAD] Creating cylinder:", { radius, height })
+        logger.log("[useCAD] Creating cylinder:", { radius, height })
         const result = await createCylinder(radius, height)
-        console.log("[useCAD] createCylinder result:", result)
+        logger.log("[useCAD] createCylinder result:", result)
 
         if (!result || !result.id) {
           throw new Error("createCylinder returned invalid result - missing id")
         }
 
-        console.log("[useCAD] Tessellating shape with id:", result.id)
+        logger.log("[useCAD] Tessellating shape with id:", result.id)
         const meshData = await tessellate(result.id, 0.1)
-        console.log("[useCAD] Tessellation complete, vertices:", meshData.vertex_count)
+        logger.log("[useCAD] Tessellation complete, vertices:", meshData.vertex_count)
 
         const shapeObject: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
           type: "shape",
@@ -229,18 +230,18 @@ export function useCAD() {
       try {
         const { radius, name = "Sphere", color = "#f59e0b" } = options
 
-        console.log("[useCAD] Creating sphere with radius:", radius)
+        logger.log("[useCAD] Creating sphere with radius:", radius)
         const result = await createSphere(radius)
-        console.log("[useCAD] createSphere result:", result)
+        logger.log("[useCAD] createSphere result:", result)
 
         if (!result || !result.id) {
           console.error("[useCAD] createSphere returned invalid result:", result)
           throw new Error("createSphere returned invalid result - missing id")
         }
 
-        console.log("[useCAD] Tessellating shape with id:", result.id)
+        logger.log("[useCAD] Tessellating shape with id:", result.id)
         const meshData = await tessellate(result.id, 0.1)
-        console.log("[useCAD] Tessellation complete, vertices:", meshData.vertex_count)
+        logger.log("[useCAD] Tessellation complete, vertices:", meshData.vertex_count)
 
         const shapeObject: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
           type: "shape",

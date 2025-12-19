@@ -8,6 +8,7 @@
  * unique ID. This ID is used to reference shapes in subsequent operations.
  */
 
+import { logger } from "@cadhy/shared/logger"
 import { invoke } from "@tauri-apps/api/core"
 
 // ============================================================================
@@ -382,7 +383,7 @@ export async function revolve(
  * @param deflection - Tessellation quality (smaller = higher quality, default 0.1)
  */
 export async function tessellate(shapeId: string, deflection = 0.1): Promise<CadMeshData> {
-  console.log("[cad-service] tessellate called with shapeId:", shapeId)
+  logger.log("[cad-service] tessellate called with shapeId:", shapeId)
   return invoke<CadMeshData>("cad_tessellate", { shape_id: shapeId, deflection })
 }
 

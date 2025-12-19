@@ -44,8 +44,9 @@ import {
   WaterEnergyIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useMemo, useState } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useVirtualList } from "@/hooks/useVirtualList"
 import {
   type AnySceneObject,
   type ObjectType,
@@ -82,7 +83,7 @@ interface SceneObjectItemProps {
   onFocus: (id: string) => void
 }
 
-function SceneObjectItem({
+const SceneObjectItem = React.memo(function SceneObjectItem({
   object,
   isSelected,
   layerColor,
@@ -223,7 +224,7 @@ function SceneObjectItem({
       </DropdownMenu>
     </div>
   )
-}
+})
 
 // ============================================================================
 // LAYER GROUP
@@ -244,7 +245,7 @@ interface LayerGroupProps {
   defaultOpen?: boolean
 }
 
-function LayerGroup({
+const LayerGroup = React.memo(function LayerGroup({
   layerId,
   layerName,
   layerColor,
@@ -301,7 +302,7 @@ function LayerGroup({
       </CollapsibleContent>
     </Collapsible>
   )
-}
+})
 
 // ============================================================================
 // MAIN COMPONENT
@@ -369,6 +370,13 @@ export function ScenePanel({ className }: ScenePanelProps) {
     }
     return groups
   }, [filteredObjects, layers])
+
+  // Virtualization for flat list mode (when sortMode !== "layer")
+  const { parentRef, virtualItems, totalSize } = useVirtualList({
+    items: filteredObjects,
+    estimateSize: 40, // Estimated height of each SceneObjectItem
+    overscan: 5,
+  })
 
   const handleSelect = useCallback(
     (id: string, additive: boolean) => {
@@ -558,25 +566,39 @@ export function ScenePanel({ className }: ScenePanelProps) {
             ))}
           </div>
         ) : (
-          // Flat list
-          <div className="p-2 space-y-0.5">
-            {filteredObjects.map((obj) => {
-              const layer = layers.find((l) => l.id === obj.layerId)
-              return (
-                <SceneObjectItem
-                  key={obj.id}
-                  object={obj}
-                  isSelected={selectedIds.includes(obj.id)}
-                  layerColor={layer?.color ?? "#6366f1"}
-                  onSelect={handleSelect}
-                  onToggleVisibility={handleToggleVisibility}
-                  onToggleLock={handleToggleLock}
-                  onDelete={handleDelete}
-                  onDuplicate={handleDuplicate}
-                  onFocus={handleFocus}
-                />
-              )
-            })}
+          // Flat list (virtualized for performance)
+          <div ref={parentRef} className="h-full overflow-auto p-2">
+            <div style={{ height: totalSize, position: "relative" }}>
+              {virtualItems.map((virtualItem) => {
+                const obj = filteredObjects[virtualItem.index]
+                const layer = layers.find((l) => l.id === obj.layerId)
+                return (
+                  <div
+                    key={obj.id}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualItem.start}px)`,
+                      height: virtualItem.size,
+                    }}
+                  >
+                    <SceneObjectItem
+                      object={obj}
+                      isSelected={selectedIds.includes(obj.id)}
+                      layerColor={layer?.color ?? "#6366f1"}
+                      onSelect={handleSelect}
+                      onToggleVisibility={handleToggleVisibility}
+                      onToggleLock={handleToggleLock}
+                      onDelete={handleDelete}
+                      onDuplicate={handleDuplicate}
+                      onFocus={handleFocus}
+                    />
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </ScrollArea>

@@ -7,6 +7,7 @@
  * - Saved camera views for quick navigation
  */
 
+import { logger } from "@cadhy/shared/logger"
 import type { Vec3 } from "@cadhy/types"
 import type { StateCreator } from "zustand"
 import type { ModellerStore } from "./store-types"
@@ -299,11 +300,11 @@ export const createCameraSlice: StateCreator<ModellerStore, [], [], CameraSlice>
     }
 
     // Debug: Log keyframe creation
-    console.log(`[Keyframe Added] at ${keyframeTime.toFixed(1)}s`)
-    console.log(
+    logger.log(`[Keyframe Added] at ${keyframeTime.toFixed(1)}s`)
+    logger.log(
       `  Position: (${cameraPosition.x.toFixed(2)}, ${cameraPosition.y.toFixed(2)}, ${cameraPosition.z.toFixed(2)})`
     )
-    console.log(
+    logger.log(
       `  Target: (${cameraTarget.x.toFixed(2)}, ${cameraTarget.y.toFixed(2)}, ${cameraTarget.z.toFixed(2)})`
     )
 
@@ -415,10 +416,10 @@ export const createCameraSlice: StateCreator<ModellerStore, [], [], CameraSlice>
     const distance = maxSize * 1.5
     const closeDistance = maxSize * 0.3
 
-    console.log(
+    logger.log(
       `[Example Animations] Scene center: (${centerX.toFixed(1)}, ${centerY.toFixed(1)}, ${centerZ.toFixed(1)})`
     )
-    console.log(
+    logger.log(
       `[Example Animations] Scene size: ${maxSize.toFixed(1)}, Camera distance: ${distance.toFixed(1)}`
     )
 
