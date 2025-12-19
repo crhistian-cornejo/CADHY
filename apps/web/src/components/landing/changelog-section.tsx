@@ -61,7 +61,10 @@ function extractSummary(body: string): string {
 
 function ChangelogCard({ entry }: { entry: ChangelogEntry }) {
   return (
-    <div className="flex-shrink-0 w-72 border border-border bg-card rounded-xl p-5 hover:border-foreground/30 transition-colors">
+    <Link
+      to={`/changelog#v${entry.version}`}
+      className="flex-shrink-0 w-72 border border-border bg-card rounded-xl p-5 hover:border-foreground/30 transition-colors cursor-pointer"
+    >
       <div className="flex items-center gap-3 mb-3">
         <span className="inline-flex items-center justify-center px-2 py-0.5 border border-border rounded text-xs font-mono text-muted-foreground">
           {entry.version}
@@ -69,7 +72,7 @@ function ChangelogCard({ entry }: { entry: ChangelogEntry }) {
         <span className="text-xs text-muted-foreground">{entry.date}</span>
       </div>
       <p className="text-sm text-foreground leading-relaxed line-clamp-3">{entry.summary}</p>
-    </div>
+    </Link>
   )
 }
 
@@ -158,7 +161,7 @@ export function ChangelogSection() {
 
         {/* Link to full changelog */}
         <Link
-          to="/download"
+          to="/changelog"
           className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-6"
         >
           {t.changelog.allReleases}

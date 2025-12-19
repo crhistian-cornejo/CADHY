@@ -71,7 +71,7 @@ export function Footer() {
           {
             id: 4,
             label: t.footer.changelog,
-            href: "https://github.com/crhistian-cornejo/CADHY/releases",
+            href: "/changelog",
           },
         ],
       },
