@@ -111,23 +111,30 @@ fi
 echo ""
 echo "Re-signing app bundle..."
 
-# Check for signing identity
+# Check for signing identity - prefer env var, then look for Developer ID, fallback to ad-hoc
 if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
     SIGN_IDENTITY="$APPLE_SIGNING_IDENTITY"
-elif security find-identity -v -p codesigning 2>/dev/null | grep -q "Developer ID"; then
+    echo "Using APPLE_SIGNING_IDENTITY from environment"
+elif [ -z "$CI" ] && security find-identity -v -p codesigning 2>/dev/null | grep -q "Developer ID"; then
+    # Only try to find Developer ID on local machine, not in CI
     SIGN_IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null | grep "Developer ID" | head -1 | awk -F'"' '{print $2}')
+    echo "Found Developer ID certificate"
 else
     SIGN_IDENTITY="-"  # Ad-hoc signing
+    echo "Using ad-hoc signing"
 fi
 
-echo "Using signing identity: $SIGN_IDENTITY"
+echo "Signing identity: $SIGN_IDENTITY"
 
 # Sign frameworks first, then the main app
 for dylib in "$FRAMEWORKS_DIR"/*.dylib; do
     codesign --force --sign "$SIGN_IDENTITY" "$dylib" 2>/dev/null || true
 done
 
-codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_BUNDLE" 2>&1
+codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_BUNDLE" 2>&1 || {
+    echo "Signing with identity failed, falling back to ad-hoc"
+    codesign --force --deep --sign - "$APP_BUNDLE" 2>&1
+}
 
 echo ""
 echo "✅ Done! App bundle fixed and re-signed."
