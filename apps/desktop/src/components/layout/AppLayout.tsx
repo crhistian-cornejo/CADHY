@@ -77,7 +77,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AIChatPanel } from "@/components/ai"
 import { CommandPalette, useCommandPalette } from "@/components/command-palette"
-import { ChatErrorBoundary } from "@/components/common"
+import { ChatErrorBoundary, UpdateBadge } from "@/components/common"
 import { ModellerView } from "@/components/modeller"
 import { NewProjectDialog, OpenProjectDialog, ProjectsView } from "@/components/project"
 import { useAutoSave, useProjectShortcuts, useUnsavedChangesWarning } from "@/hooks"
@@ -460,6 +460,9 @@ function Titlebar({ onOpenCommandPalette }: { onOpenCommandPalette: () => void }
 
       {/* Right section */}
       <div className="flex items-center gap-2 z-10">
+        {/* Update Badge */}
+        <UpdateBadge />
+
         {isMacOS && (
           // macOS: View toggles + Command palette on right
           <>

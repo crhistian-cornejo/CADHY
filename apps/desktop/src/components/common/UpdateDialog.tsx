@@ -77,7 +77,19 @@ export function UpdateDialog() {
         {updateInfo?.body && !downloading && (
           <div className="rounded-lg bg-muted/50 p-3 text-xs max-h-32 overflow-y-auto">
             <p className="font-medium mb-1">What's new:</p>
-            <p className="text-muted-foreground whitespace-pre-wrap">{updateInfo.body}</p>
+            <p className="text-muted-foreground whitespace-pre-wrap">
+              {updateInfo.body.replace(/https:\/\/github\.com\/[^\s]+\/releases\/tag\/[^\s]+/g, "")}
+            </p>
+            {updateInfo.version && (
+              <a
+                href={`https://github.com/crhristian-cornejo/CADHY/releases/tag/v${updateInfo.version}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline mt-2 inline-block"
+              >
+                See full changes here →
+              </a>
+            )}
           </div>
         )}
 

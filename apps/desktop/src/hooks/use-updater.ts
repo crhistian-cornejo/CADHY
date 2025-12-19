@@ -130,6 +130,16 @@ export function useUpdater(options?: {
       })
 
       console.log("[Updater] Update installed, relaunching...")
+      // Save "Installed" state to show badge after relaunch
+      if (update?.version) {
+        localStorage.setItem(
+          "cadhy-update-badge",
+          JSON.stringify({
+            type: "installed",
+            version: update.version,
+          })
+        )
+      }
       await relaunch()
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to install update"
@@ -140,12 +150,22 @@ export function useUpdater(options?: {
   }, [update, downloading])
 
   const dismiss = useCallback(() => {
+    // Save "Later" state to show badge
+    if (updateInfo?.version) {
+      localStorage.setItem(
+        "cadhy-update-badge",
+        JSON.stringify({
+          type: "pending",
+          version: updateInfo.version,
+        })
+      )
+    }
     setUpdateAvailable(false)
     setUpdateInfo(null)
     setUpdate(null)
     setError(null)
     setDismissed(true)
-  }, [])
+  }, [updateInfo])
 
   // Check on mount - only once (automatic, no error popup)
   useEffect(() => {

@@ -780,5 +780,12 @@
     "next": "Next",
     "skip": "Skip",
     "getStarted": "Get Started"
+  },
+  "update": {
+    "badgePending": "Update",
+    "badgeInstalled": "What's new",
+    "tooltipPending": "Update available - Click to view changelog",
+    "tooltipInstalled": "App updated successfully - See what's new",
+    "clickToViewChangelog": "Click to view full changelog on GitHub"
   }
 }

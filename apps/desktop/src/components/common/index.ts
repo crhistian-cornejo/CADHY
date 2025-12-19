@@ -12,5 +12,5 @@ export {
   PanelErrorBoundary,
   ViewerErrorBoundary,
 } from "./ErrorBoundary"
-
+export { UpdateBadge } from "./UpdateBadge"
 export { UpdateDialog } from "./UpdateDialog"
