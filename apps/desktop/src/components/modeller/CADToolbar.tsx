@@ -32,73 +32,19 @@ import {
   TooltipTrigger,
   toast,
 } from "@cadhy/ui"
-import {
-  ArrowTurnBackwardIcon,
-  ArrowTurnForwardIcon,
-  CubeIcon,
-  Download01Icon,
-  RulerIcon,
-  Settings02Icon,
-} from "@hugeicons/core-free-icons"
+import { CubeIcon, Download01Icon, RulerIcon, Settings02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { save } from "@tauri-apps/plugin-dialog"
 import { useCallback, useState } from "react"
-import { useTranslation } from "react-i18next"
 import { shapeIdMap, useCAD } from "@/hooks/useCAD"
 import * as cadService from "@/services/cad-service"
-import {
-  useCanRedo,
-  useCanUndo,
-  useModellerStore,
-  useSelectedObjects,
-} from "@/stores/modeller-store"
+import { useModellerStore, useSelectedObjects } from "@/stores/modeller-store"
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface ToolButtonProps {
-  icon: typeof CubeIcon
-  label: string
-  active?: boolean
-  disabled?: boolean
-  onClick?: () => void
-  shortcut?: string
-}
-
 type ParameterOperation = "fillet" | "chamfer" | "shell" | null
-
-// ============================================================================
-// TOOL BUTTON
-// ============================================================================
-
-function ToolButton({ icon, label, active, disabled, onClick, shortcut }: ToolButtonProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant={active ? "secondary" : "ghost"}
-            size="icon-sm"
-            disabled={disabled}
-            onClick={onClick}
-            className={cn("h-7 w-7", active && "bg-primary/20 text-primary hover:bg-primary/30")}
-          >
-            <HugeiconsIcon icon={icon} className="size-4" />
-          </Button>
-        }
-      />
-      <TooltipContent side="bottom" className="flex items-center gap-2">
-        <span>{label}</span>
-        {shortcut && (
-          <kbd className="rounded bg-background/20 px-1.5 py-0.5 text-[10px] font-mono text-inherit">
-            {shortcut}
-          </kbd>
-        )}
-      </TooltipContent>
-    </Tooltip>
-  )
-}
 
 // ============================================================================
 // MAIN COMPONENT
@@ -109,12 +55,9 @@ interface CADToolbarProps {
 }
 
 export function CADToolbar({ className }: CADToolbarProps) {
-  const { t } = useTranslation()
   const selectedObjects = useSelectedObjects()
-  const canUndo = useCanUndo()
-  const canRedo = useCanRedo()
 
-  const { undo, redo, addObject, deleteObject } = useModellerStore()
+  const { addObject, deleteObject } = useModellerStore()
 
   const { fuseShapes, cutShapes, intersectShapes } = useCAD()
 
@@ -455,26 +398,6 @@ export function CADToolbar({ className }: CADToolbarProps) {
           className
         )}
       >
-        {/* Undo/Redo */}
-        <div className="flex items-center gap-0.5">
-          <ToolButton
-            icon={ArrowTurnBackwardIcon}
-            label="Undo"
-            disabled={!canUndo}
-            onClick={undo}
-            shortcut="Cmd+Z"
-          />
-          <ToolButton
-            icon={ArrowTurnForwardIcon}
-            label="Redo"
-            disabled={!canRedo}
-            onClick={redo}
-            shortcut="Cmd+Shift+Z"
-          />
-        </div>
-
-        <Separator orientation="vertical" className="h-6" />
-
         {/* Boolean Operations */}
         <DropdownMenu>
           <Tooltip>

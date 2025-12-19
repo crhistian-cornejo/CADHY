@@ -13,6 +13,7 @@
 import { AIGlowBorder, cn } from "@cadhy/ui"
 import { Canvas, type RootState } from "@react-three/fiber"
 import { Suspense, useCallback, useEffect, useRef } from "react"
+import * as THREE from "three"
 import { useSounds } from "@/hooks/use-sounds"
 import { registerViewportCanvas } from "@/services/thumbnail-service"
 import { useIsAnalyzingScene } from "@/stores/chat-store"
@@ -61,13 +62,18 @@ export function Viewport3D({ className, showStats = false }: Viewport3DProps) {
       <div className={cn("relative h-full w-full", className)}>
         <Canvas
           shadows={viewportSettings.shadows}
-          dpr={[1, 2]}
+          dpr={[1, 1.5]}
+          frameloop="demand"
           gl={{
             antialias: viewportSettings.antialiasing,
-            alpha: true,
+            alpha: false,
             powerPreference: "high-performance",
             stencil: false,
+            depth: true,
             preserveDrawingBuffer: true, // Required for thumbnail capture
+            logarithmicDepthBuffer: false,
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1,
           }}
           camera={{ position: [10, 10, 10], fov: 50 }}
           style={{ background: viewportSettings.backgroundColor }}
