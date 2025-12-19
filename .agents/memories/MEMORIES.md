@@ -195,3 +195,111 @@ Tests in `packages/ai/src/__tests__/gemini-cli.test.ts` (26 tests).
 - `apps/desktop/src-tauri/src/auth/mod.rs` - Module export
 - `packages/ai/src/providers/gemini-cli.ts` - TypeScript wrapper
 - `packages/ai/src/__tests__/gemini-cli.test.ts` - Tests
+
+---
+
+## macOS Standalone Distribution - OCCT Dylib Bundling (December 2024)
+
+### Problem
+macOS release builds crashed on launch for users without Homebrew OCCT installed. Error:
+```
+dyld: Library not loaded: /opt/homebrew/opt/opencascade/lib/libTKernel.7.9.dylib
+  Referenced from: /Applications/CADHY.app/Contents/MacOS/CADHY
+  Reason: image not found
+```
+
+**Root Cause**: Rust linker embeds absolute Homebrew paths during compile time. The binary expects OCCT libraries at `/opt/homebrew/opt/opencascade/lib/`, which doesn't exist on machines without Homebrew or OCCT.
+
+### Solution
+Bundle all 37 dylibs in the app's `Frameworks/` directory with relative paths.
+
+**Files Created**:
+1. `scripts/occt/copy-dylibs-macos.sh` - Copies dylibs from Homebrew to `frameworks/`
+2. `scripts/occt/fix-dylib-paths-macos.sh` - Rewrites paths using `install_name_tool` and re-signs
+
+**Files Modified**:
+1. `apps/desktop/src-tauri/tauri.macos.conf.json` - Lists all 37 frameworks to bundle
+2. `crates/cadhy-cad/build.rs` - Added rpath linker flag for runtime search path
+3. `.github/workflows/release-app.yml` - Added CI steps for dylib handling
+4. `.gitignore` - Ignore `frameworks/` directory
+
+**37 Dylibs Bundled**:
+- 33 OCCT libs: libTKernel, libTKMath, libTKG2d, libTKG3d, libTKGeomBase, libTKBRep, libTKGeomAlgo, libTKTopAlgo, libTKPrim, libTKBO, libTKFillet, libTKOffset, libTKFeat, libTKMesh, libTKShHealing, libTKHLR, libTKService, libTKV3d, libTKOpenGl, libTKXSBase, libTKSTEP, libTKSTEP209, libTKSTEPAttr, libTKSTEPBase, libTKIGES, libTKXCAF, libTKXDESTEP, libTKXDEIGES, libTKCAF, libTKLCAF, libTKCDF, libTKBinL, libTKBin
+- 4 dependencies: libfreetype.6, libpng16.16, libtbb.12, libtbbmalloc.2
+
+**Key Technical Details**:
+```bash
+# Path rewriting
+install_name_tool -change \
+  "/opt/homebrew/opt/opencascade/lib/libTKernel.7.9.dylib" \
+  "@executable_path/../Frameworks/libTKernel.7.9.dylib" \
+  "$APP_BINARY"
+
+# Must re-sign after modification (invalidates code signature)
+codesign --force --sign - "$DYLIB"
+```
+
+### Key Learnings
+1. **Always test release builds on clean machines** - Dev machines have all dependencies installed
+2. **install_name_tool requires re-signing** - Modifying Mach-O binaries invalidates signatures
+3. **CI can use ad-hoc signing** - Use `-` as identity for unsigned apps in CI
+4. **Use rpath for flexibility** - Adding `-Wl,-rpath,@executable_path/../Frameworks` helps runtime loader
+
+---
+
+## React Initialization Bugs - TDZ and Optional Chaining (December 2024)
+
+### Problem 1: Temporal Dead Zone in OpenProjectDialog
+
+`handleOpenProject` was used in `handleBrowse` before being declared, causing a reference error.
+
+**Original Code (broken)**:
+```typescript
+const handleBrowse = async () => {
+  // ... file selection ...
+  await handleOpenProject(selected)  // ❌ handleOpenProject not defined yet!
+}
+
+const handleOpenProject = async (projectPath: string) => {
+  // ...
+}
+```
+
+**Fix**:
+```typescript
+const handleOpenProject = async (projectPath: string) => {
+  // ... moved BEFORE handleBrowse
+}
+
+const handleBrowse = async () => {
+  // ... now handleOpenProject is defined
+  await handleOpenProject(selected)  // ✅ Works
+}
+```
+
+**File**: `apps/desktop/src/components/project/OpenProjectDialog.tsx`
+
+### Problem 2: Missing Optional Chaining in AIChatPanel
+
+useEffect dependency array referenced `currentProject.name` without optional chaining, causing error when no project was open.
+
+**Original Code (broken)**:
+```typescript
+useEffect(() => {
+  // ...
+}, [currentProject.name])  // ❌ Crashes if currentProject is undefined
+```
+
+**Fix**:
+```typescript
+useEffect(() => {
+  // ...
+}, [currentProject?.name])  // ✅ Safe
+```
+
+**File**: `apps/desktop/src/components/ai/AIChatPanel.tsx`
+
+### Key Learnings
+1. **Always use optional chaining** for potentially undefined objects in deps arrays
+2. **Function declaration order matters** in the same scope for arrow functions
+3. **Both issues only manifested in release builds** - development mode had different initialization order

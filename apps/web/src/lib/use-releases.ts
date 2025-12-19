@@ -57,13 +57,14 @@ interface GitHubRelease {
 function parseAsset(asset: GitHubAsset): ReleaseAsset | null {
   const name = asset.name.toLowerCase()
 
-  // Skip non-downloadable files
+  // Skip non-downloadable files and auto-updater artifacts
   if (
     name === "latest.json" ||
     name === "coderesources" ||
     name === "info.plist" ||
     name.endsWith(".sig") ||
-    name.endsWith(".icns")
+    name.endsWith(".icns") ||
+    name.endsWith(".app.tar.gz") // Auto-updater artifact, not for direct download
   ) {
     return null
   }
@@ -79,10 +80,10 @@ function parseAsset(asset: GitHubAsset): ReleaseAsset | null {
     if (name.includes("arm64")) architecture = "arm64"
     else architecture = "x64"
   }
-  // macOS
-  else if (name.endsWith(".dmg") || name.endsWith(".app.tar.gz")) {
+  // macOS - only DMG for user downloads
+  else if (name.endsWith(".dmg")) {
     platform = "macos"
-    fileType = name.endsWith(".dmg") ? "dmg" : "app.tar.gz"
+    fileType = "dmg"
     if (name.includes("aarch64") || name.includes("arm64")) architecture = "arm64"
     else if (name.includes("universal")) architecture = "universal"
     else if (name.includes("x64") || name.includes("x86_64")) architecture = "x64"
