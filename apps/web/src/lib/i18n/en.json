@@ -80,7 +80,15 @@
     "title": "What's New",
     "description": "Latest updates and improvements to CADHY.",
     "viewReleaseNotes": "View release notes",
-    "allReleases": "All releases"
+    "allReleases": "All releases",
+    "pageTitle": "Changelog",
+    "pageDescription": "All updates, improvements, and fixes for CADHY.",
+    "backToHome": "Back to home",
+    "viewOnGithub": "View on GitHub",
+    "unableToLoad": "Unable to load releases.",
+    "noReleases": "No releases available.",
+    "footerNote": "This is just the beginning.",
+    "checkRoadmap": "Check the roadmap"
   },
   "faq": {
     "badge": "FAQ",

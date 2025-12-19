@@ -3,6 +3,7 @@ import { SpeedInsights } from "@vercel/speed-insights/react"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { createBrowserRouter, Outlet, RouterProvider, ScrollRestoration } from "react-router-dom"
+import ChangelogPage from "@/app/changelog/page"
 import DocsLayout from "@/app/docs/layout"
 import DocsPage from "@/app/docs/page"
 import DownloadPage from "@/app/download/page"
@@ -82,6 +83,10 @@ const router = createBrowserRouter(
             {
               path: "/roadmap",
               element: <RoadmapPage />,
+            },
+            {
+              path: "/changelog",
+              element: <ChangelogPage />,
             },
           ],
         },
