@@ -31,6 +31,8 @@ import {
   Video01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { getVersion } from "@tauri-apps/api/app"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { openUrl } from "@/services/tauri-service"
@@ -43,6 +45,13 @@ interface HelpDialogProps {
 
 export function HelpDialog({ open, onOpenChange, onOpenShortcuts }: HelpDialogProps) {
   const { t } = useTranslation()
+  const [version, setVersion] = useState<string>("")
+
+  useEffect(() => {
+    getVersion()
+      .then((v) => setVersion(v))
+      .catch(() => setVersion("unknown"))
+  }, [])
 
   const handleOpenUrl = async (url: string) => {
     await openUrl(url)
@@ -189,7 +198,7 @@ export function HelpDialog({ open, onOpenChange, onOpenShortcuts }: HelpDialogPr
 
             {/* Version Info */}
             <div className="pt-2 flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
-              <span>CADHY v0.1.0</span>
+              <span>CADHY v{version}</span>
               <span>-</span>
               <button
                 type="button"

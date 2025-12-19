@@ -5,6 +5,7 @@
  * Falls back to navigator-based detection if Tauri is unavailable.
  */
 
+import { getCurrentWindow } from "@tauri-apps/api/window"
 import { type as getType } from "@tauri-apps/plugin-os"
 import { useEffect, useState } from "react"
 
@@ -142,4 +143,58 @@ export function isWindows(): boolean {
  */
 export function isLinux(): boolean {
   return getPlatformSync() === "linux"
+}
+
+/**
+ * Hook to detect fullscreen state
+ *
+ * Listens to window resize events and checks fullscreen state.
+ * Useful for adjusting UI layout (e.g., moving logo on macOS fullscreen).
+ */
+export function useIsFullscreen(): boolean {
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  useEffect(() => {
+    const checkFullscreen = async () => {
+      try {
+        const window = getCurrentWindow()
+        const fullscreen = await window.isFullscreen()
+        setIsFullscreen(fullscreen)
+      } catch {
+        // Tauri not available or error
+        setIsFullscreen(false)
+      }
+    }
+
+    // Check initial state
+    checkFullscreen()
+
+    // Listen for window resize events (fullscreen triggers resize)
+    const handleResize = () => {
+      checkFullscreen()
+    }
+
+    window.addEventListener("resize", handleResize)
+
+    // Also listen for Tauri's window events if available
+    let unlisten: (() => void) | undefined
+    const setupListener = async () => {
+      try {
+        const tauriWindow = getCurrentWindow()
+        unlisten = await tauriWindow.onResized(() => {
+          checkFullscreen()
+        })
+      } catch {
+        // Tauri not available
+      }
+    }
+    setupListener()
+
+    return () => {
+      window.removeEventListener("resize", handleResize)
+      unlisten?.()
+    }
+  }, [])
+
+  return isFullscreen
 }

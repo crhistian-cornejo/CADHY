@@ -38,7 +38,7 @@ import {
   SortingAZ01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useRecentProjectsStore } from "@/stores/recent-projects-store"
 import { AnimatedFolder } from "./AnimatedFolder"
@@ -113,6 +113,10 @@ export function ProjectsView({
 
   // Current folder navigation state (null = root/home)
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
+
+  // Auto-scroll state for folders carousel
+  const foldersScrollRef = useRef<HTMLDivElement>(null)
+  const [isPausedFolderScroll, setIsPausedFolderScroll] = useState(false)
 
   // Store data - use individual selectors to avoid object creation
   const folders = useRecentProjectsStore((s) => s.folders)
@@ -279,8 +283,42 @@ export function ProjectsView({
   const _isEmpty = !hasFolders && unfolderedProjects.length === 0
   const isInFolder = currentFolderId !== null
 
+  // Auto-scroll folders carousel
+  useEffect(() => {
+    if (!hasFolders || !foldersScrollRef.current || isPausedFolderScroll) return
+
+    const scrollContainer = foldersScrollRef.current
+    let animationFrameId: number
+
+    const scroll = () => {
+      if (!scrollContainer || isPausedFolderScroll) return
+
+      // Scroll slowly to the right
+      scrollContainer.scrollLeft += 0.5
+
+      // Reset to start when reaching the end
+      if (scrollContainer.scrollLeft >= scrollContainer.scrollWidth - scrollContainer.clientWidth) {
+        scrollContainer.scrollLeft = 0
+      }
+
+      animationFrameId = requestAnimationFrame(scroll)
+    }
+
+    // Start scrolling after a brief delay
+    const timeoutId = setTimeout(() => {
+      animationFrameId = requestAnimationFrame(scroll)
+    }, 1000)
+
+    return () => {
+      clearTimeout(timeoutId)
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+      }
+    }
+  }, [hasFolders, isPausedFolderScroll])
+
   return (
-    <div className={cn("flex h-full flex-col", className)}>
+    <div className={cn("flex h-full flex-col overflow-hidden", className)}>
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-muted/30 px-3 py-1.5">
         <div className="flex items-center gap-2">
@@ -414,7 +452,7 @@ export function ProjectsView({
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-6">
           {/* ============== ROOT VIEW (Home) ============== */}
           {!isInFolder && (
@@ -632,7 +670,16 @@ export function ProjectsView({
                       ({foldersWithProjects.length})
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-4">
+                  <div
+                    ref={foldersScrollRef}
+                    className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
+                    onMouseEnter={() => setIsPausedFolderScroll(true)}
+                    onMouseLeave={() => setIsPausedFolderScroll(false)}
+                    style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                    }}
+                  >
                     {foldersWithProjects.map(({ folder, projects: folderProjects }) => (
                       <AnimatedFolder
                         key={folder.id}
@@ -653,7 +700,7 @@ export function ProjectsView({
                     <button
                       onClick={() => handleCreateNewFolder()}
                       className={cn(
-                        "flex flex-col items-center justify-center p-6 rounded-xl cursor-pointer",
+                        "flex flex-col items-center justify-center p-6 rounded-xl cursor-pointer shrink-0",
                         "border-2 border-dashed border-border/40 hover:border-border/60",
                         "bg-transparent hover:bg-muted/30 transition-all duration-200",
                         "min-w-[140px] min-h-[160px] group"

@@ -45,6 +45,7 @@ import {
 } from "@/stores/modeller-store"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
 import { BoxLoader } from "./BoxLoader"
+import { CameraAnimationPanel } from "./CameraAnimationPanel"
 import { CreatePanel } from "./CreatePanel"
 import { LayersPanel } from "./LayersPanel"
 import { NotificationsPanel } from "./NotificationsPanel"
@@ -353,6 +354,7 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<LeftPanelTab>("create")
   const [showLeftPanel, setShowLeftPanel] = useState(true)
+  const [showAnimationPanel, setShowAnimationPanel] = useState(false)
   const selectedIds = useSelectedIds()
   const objects = useObjects()
   const notificationSummary = useNotificationSummary()
@@ -363,6 +365,11 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
   // Toggle left panel callback for keyboard shortcut
   const handleToggleLeftPanel = useCallback(() => {
     setShowLeftPanel((prev) => !prev)
+  }, [])
+
+  // Toggle animation panel callback
+  const handleToggleAnimationPanel = useCallback(() => {
+    setShowAnimationPanel((prev) => !prev)
   }, [])
 
   // Enable keyboard shortcuts
@@ -411,7 +418,13 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
         {/* Left Panel with Tabs */}
         {showLeftPanel && (
           <>
-            <ResizablePanel id="left-panel" order={1} defaultSize={35} minSize={25} maxSize={50}>
+            <ResizablePanel
+              id="left-panel"
+              order={1}
+              defaultSize={showAnimationPanel ? 25 : 35}
+              minSize={20}
+              maxSize={50}
+            >
               <div className="flex h-full flex-col border-r border-border/40 bg-background">
                 {/* Horizontal Tabs - symmetric with toolbar */}
                 <Tabs
@@ -523,22 +536,47 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
         )}
 
         {/* Center - Viewport */}
-        <ResizablePanel id="viewport" order={2} defaultSize={showLeftPanel ? 65 : 100} minSize={50}>
+        <ResizablePanel
+          id="viewport"
+          order={2}
+          defaultSize={showAnimationPanel ? 50 : showLeftPanel ? 65 : 100}
+          minSize={40}
+        >
           <div className="h-full flex flex-col">
             {/* Viewport Toolbar */}
             <ViewportToolbar
               showLeftPanel={showLeftPanel}
               onToggleLeftPanel={handleToggleLeftPanel}
+              showAnimationPanel={showAnimationPanel}
+              onToggleAnimationPanel={handleToggleAnimationPanel}
             />
 
             {/* Viewport */}
             <div className="flex-1 relative">
               <ViewerErrorBoundary>
-                <Viewport3D />
+                <Viewport3D showAnimationPanel={showAnimationPanel} />
               </ViewerErrorBoundary>
             </div>
           </div>
         </ResizablePanel>
+
+        {/* Right Panel - Camera Animations */}
+        {showAnimationPanel && (
+          <>
+            <ResizableHandle withHandle />
+            <ResizablePanel
+              id="animation-panel"
+              order={3}
+              defaultSize={25}
+              minSize={20}
+              maxSize={40}
+            >
+              <PanelErrorBoundary context="Camera Animation Panel">
+                <CameraAnimationPanel onClose={handleToggleAnimationPanel} />
+              </PanelErrorBoundary>
+            </ResizablePanel>
+          </>
+        )}
       </ResizablePanelGroup>
     </div>
   )

@@ -2,6 +2,9 @@ import { relaunch } from "@tauri-apps/plugin-process"
 import { check, type Update } from "@tauri-apps/plugin-updater"
 import { useCallback, useEffect, useRef, useState } from "react"
 
+// Check if running in development mode
+const isDev = import.meta.env.DEV || import.meta.env.MODE === "development"
+
 export interface UpdateInfo {
   version: string
   currentVersion: string
@@ -56,6 +59,12 @@ export function useUpdater(options?: {
 
   const checkForUpdates = useCallback(
     async (manual = true) => {
+      // Skip update checks in development mode
+      if (isDev) {
+        console.log("[Updater] Skipping update check in development mode")
+        return
+      }
+
       if (checking || downloading) return
 
       isManualCheck.current = manual

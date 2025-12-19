@@ -54,6 +54,25 @@ export interface BasicSystemInfo {
   version: string
 }
 
+/** Extended system info from Rust backend */
+interface ExtendedSystemInfo {
+  appName: string
+  appDescription: string
+  version: string
+  osType: string
+  osVersion: string
+  arch: string
+  hostname: string
+  gitCommit: string
+  gitBranch: string
+  gitDirty: boolean
+  buildTimestamp: string
+  buildProfile: string
+  targetTriple: string
+  rustVersion: string
+  tauriVersion: string
+}
+
 // ============================================================================
 // SYSTEM INFORMATION
 // ============================================================================
@@ -67,38 +86,38 @@ export async function getBasicSystemInfo(): Promise<BasicSystemInfo> {
 
 /**
  * Get comprehensive system information for About dialog
- * This combines Rust backend data with frontend constants
+ * Uses the extended Rust command that has all build info
  */
 export async function getSystemInfo(): Promise<SystemInfo> {
   try {
-    const basicInfo = await getBasicSystemInfo()
+    // Use the extended system info from Rust - has all build metadata
+    const extInfo = await invoke<ExtendedSystemInfo>("get_extended_system_info")
 
-    // Build comprehensive info combining backend and frontend data
     const systemInfo: SystemInfo = {
       appName: "CADHY",
-      appDescription: "Computer-Aided Design for HYdraulics (CADHY)",
+      appDescription: extInfo.appDescription || "Computer-Aided Design for HYdraulics (CADHY)",
       build: {
-        version: basicInfo.version || "0.1.0",
-        gitCommit: __GIT_COMMIT__ || "unknown",
-        gitBranch: __GIT_BRANCH__ || "main",
-        gitDirty: __GIT_DIRTY__ || false,
-        buildTimestamp: __BUILD_TIMESTAMP__ || new Date().toISOString(),
-        buildProfile: __DEV__ ? "debug" : "release",
-        targetTriple: getTargetTriple(basicInfo),
-        rustVersion: __RUST_VERSION__ || "unknown",
+        version: extInfo.version,
+        gitCommit: extInfo.gitCommit,
+        gitBranch: extInfo.gitBranch,
+        gitDirty: extInfo.gitDirty,
+        buildTimestamp: extInfo.buildTimestamp,
+        buildProfile: extInfo.buildProfile as "debug" | "release",
+        targetTriple: extInfo.targetTriple,
+        rustVersion: extInfo.rustVersion,
       },
       os: {
-        osType: basicInfo.os || "unknown",
-        osVersion: getOSVersion(),
-        arch: basicInfo.arch || "unknown",
-        hostname: getHostname(),
-        platform: getPlatform(basicInfo.os),
+        osType: extInfo.osType,
+        osVersion: extInfo.osVersion,
+        arch: extInfo.arch,
+        hostname: extInfo.hostname,
+        platform: capitalizeOS(extInfo.osType),
       },
       techStack: {
-        tauriVersion: __TAURI_VERSION__ || "2.x",
-        rustVersion: __RUST_VERSION__ || "unknown",
+        tauriVersion: extInfo.tauriVersion,
+        rustVersion: extInfo.rustVersion,
       },
-      repository: "https://github.com/corx-ai/cadhy",
+      repository: "https://github.com/crhistian-cornejo/CADHY",
       homepage: "https://cadhy.app",
       license: "MIT",
       authors: ["CORX AI", "CADHY Contributors"],
@@ -144,62 +163,7 @@ export async function openPath(path: string): Promise<void> {
 // HELPER FUNCTIONS
 // ============================================================================
 
-function getTargetTriple(info: BasicSystemInfo): string {
-  const os = info.os?.toLowerCase() || "unknown"
-  const arch = info.arch?.toLowerCase() || "unknown"
-
-  const osMap: Record<string, string> = {
-    windows: "pc-windows-msvc",
-    macos: "apple-darwin",
-    linux: "unknown-linux-gnu",
-  }
-
-  const archMap: Record<string, string> = {
-    x86_64: "x86_64",
-    aarch64: "aarch64",
-    arm: "arm",
-    x86: "i686",
-  }
-
-  const targetArch = archMap[arch] || arch
-  const targetOs = osMap[os] || os
-
-  return `${targetArch}-${targetOs}`
-}
-
-function getOSVersion(): string {
-  // Try to get OS version from user agent as fallback
-  const ua = navigator.userAgent
-
-  if (ua.includes("Windows")) {
-    const match = ua.match(/Windows NT (\d+\.\d+)/)
-    if (match) {
-      const versions: Record<string, string> = {
-        "10.0": "10/11",
-        "6.3": "8.1",
-        "6.2": "8",
-        "6.1": "7",
-      }
-      return versions[match[1]] || match[1]
-    }
-  } else if (ua.includes("Mac OS X")) {
-    const match = ua.match(/Mac OS X (\d+[._]\d+[._]?\d*)/)
-    if (match) {
-      return match[1].replace(/_/g, ".")
-    }
-  } else if (ua.includes("Linux")) {
-    return "Linux"
-  }
-
-  return "Unknown"
-}
-
-function getHostname(): string {
-  // Hostname is not available in browser context for security reasons
-  return "localhost"
-}
-
-function getPlatform(os: string): string {
+function capitalizeOS(os: string): string {
   const platformMap: Record<string, string> = {
     windows: "Windows",
     macos: "macOS",
@@ -207,7 +171,6 @@ function getPlatform(os: string): string {
     ios: "iOS",
     android: "Android",
   }
-
   return platformMap[os?.toLowerCase()] || os || "Unknown"
 }
 
@@ -221,7 +184,7 @@ function getFallbackSystemInfo(): SystemInfo {
       gitBranch: "main",
       gitDirty: false,
       buildTimestamp: new Date().toISOString(),
-      buildProfile: "debug",
+      buildProfile: "release",
       targetTriple: "unknown",
       rustVersion: "unknown",
     },
@@ -236,22 +199,9 @@ function getFallbackSystemInfo(): SystemInfo {
       tauriVersion: "2.x",
       rustVersion: "unknown",
     },
-    repository: "https://github.com/corx-ai/cadhy",
+    repository: "https://github.com/crhistian-cornejo/CADHY",
     homepage: "https://cadhy.app",
     license: "MIT",
     authors: ["CORX AI", "CADHY Contributors"],
   }
 }
-
-// ============================================================================
-// GLOBAL TYPE DECLARATIONS
-// ============================================================================
-
-// These are injected at build time via vite/define
-declare const __GIT_COMMIT__: string | undefined
-declare const __GIT_BRANCH__: string | undefined
-declare const __GIT_DIRTY__: boolean | undefined
-declare const __BUILD_TIMESTAMP__: string | undefined
-declare const __DEV__: boolean | undefined
-declare const __RUST_VERSION__: string | undefined
-declare const __TAURI_VERSION__: string | undefined

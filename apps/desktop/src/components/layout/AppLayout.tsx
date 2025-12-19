@@ -81,7 +81,7 @@ import { ChatErrorBoundary, UpdateBadge } from "@/components/common"
 import { ModellerView } from "@/components/modeller"
 import { NewProjectDialog, OpenProjectDialog, ProjectsView } from "@/components/project"
 import { useAutoSave, useProjectShortcuts, useUnsavedChangesWarning } from "@/hooks"
-import { usePlatform } from "@/hooks/use-platform"
+import { useIsFullscreen, usePlatform } from "@/hooks/use-platform"
 import { type LanguageCode, languages } from "@/i18n"
 import { useLayoutStore } from "@/stores/layout-store"
 import { useNavigationStore, type ViewId } from "@/stores/navigation-store"
@@ -370,10 +370,14 @@ export function AppLayout() {
 
 function Titlebar({ onOpenCommandPalette }: { onOpenCommandPalette: () => void }) {
   const { isMacOS } = usePlatform()
+  const isFullscreen = useIsFullscreen()
   const { t } = useTranslation()
   const { panels, togglePanel } = useLayoutStore()
   const currentProject = useProjectStore((s) => s.currentProject)
   const modKey = isMacOS ? "⌘" : "Ctrl"
+
+  // On macOS fullscreen, traffic lights are hidden, so logo can be on the left
+  const showLogoLeft = isMacOS && isFullscreen
 
   // Handle AI Chat toggle - requires a project to be open
   const handleToggleAiChat = () => {
@@ -393,30 +397,50 @@ function Titlebar({ onOpenCommandPalette }: { onOpenCommandPalette: () => void }
         isMacOS ? "pl-3 pr-3" : "pl-3 pr-0"
       )}
     >
-      {/* Center: Logo + Title (absolute positioned for true centering) */}
-      <div
-        className="absolute inset-0 flex items-center justify-center gap-2 pointer-events-none"
-        data-tauri-drag-region
-      >
-        <img
-          src="/LOGO.png"
-          alt="CADHY"
-          className="size-5 pointer-events-none"
-          data-tauri-drag-region
-        />
-        <span
-          className="text-xs font-medium tracking-wide text-foreground/80 pointer-events-none"
+      {/* Center: Logo + Title (absolute positioned for true centering, unless fullscreen on macOS) */}
+      {!showLogoLeft && (
+        <div
+          className="absolute inset-0 flex items-center justify-center gap-2 pointer-events-none"
           data-tauri-drag-region
         >
-          CADHY
-        </span>
-      </div>
+          <img
+            src="/LOGO.png"
+            alt="CADHY"
+            className="size-5 pointer-events-none"
+            data-tauri-drag-region
+          />
+          <span
+            className="text-xs font-medium tracking-wide text-foreground/80 pointer-events-none"
+            data-tauri-drag-region
+          >
+            CADHY
+          </span>
+        </div>
+      )}
 
       {/* Left section */}
       <div className="flex items-center gap-2 z-10" data-tauri-drag-region>
         {isMacOS ? (
-          // macOS: Traffic lights space
-          <div className="w-[70px]" data-tauri-drag-region />
+          // macOS: Show logo on left when fullscreen, otherwise just traffic lights space
+          showLogoLeft ? (
+            <div className="flex items-center gap-2" data-tauri-drag-region>
+              <img
+                src="/LOGO.png"
+                alt="CADHY"
+                className="size-5 pointer-events-none"
+                data-tauri-drag-region
+              />
+              <span
+                className="text-xs font-medium tracking-wide text-foreground/80 pointer-events-none"
+                data-tauri-drag-region
+              >
+                CADHY
+              </span>
+            </div>
+          ) : (
+            // Traffic lights space when not fullscreen
+            <div className="w-[70px]" data-tauri-drag-region />
+          )
         ) : (
           // Windows/Linux: Sidebar toggle + Command palette on left
           <>

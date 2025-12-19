@@ -1,7 +1,6 @@
 {
   "app": {
-    "name": "CADHY",
-    "version": "v0.1.0"
+    "name": "CADHY"
   },
   "common": {
     "save": "Guardar",
@@ -19,7 +18,42 @@
     "success": "Éxito",
     "confirm": "Confirmar",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "rename": "Renombrar",
+    "apply": "Aplicar"
+  },
+  "camera": {
+    "savedViews": "Vistas Guardadas",
+    "enterViewName": "Ingresa nombre de vista...",
+    "saveCurrentView": "Guardar Vista Actual",
+    "noSavedViews": "No hay vistas guardadas aún",
+    "enterName": "Por favor ingresa un nombre para la vista",
+    "viewSaved": "Vista guardada",
+    "viewLoaded": "Vista cargada",
+    "viewDeleted": "Vista eliminada",
+    "viewRenamed": "Vista renombrada"
+  },
+  "animation": {
+    "title": "Animaciones de Cámara",
+    "createNew": "Crear Nueva Animación",
+    "animationName": "Nombre de animación...",
+    "selectAnimation": "Seleccionar Animación",
+    "selectOne": "Selecciona una animación...",
+    "playback": "Reproducción",
+    "timeline": "Línea de Tiempo",
+    "keyframes": "fotogramas clave",
+    "keyframesList": "Fotogramas Clave",
+    "addKeyframe": "Añadir Fotograma en Tiempo Actual",
+    "duration": "Duración",
+    "easing": "Suavizado",
+    "noAnimations": "Aún no hay animaciones. Crea una para comenzar.",
+    "enterName": "Por favor ingresa un nombre para la animación",
+    "created": "Animación creada",
+    "deleted": "Animación eliminada",
+    "keyframeAdded": "Fotograma añadido",
+    "keyframeDeleted": "Fotograma eliminado",
+    "showPanel": "Mostrar Panel de Animación",
+    "hidePanel": "Ocultar Panel de Animación"
   },
   "sidebar": {
     "home": "Inicio",
