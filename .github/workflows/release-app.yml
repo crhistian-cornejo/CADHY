@@ -218,7 +218,7 @@ jobs:
             echo "No Apple certificate provided, skipping code signing setup"
           fi
 
-      - name: Build App
+      - name: Build App and DMG
         env:
           # Tauri signing keys for auto-updater
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -231,25 +231,79 @@ jobs:
           # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }} --bundles app || true
+          # Build app bundle only first (no DMG yet)
+          bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }} --bundles app
 
       - name: Fix dylib paths and re-sign
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
           chmod +x scripts/occt/fix-dylib-paths-macos.sh
-          ./scripts/occt/fix-dylib-paths-macos.sh
-          # Ad-hoc sign if no Apple identity (CI may not have certs)
-          if [ -z "${{ secrets.APPLE_SIGNING_IDENTITY }}" ]; then
-            echo "No Apple signing identity, using ad-hoc signing"
-            codesign --force --deep --sign - target/${{ matrix.target }}/release/bundle/macos/CADHY.app
-          fi
+          ./scripts/occt/fix-dylib-paths-macos.sh "target/${{ matrix.target }}/release/bundle/macos/CADHY.app"
 
-      - name: Build DMG
+      - name: Create DMG from fixed app
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          APP_PATH="target/${{ matrix.target }}/release/bundle/macos/CADHY.app"
+          DMG_DIR="target/${{ matrix.target }}/release/bundle/dmg"
+          mkdir -p "$DMG_DIR"
+          
+          # Get version from tauri.conf.json
+          VERSION=$(grep -o '"version": "[^"]*"' apps/desktop/src-tauri/tauri.conf.json | head -1 | cut -d'"' -f4)
+          DMG_NAME="CADHY_${VERSION}_${{ matrix.arch == 'arm64' && 'aarch64' || 'x64' }}.dmg"
+          
+          # Create DMG using hdiutil (macOS native tool)
+          echo "Creating DMG from fixed app bundle..."
+          
+          # Create a temporary directory for DMG contents
+          TEMP_DMG_DIR=$(mktemp -d)
+          cp -R "$APP_PATH" "$TEMP_DMG_DIR/"
+          ln -s /Applications "$TEMP_DMG_DIR/Applications"
+          
+          # Create the DMG
+          hdiutil create -volname "CADHY" -srcfolder "$TEMP_DMG_DIR" -ov -format UDZO "$DMG_DIR/$DMG_NAME"
+          
+          # Sign the DMG if we have an identity
+          if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            codesign --force --sign "$APPLE_SIGNING_IDENTITY" "$DMG_DIR/$DMG_NAME"
+          else
+            codesign --force --sign - "$DMG_DIR/$DMG_NAME"
+          fi
+          
+          # Cleanup
+          rm -rf "$TEMP_DMG_DIR"
+          
+          echo "DMG created: $DMG_DIR/$DMG_NAME"
+          ls -la "$DMG_DIR/"
+
+      - name: Create app.tar.gz for auto-updater
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
-          bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }} --bundles dmg || echo "DMG build failed, continuing..."
+          APP_PATH="target/${{ matrix.target }}/release/bundle/macos/CADHY.app"
+          BUNDLE_DIR="target/${{ matrix.target }}/release/bundle/macos"
+          
+          # Get version
+          VERSION=$(grep -o '"version": "[^"]*"' apps/desktop/src-tauri/tauri.conf.json | head -1 | cut -d'"' -f4)
+          TARBALL_NAME="CADHY.app.tar.gz"
+          
+          # Create tarball
+          cd "$BUNDLE_DIR"
+          tar -czf "$TARBALL_NAME" "CADHY.app"
+          
+          # Sign for auto-updater if we have the key
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "Signing tarball for auto-updater..."
+            # Use tauri's signer if available, otherwise skip
+            if command -v tauri &> /dev/null; then
+              tauri signer sign "$TARBALL_NAME" --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" || echo "Signing failed, continuing..."
+            fi
+          fi
+          
+          echo "Tarball created: $BUNDLE_DIR/$TARBALL_NAME"
+          ls -la
 
       - name: Get version
         id: version
