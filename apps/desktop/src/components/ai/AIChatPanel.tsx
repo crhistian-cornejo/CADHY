@@ -807,7 +807,7 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
       console.log("[AIChatPanel] Loading sessions for project:", currentProject.name)
       loadSessions()
     }
-  }, [currentProject?.id, currentSessionId, loadSessions, currentProject.name, currentProject])
+  }, [currentProject?.id, currentSessionId, loadSessions, currentProject?.name, currentProject])
 
   // Use the AI chat hook
   const {
