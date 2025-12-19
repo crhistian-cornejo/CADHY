@@ -2,6 +2,7 @@
  * Changelog Section Component
  *
  * Horizontal cards showing recent releases with version badges.
+ * Dynamically fetches releases from GitHub API.
  * Clean, minimal design like Cursor's changelog.
  */
 
@@ -9,6 +10,7 @@ import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "@/lib/i18n"
+import { formatDate, useReleases } from "@/lib/use-releases"
 
 interface ChangelogEntry {
   version: string
@@ -16,21 +18,46 @@ interface ChangelogEntry {
   summary: string
 }
 
-// Static changelog - this could be fetched from GitHub releases in the future
-const CHANGELOG_ENTRIES: ChangelogEntry[] = [
-  {
-    version: "0.1.0",
-    date: "Dec 15, 2025",
-    summary:
-      "Initial release with Manning calculations, GVF analysis, 3D visualization, and AI assistant.",
-  },
-  // Future releases will be added here
-  // {
-  //   version: "0.2.0",
-  //   date: "Jan 2026",
-  //   summary: "Pipe networks, circular channels, and export improvements.",
-  // },
-]
+/**
+ * Extract a clean summary from GitHub release markdown body.
+ * Parses the first meaningful content after headers.
+ */
+function extractSummary(body: string): string {
+  if (!body || body.trim().length === 0) {
+    return "Bug fixes and improvements."
+  }
+
+  // Split by lines and find meaningful content
+  const lines = body.split("\n").map((line) => line.trim())
+  const summaryParts: string[] = []
+
+  for (const line of lines) {
+    // Skip empty lines and headers
+    if (!line || line.startsWith("#")) continue
+
+    // Clean markdown syntax: list markers, bold, links, code
+    const cleaned = line
+      .replace(/^[-*]\s*/, "") // Remove list markers
+      .replace(/\*\*([^*]+)\*\*/g, "$1") // Bold to plain
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Links to text
+      .replace(/`([^`]+)`/g, "$1") // Inline code to plain
+      .trim()
+
+    if (cleaned.length > 0) {
+      summaryParts.push(cleaned)
+      // Get up to 2 items for a concise summary
+      if (summaryParts.length >= 2) break
+    }
+  }
+
+  if (summaryParts.length === 0) {
+    return "Bug fixes and improvements."
+  }
+
+  // Join with period separation, max 150 chars
+  const summary = summaryParts.join(". ")
+  return summary.length > 150 ? `${summary.slice(0, 147)}...` : summary
+}
 
 function ChangelogCard({ entry }: { entry: ChangelogEntry }) {
   return (
@@ -62,8 +89,33 @@ function PlaceholderCard({ comingSoonText }: { comingSoonText: string }) {
   )
 }
 
+function LoadingCard() {
+  return (
+    <div className="flex-shrink-0 w-72 border border-border bg-card rounded-xl p-5 animate-pulse">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="h-5 w-12 bg-muted rounded" />
+        <div className="h-4 w-20 bg-muted rounded" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 w-full bg-muted rounded" />
+        <div className="h-4 w-3/4 bg-muted rounded" />
+      </div>
+    </div>
+  )
+}
+
 export function ChangelogSection() {
   const { t } = useTranslation()
+  const { releases, loading } = useReleases()
+
+  // Convert releases to changelog entries
+  const entries: ChangelogEntry[] = releases.slice(0, 4).map((release) => ({
+    version: release.version,
+    date: formatDate(release.publishedAt),
+    summary: extractSummary(release.body),
+  }))
+
+  const placeholderCount = Math.max(0, 4 - entries.length)
 
   return (
     <section
@@ -78,18 +130,30 @@ export function ChangelogSection() {
 
         {/* Horizontal scroll cards */}
         <div className="flex gap-4 overflow-x-auto pb-4 -mx-8 px-8 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-          {CHANGELOG_ENTRIES.map((entry) => (
-            <ChangelogCard key={entry.version} entry={entry} />
-          ))}
+          {loading ? (
+            // Loading skeleton
+            <>
+              <LoadingCard />
+              <LoadingCard />
+              <LoadingCard />
+              <LoadingCard />
+            </>
+          ) : (
+            <>
+              {entries.map((entry) => (
+                <ChangelogCard key={entry.version} entry={entry} />
+              ))}
 
-          {/* Placeholder cards for visual balance */}
-          {CHANGELOG_ENTRIES.length < 4 &&
-            Array.from({ length: 4 - CHANGELOG_ENTRIES.length }).map((_, i) => (
-              <PlaceholderCard
-                key={`placeholder-${CHANGELOG_ENTRIES.length + i}`}
-                comingSoonText={t.common.comingSoon}
-              />
-            ))}
+              {/* Placeholder cards for visual balance */}
+              {placeholderCount > 0 &&
+                Array.from({ length: placeholderCount }).map((_, i) => (
+                  <PlaceholderCard
+                    key={`placeholder-${entries.length + i}`}
+                    comingSoonText={t.common.comingSoon}
+                  />
+                ))}
+            </>
+          )}
         </div>
 
         {/* Link to full changelog */}

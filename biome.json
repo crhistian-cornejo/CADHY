@@ -10,6 +10,7 @@
     "includes": [
       "**",
       "!**/node_modules",
+      "!**/.bun",
       "!**/dist",
       "!**/build",
       "!**/.tauri",
