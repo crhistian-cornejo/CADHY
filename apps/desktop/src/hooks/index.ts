@@ -22,6 +22,7 @@ export {
   isWindows,
   type Platform,
   type PlatformInfo,
+  useIsFullscreen,
   usePlatform,
 } from "./use-platform"
 export {

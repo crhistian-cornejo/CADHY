@@ -82,7 +82,7 @@ export function UpdateDialog() {
             </p>
             {updateInfo.version && (
               <a
-                href={`https://github.com/crhristian-cornejo/CADHY/releases/tag/v${updateInfo.version}`}
+                href={`https://github.com/crhistian-cornejo/CADHY/releases/tag/v${updateInfo.version}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline mt-2 inline-block"

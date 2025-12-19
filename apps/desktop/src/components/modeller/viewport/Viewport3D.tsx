@@ -18,14 +18,20 @@ import { useSounds } from "@/hooks/use-sounds"
 import { registerViewportCanvas } from "@/services/thumbnail-service"
 import { useIsAnalyzingScene } from "@/stores/chat-store"
 import { useViewportSettings } from "@/stores/modeller-store"
+import { PlaybackControls } from "./PlaybackControls"
 import { SceneContent } from "./SceneContent"
 
 export interface Viewport3DProps {
   className?: string
   showStats?: boolean
+  showAnimationPanel?: boolean
 }
 
-export function Viewport3D({ className, showStats = false }: Viewport3DProps) {
+export function Viewport3D({
+  className,
+  showStats = false,
+  showAnimationPanel = false,
+}: Viewport3DProps) {
   const viewportSettings = useViewportSettings()
   const isAnalyzingScene = useIsAnalyzingScene()
   const { playAiThinking, playAiComplete } = useSounds()
@@ -88,6 +94,9 @@ export function Viewport3D({ className, showStats = false }: Viewport3DProps) {
         <div className="absolute left-2 top-2 flex flex-col gap-1 text-[10px] text-muted-foreground">
           <span>Viewport</span>
         </div>
+
+        {/* Playback Controls - Only show when animation panel is open */}
+        {showAnimationPanel && <PlaybackControls />}
       </div>
     </AIGlowBorder>
   )

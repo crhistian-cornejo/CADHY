@@ -47,7 +47,7 @@ export function UpdateBadge() {
     if (!badgeState?.version) return
 
     // Open changelog on GitHub
-    const url = `https://github.com/crhristian-cornejo/CADHY/releases/tag/v${badgeState.version}`
+    const url = `https://github.com/crhistian-cornejo/CADHY/releases/tag/v${badgeState.version}`
     await open(url)
 
     // Clear badge after clicking

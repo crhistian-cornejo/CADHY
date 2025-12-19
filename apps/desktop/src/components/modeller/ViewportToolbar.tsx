@@ -44,6 +44,7 @@ import {
   ArrowRight01Icon,
   ArrowTurnBackwardIcon,
   ArrowTurnForwardIcon,
+  Camera01Icon,
   CubeIcon,
   Cursor01Icon,
   Download01Icon,
@@ -54,6 +55,7 @@ import {
   MoreHorizontalIcon,
   Move01Icon,
   PencilEdit02Icon,
+  PlayIcon,
   Resize01Icon,
   Rotate01Icon,
   RulerIcon,
@@ -64,6 +66,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { CameraViewsPopover } from "@/components/modeller/CameraViewsPopover"
 import { usePlatform } from "@/hooks/use-platform"
 import { shapeIdMap, useCAD } from "@/hooks/useCAD"
 import * as cadService from "@/services/cad-service"
@@ -84,6 +87,7 @@ import {
   useCanUndo,
   useModellerStore,
   useObjects,
+  useSavedCameraViews,
   useSelectedObjects,
   useSnapMode,
   useTransformMode,
@@ -249,13 +253,20 @@ function useContainerWidth() {
 interface ViewportToolbarProps {
   showLeftPanel?: boolean
   onToggleLeftPanel?: () => void
+  showAnimationPanel?: boolean
+  onToggleAnimationPanel?: () => void
 }
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
-export function ViewportToolbar({ showLeftPanel = true, onToggleLeftPanel }: ViewportToolbarProps) {
+export function ViewportToolbar({
+  showLeftPanel = true,
+  onToggleLeftPanel,
+  showAnimationPanel = false,
+  onToggleAnimationPanel,
+}: ViewportToolbarProps) {
   const { t } = useTranslation()
   const { isMacOS } = usePlatform()
   const { containerRef, width } = useContainerWidth()
@@ -267,6 +278,7 @@ export function ViewportToolbar({ showLeftPanel = true, onToggleLeftPanel }: Vie
   const canRedo = useCanRedo()
   const selectedObjects = useSelectedObjects()
   const allObjects = useObjects()
+  const savedViews = useSavedCameraViews()
   const [isExporting, setIsExporting] = useState(false)
 
   // CAD operations
@@ -306,8 +318,15 @@ export function ViewportToolbar({ showLeftPanel = true, onToggleLeftPanel }: Vie
   const showRightTools = width >= BREAKPOINTS.HIDE_CAMERA
   const hasOverflow = !showCameraViews || !showViewModes || !showSnapGrid
 
-  const { setTransformMode, setCameraView, setViewportSettings, setSnapMode, undo, redo } =
-    useModellerStore()
+  const {
+    setTransformMode,
+    setCameraView,
+    setViewportSettings,
+    setSnapMode,
+    undo,
+    redo,
+    loadCameraView,
+  } = useModellerStore()
 
   const handleTransformMode = useCallback(
     (mode: TransformMode) => {
@@ -336,6 +355,17 @@ export function ViewportToolbar({ showLeftPanel = true, onToggleLeftPanel }: Vie
       setViewportSettings({ viewMode: mode })
     },
     [setViewportSettings]
+  )
+
+  const handleLoadCameraView = useCallback(
+    (id: string) => {
+      const view = savedViews.find((v) => v.id === id)
+      if (view) {
+        loadCameraView(id)
+        toast.success(t("camera.viewLoaded", `Loaded "${view.name}"`))
+      }
+    },
+    [savedViews, loadCameraView, t]
   )
 
   const handleExport = useCallback(
@@ -1040,6 +1070,41 @@ export function ViewportToolbar({ showLeftPanel = true, onToggleLeftPanel }: Vie
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
+                    <DropdownMenuLabel>{t("camera.savedViews", "Saved Views")}</DropdownMenuLabel>
+                    {savedViews.length === 0 ? (
+                      <DropdownMenuItem disabled>
+                        <span className="text-xs text-muted-foreground">
+                          {t("camera.noSavedViews", "No saved views yet")}
+                        </span>
+                      </DropdownMenuItem>
+                    ) : (
+                      savedViews.map((view) => (
+                        <DropdownMenuItem
+                          key={view.id}
+                          onClick={() => handleLoadCameraView(view.id)}
+                        >
+                          <HugeiconsIcon icon={Camera01Icon} className="mr-2 size-4" />
+                          <span>{view.name}</span>
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                      {t("animation.title", "Camera Animations")}
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem onClick={onToggleAnimationPanel}>
+                      <HugeiconsIcon icon={PlayIcon} className="mr-2 size-4" />
+                      <span>
+                        {showAnimationPanel
+                          ? t("animation.hidePanel", "Hide Animation Panel")
+                          : t("animation.showPanel", "Show Animation Panel")}
+                      </span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
                     <DropdownMenuLabel>
                       {t("toolbar.exportSelection", "Export Selection")}
                     </DropdownMenuLabel>
@@ -1206,6 +1271,28 @@ export function ViewportToolbar({ showLeftPanel = true, onToggleLeftPanel }: Vie
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Camera Views */}
+            <CameraViewsPopover className="shrink-0" />
+
+            {/* Camera Animations */}
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant={showAnimationPanel ? "default" : "ghost"}
+                    size="icon-sm"
+                    className="h-7 w-7 shrink-0"
+                    onClick={onToggleAnimationPanel}
+                  >
+                    <HugeiconsIcon icon={PlayIcon} className="size-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent side="bottom">
+                {t("animation.title", "Camera Animations")}
+              </TooltipContent>
+            </Tooltip>
 
             {/* Viewport Settings Popover */}
             <Popover>

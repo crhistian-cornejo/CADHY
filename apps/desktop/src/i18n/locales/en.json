@@ -1,7 +1,6 @@
 {
   "app": {
-    "name": "CADHY",
-    "version": "v0.1.0"
+    "name": "CADHY"
   },
   "common": {
     "save": "Save",
@@ -19,7 +18,42 @@
     "success": "Success",
     "confirm": "Confirm",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "rename": "Rename",
+    "apply": "Apply"
+  },
+  "camera": {
+    "savedViews": "Saved Views",
+    "enterViewName": "Enter view name...",
+    "saveCurrentView": "Save Current View",
+    "noSavedViews": "No saved views yet",
+    "enterName": "Please enter a view name",
+    "viewSaved": "View saved",
+    "viewLoaded": "Loaded view",
+    "viewDeleted": "View deleted",
+    "viewRenamed": "View renamed"
+  },
+  "animation": {
+    "title": "Camera Animations",
+    "createNew": "Create New Animation",
+    "animationName": "Animation name...",
+    "selectAnimation": "Select Animation",
+    "selectOne": "Select an animation...",
+    "playback": "Playback",
+    "timeline": "Timeline",
+    "keyframes": "keyframes",
+    "keyframesList": "Keyframes",
+    "addKeyframe": "Add Keyframe at Current Time",
+    "duration": "Duration",
+    "easing": "Easing",
+    "noAnimations": "No animations yet. Create one to get started.",
+    "enterName": "Please enter an animation name",
+    "created": "Animation created",
+    "deleted": "Animation deleted",
+    "keyframeAdded": "Keyframe added",
+    "keyframeDeleted": "Keyframe deleted",
+    "showPanel": "Show Animation Panel",
+    "hidePanel": "Hide Animation Panel"
   },
   "sidebar": {
     "home": "Home",

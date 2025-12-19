@@ -106,7 +106,9 @@ function ParamInput({
   const unitLabel = customUnit ?? (unitType === "length" ? lengthLabel : undefined)
 
   // Convert value for display (internal -> display)
-  const displayValue = unitType === "length" ? convertLengthToDisplay(value) : value
+  // Fallback to 0 if value is undefined/null to prevent .toFixed() crash
+  const safeValue = value ?? 0
+  const displayValue = unitType === "length" ? convertLengthToDisplay(safeValue) : safeValue
 
   // Handle change with conversion (display -> internal)
   const handleChange = (newDisplayValue: number) => {

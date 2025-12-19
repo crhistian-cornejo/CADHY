@@ -24,10 +24,14 @@ import {
   type AnySceneObject,
   type ChannelObject,
   type ShapeObject,
+  useCameraAnimations,
   useCameraView,
+  useCurrentAnimation,
   useFocusObjectId,
   useGridSettings,
   useModellerStore,
+  usePlaybackState,
+  usePlaybackTime,
   useSelectedIds,
   useSelectedObjects,
   useSnapMode,
@@ -35,6 +39,7 @@ import {
   useViewportSettings,
   useVisibleObjects,
 } from "@/stores/modeller-store"
+import { getCameraAtTime } from "@/utils/camera-interpolation"
 import { SceneObjectMesh } from "./meshes"
 import { PostProcessing, type QualityPreset } from "./PostProcessing"
 
@@ -61,6 +66,18 @@ export function SceneContent({ showStats }: SceneContentProps) {
   const storeCameraPosition = useModellerStore((s) => s.cameraPosition)
   const storeCameraTarget = useModellerStore((s) => s.cameraTarget)
 
+  // Animation state
+  const animations = useCameraAnimations()
+  const currentAnimationId = useCurrentAnimation()
+  const playbackState = usePlaybackState()
+  const playbackTime = usePlaybackTime()
+  const {
+    setPlaybackTime,
+    stop: stopPlayback,
+    setCameraPosition,
+    setCameraTarget,
+  } = useModellerStore()
+
   const { select, setHovered } = useModellerStore()
 
   // Ref for the currently selected mesh (first selected)
@@ -78,8 +95,15 @@ export function SceneContent({ showStats }: SceneContentProps) {
     progress: number
   } | null>(null)
 
-  // Get camera from Three.js context
-  const { camera } = useThree()
+  // Get camera and scene from Three.js context
+  const { camera, scene } = useThree()
+
+  // Update scene background when viewport settings change
+  useEffect(() => {
+    if (viewportSettings.backgroundColor) {
+      scene.background = new THREE.Color(viewportSettings.backgroundColor)
+    }
+  }, [scene, viewportSettings.backgroundColor])
 
   // State to trigger re-render when mesh is ready
   const [meshReady, setMeshReady] = useState(false)
@@ -154,28 +178,107 @@ export function SceneContent({ showStats }: SceneContentProps) {
     }
   }, [focusObjectId, camera, getObjectById, clearFocus])
 
-  // Animate camera focus
+  // Animate camera focus and playback
   useFrame((_, delta) => {
-    if (!focusAnimationRef.current?.active || !orbitControlsRef.current) return
+    // Handle focus animation first (higher priority)
+    if (focusAnimationRef.current?.active && orbitControlsRef.current) {
+      const anim = focusAnimationRef.current
+      anim.progress += delta * 3 // Animation speed (adjust for smoother/faster)
 
-    const anim = focusAnimationRef.current
-    anim.progress += delta * 3 // Animation speed (adjust for smoother/faster)
+      if (anim.progress >= 1) {
+        // Animation complete
+        orbitControlsRef.current.target.copy(anim.endTarget)
+        camera.position.copy(anim.endPosition)
+        focusAnimationRef.current = null
+        clearFocus()
+      } else {
+        // Smooth interpolation using easeOutCubic
+        const t = 1 - (1 - anim.progress) ** 3
 
-    if (anim.progress >= 1) {
-      // Animation complete
-      orbitControlsRef.current.target.copy(anim.endTarget)
-      camera.position.copy(anim.endPosition)
-      focusAnimationRef.current = null
-      clearFocus()
-    } else {
-      // Smooth interpolation using easeOutCubic
-      const t = 1 - (1 - anim.progress) ** 3
+        orbitControlsRef.current.target.lerpVectors(anim.startTarget, anim.endTarget, t)
+        camera.position.lerpVectors(anim.startPosition, anim.endPosition, t)
+      }
 
-      orbitControlsRef.current.target.lerpVectors(anim.startTarget, anim.endTarget, t)
-      camera.position.lerpVectors(anim.startPosition, anim.endPosition, t)
+      orbitControlsRef.current.update()
+      return // Don't process animation playback during focus animation
     }
 
-    orbitControlsRef.current.update()
+    // Handle camera animation playback
+    if (playbackState === "playing" && currentAnimationId && orbitControlsRef.current) {
+      const currentAnimation = animations.find((a) => a.id === currentAnimationId)
+      if (!currentAnimation) return
+
+      // CRITICAL: Disable orbit controls during playback
+      orbitControlsRef.current.enabled = false
+
+      // Increment playback time
+      const newTime = playbackTime + delta
+
+      // Debug: Log animation progress and camera position
+      if (Math.floor(newTime * 10) !== Math.floor(playbackTime * 10)) {
+        const interpolatedCamera = getCameraAtTime(currentAnimation, newTime)
+        console.log(
+          `[Camera Animation] Time: ${newTime.toFixed(1)}s / ${currentAnimation.duration}s`
+        )
+        console.log(
+          `  Position: (${interpolatedCamera.position.x.toFixed(2)}, ${interpolatedCamera.position.y.toFixed(2)}, ${interpolatedCamera.position.z.toFixed(2)})`
+        )
+        console.log(
+          `  Target: (${interpolatedCamera.target.x.toFixed(2)}, ${interpolatedCamera.target.y.toFixed(2)}, ${interpolatedCamera.target.z.toFixed(2)})`
+        )
+      }
+
+      // Check if animation has ended
+      if (newTime >= currentAnimation.duration) {
+        setPlaybackTime(currentAnimation.duration)
+        stopPlayback()
+
+        // Set camera to final position
+        const finalCamera = getCameraAtTime(currentAnimation, currentAnimation.duration)
+        orbitControlsRef.current.target.set(
+          finalCamera.target.x,
+          finalCamera.target.y,
+          finalCamera.target.z
+        )
+        camera.position.set(finalCamera.position.x, finalCamera.position.y, finalCamera.position.z)
+
+        // Update store
+        setCameraPosition(finalCamera.position)
+        setCameraTarget(finalCamera.target)
+
+        // Re-enable orbit controls when animation ends
+        orbitControlsRef.current.enabled = true
+      } else {
+        // Update playback time
+        setPlaybackTime(newTime)
+
+        // Get interpolated camera state
+        const interpolatedCamera = getCameraAtTime(currentAnimation, newTime)
+
+        // Update Three.js camera
+        orbitControlsRef.current.target.set(
+          interpolatedCamera.target.x,
+          interpolatedCamera.target.y,
+          interpolatedCamera.target.z
+        )
+        camera.position.set(
+          interpolatedCamera.position.x,
+          interpolatedCamera.position.y,
+          interpolatedCamera.position.z
+        )
+
+        // Update FOV if it's a perspective camera
+        if (camera instanceof THREE.PerspectiveCamera) {
+          camera.fov = interpolatedCamera.fov
+          camera.updateProjectionMatrix()
+        }
+      }
+
+      orbitControlsRef.current.update()
+    } else if (orbitControlsRef.current) {
+      // Re-enable orbit controls when not playing
+      orbitControlsRef.current.enabled = true
+    }
   })
 
   // Sync camera with store when cameraPosition or cameraTarget changes
@@ -416,8 +519,8 @@ export function SceneContent({ showStats }: SceneContentProps) {
       />
       <directionalLight position={[-5, 5, -5]} intensity={0.3} />
 
-      {/* Environment map for reflections - lightweight preset */}
-      <Environment preset="sunset" />
+      {/* Environment map for reflections - using preset that loads from CDN */}
+      <Environment preset="apartment" background={false} />
 
       {/* Grid */}
       {viewportSettings.showGrid && (

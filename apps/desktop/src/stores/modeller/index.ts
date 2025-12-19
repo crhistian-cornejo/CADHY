@@ -49,6 +49,14 @@ export type {
   TrapezoidalSection,
   TriangularSection,
 } from "@cadhy/types"
+// Re-export camera types
+export type {
+  CameraAnimation,
+  CameraKeyframe,
+  EasingType,
+  PlaybackState,
+  SavedCameraView,
+} from "./camera-slice"
 // Re-export all types for backward compatibility
 export type {
   AlignmentPoint,
@@ -126,6 +134,7 @@ export const useModellerStore = create<ModellerStore>()(
         transformMode: state.transformMode,
         transformSpace: state.transformSpace,
         snapMode: state.snapMode,
+        savedViews: state.savedViews,
       }),
     }
   )
@@ -204,3 +213,10 @@ export const useNotificationSummary = () =>
       }
     })
   )
+
+// Camera selectors
+export const useSavedCameraViews = () => useModellerStore((s) => s.savedViews)
+export const useCameraAnimations = () => useModellerStore((s) => s.animations)
+export const useCurrentAnimation = () => useModellerStore((s) => s.currentAnimation)
+export const usePlaybackState = () => useModellerStore((s) => s.playbackState)
+export const usePlaybackTime = () => useModellerStore((s) => s.playbackTime)
