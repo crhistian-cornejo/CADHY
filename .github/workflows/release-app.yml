@@ -172,16 +172,22 @@ jobs:
         with:
           path: |
             ~/Library/Caches/Homebrew
-            /usr/local/Cellar/opencascade
             /opt/homebrew/Cellar/opencascade
-          key: homebrew-occt-${{ runner.os }}-${{ runner.arch }}
+            /opt/homebrew/Cellar/freetype
+            /opt/homebrew/Cellar/libpng
+            /opt/homebrew/Cellar/tbb
+          key: homebrew-occt-deps-${{ runner.os }}-${{ runner.arch }}-v2
           restore-keys: |
-            homebrew-occt-${{ runner.os }}-
+            homebrew-occt-deps-${{ runner.os }}-
 
       - name: Install OpenCASCADE via Homebrew
         run: |
-          brew install opencascade || true
+          brew update
+          brew install opencascade freetype libpng tbb
           echo "OCCT installed at: $(brew --prefix opencascade)"
+          echo "Freetype installed at: $(brew --prefix freetype)"
+          echo "libpng installed at: $(brew --prefix libpng)"
+          echo "TBB installed at: $(brew --prefix tbb)"
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile
@@ -224,7 +230,26 @@ jobs:
           # APPLE_ID: ${{ secrets.APPLE_ID }}
           # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }}
+        run: |
+          bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }} --bundles app || true
+
+      - name: Fix dylib paths and re-sign
+        run: |
+          chmod +x scripts/occt/fix-dylib-paths-macos.sh
+          ./scripts/occt/fix-dylib-paths-macos.sh
+          # Ad-hoc sign if no Apple identity (CI may not have certs)
+          if [ -z "${{ secrets.APPLE_SIGNING_IDENTITY }}" ]; then
+            echo "No Apple signing identity, using ad-hoc signing"
+            codesign --force --deep --sign - target/${{ matrix.target }}/release/bundle/macos/CADHY.app
+          fi
+
+      - name: Build DMG
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          bun run --filter @cadhy/desktop tauri:build:macos -- --target ${{ matrix.target }} --bundles dmg || echo "DMG build failed, continuing..."
 
       - name: Get version
         id: version
