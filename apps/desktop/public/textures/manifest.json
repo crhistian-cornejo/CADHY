@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "category": "concrete",
+  "resolution": "1k",
+  "textures": [
+    "anti_slip_concrete",
+    "asphalt_floor",
+    "brick_wall_006",
+    "brick_wall_02",
+    "brushed_concrete"
+  ],
+  "generated": "2025-12-20T00:48:06.929Z"
+}
