@@ -2660,6 +2660,36 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
             {/* PBR Textures (for all objects when post-processing is enabled) */}
             <TextureMaterialPanel
               postProcessingEnabled={viewportSettings.enablePostProcessing ?? false}
+              repeatX={selectedObject.material.pbr?.repeatX ?? 1}
+              repeatY={selectedObject.material.pbr?.repeatY ?? 1}
+              onTexturesChange={(maps, textureId) => {
+                // Store the texture ID in material.pbr so it can be loaded later
+                handleUpdate({
+                  material: {
+                    ...selectedObject.material,
+                    pbr: {
+                      ...selectedObject.material.pbr,
+                      albedoTextureId: textureId,
+                      normalTextureId: maps.normal ? textureId : undefined,
+                      roughnessTextureId: maps.roughness ? textureId : undefined,
+                      metalnessTextureId: maps.metalness ? textureId : undefined,
+                      aoTextureId: maps.ao ? textureId : undefined,
+                    },
+                  },
+                })
+              }}
+              onRepeatChange={(x, y) => {
+                handleUpdate({
+                  material: {
+                    ...selectedObject.material,
+                    pbr: {
+                      ...selectedObject.material.pbr,
+                      repeatX: x,
+                      repeatY: y,
+                    },
+                  },
+                })
+              }}
             />
 
             {/* Layer & State */}

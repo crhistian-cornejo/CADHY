@@ -38,12 +38,14 @@ export interface TextureMaterialPanelProps {
   postProcessingEnabled: boolean
   /** Current texture maps */
   textureMaps?: PBRTextureMaps
+  /** Current texture ID */
+  currentTextureId?: string
   /** UV repeat X */
   repeatX?: number
   /** UV repeat Y */
   repeatY?: number
   /** Callback when textures change */
-  onTexturesChange?: (maps: PBRTextureMaps) => void
+  onTexturesChange?: (maps: PBRTextureMaps, textureId: string) => void
   /** Callback when UV repeat changes */
   onRepeatChange?: (x: number, y: number) => void
 }
@@ -87,7 +89,7 @@ export function TextureMaterialPanel({
       setIsLoadingTexture(true)
       try {
         const maps = await loadPBRTexturesFromPolyHaven(textureId, "1k")
-        onTexturesChange?.(maps)
+        onTexturesChange?.(maps, textureId)
       } catch (error) {
         console.error("Failed to load texture:", error)
       } finally {
@@ -171,15 +173,19 @@ export function TextureMaterialPanel({
                 type="button"
                 onClick={() => applyTexture(texture.id)}
                 disabled={isLoadingTexture}
-                className="relative aspect-square rounded border border-border hover:border-primary transition-colors overflow-hidden group"
+                className="relative aspect-square rounded border border-border hover:border-primary transition-colors overflow-hidden group bg-muted"
                 title={texture.name}
               >
                 <img
                   src={texture.previewUrl}
                   alt={texture.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to a colored placeholder
+                    e.currentTarget.style.display = "none"
+                  }}
                 />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                   <span className="text-[10px] text-white text-center px-1">{texture.name}</span>
                 </div>
               </button>
