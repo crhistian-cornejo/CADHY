@@ -73,15 +73,27 @@ const LOCAL_TEXTURES_PATH = "/textures"
 const textureCache = new Map<string, PBRTextureMaps>()
 
 /**
- * Local texture manifest
+ * Local texture manifest (single category - legacy)
  */
-interface LocalTextureManifest {
+interface LocalTextureManifestSingle {
   version: string
   category: string
   resolution: string
   textures: string[]
   generated: string
 }
+
+/**
+ * Local texture manifest (multi-category)
+ */
+interface LocalTextureManifestMulti {
+  version: string
+  resolution: string
+  categories: Record<string, string[]>
+  generated: string
+}
+
+type LocalTextureManifest = LocalTextureManifestSingle | LocalTextureManifestMulti
 
 let localManifest: LocalTextureManifest | null = null
 
@@ -110,20 +122,51 @@ async function loadLocalManifest(): Promise<LocalTextureManifest | null> {
 /**
  * Get local textures as TextureInfo array
  */
-async function getLocalTextures(): Promise<TextureInfo[]> {
+async function getLocalTextures(filterCategory?: string): Promise<TextureInfo[]> {
   const manifest = await loadLocalManifest()
   if (!manifest) return []
 
-  return manifest.textures.map((id) => ({
-    id,
-    name: id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-    category: manifest.category,
-    tags: [],
-    downloadUrl: "", // Not needed for local
-    previewUrl: `${LOCAL_TEXTURES_PATH}/${id}/albedo.jpg`,
-    resolution: manifest.resolution,
-    format: "jpg",
-  }))
+  const textures: TextureInfo[] = []
+
+  // Handle multi-category manifest
+  if ("categories" in manifest) {
+    for (const [category, textureIds] of Object.entries(manifest.categories)) {
+      // Filter by category if specified
+      if (filterCategory && category !== filterCategory) continue
+
+      for (const id of textureIds) {
+        textures.push({
+          id,
+          name: id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+          category,
+          tags: [],
+          downloadUrl: "", // Not needed for local
+          previewUrl: `${LOCAL_TEXTURES_PATH}/${id}/albedo.jpg`,
+          resolution: manifest.resolution,
+          format: "jpg",
+        })
+      }
+    }
+  }
+  // Handle legacy single-category manifest
+  else {
+    if (filterCategory && manifest.category !== filterCategory) return []
+
+    for (const id of manifest.textures) {
+      textures.push({
+        id,
+        name: id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+        category: manifest.category,
+        tags: [],
+        downloadUrl: "", // Not needed for local
+        previewUrl: `${LOCAL_TEXTURES_PATH}/${id}/albedo.jpg`,
+        resolution: manifest.resolution,
+        format: "jpg",
+      })
+    }
+  }
+
+  return textures
 }
 
 /**
@@ -131,7 +174,15 @@ async function getLocalTextures(): Promise<TextureInfo[]> {
  */
 async function isTextureLocal(textureId: string): Promise<boolean> {
   const manifest = await loadLocalManifest()
-  return manifest?.textures.includes(textureId) ?? false
+  if (!manifest) return false
+
+  // Handle multi-category manifest
+  if ("categories" in manifest) {
+    return Object.values(manifest.categories).some((textures) => textures.includes(textureId))
+  }
+
+  // Handle legacy single-category manifest
+  return manifest.textures.includes(textureId)
 }
 
 /**
@@ -181,10 +232,12 @@ export async function fetchPolyHavenTextures(
   category?: string,
   limit = 20
 ): Promise<TextureInfo[]> {
-  // Try local textures first
-  const localTextures = await getLocalTextures()
+  // Try local textures first (with category filter)
+  const localTextures = await getLocalTextures(category)
   if (localTextures.length > 0) {
-    console.log(`[TextureService] Using ${localTextures.length} local textures`)
+    console.log(
+      `[TextureService] Using ${localTextures.length} local textures${category ? ` (category: ${category})` : ""}`
+    )
     return localTextures.slice(0, limit)
   }
 

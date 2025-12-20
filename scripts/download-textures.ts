@@ -134,7 +134,7 @@ async function downloadTexture(textureId: string): Promise<void> {
 }
 
 /**
- * Create texture manifest file
+ * Create texture manifest file (single category)
  */
 async function createManifest(textureIds: string[], category: string): Promise<void> {
   const manifest = {
@@ -151,16 +151,50 @@ async function createManifest(textureIds: string[], category: string): Promise<v
 }
 
 /**
+ * Create texture manifest file (multiple categories)
+ */
+async function createManifestMultiCategory(
+  texturesByCategory: Record<string, string[]>
+): Promise<void> {
+  const manifest = {
+    version: "1.0.0",
+    resolution: RESOLUTION,
+    categories: texturesByCategory,
+    generated: new Date().toISOString(),
+  }
+
+  const manifestPath = join(OUTPUT_DIR, "manifest.json")
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2))
+  console.log(`\n📋 Created manifest: ${manifestPath}`)
+}
+
+/**
  * Main function
  */
 async function main() {
-  const category = process.argv[2] || "concrete"
-  const limit = Number.parseInt(process.argv[3] || "10", 10)
+  const downloadAll = process.argv[2] === "all"
+  const categories = downloadAll
+    ? [
+        "concrete",
+        "metal",
+        "wood",
+        "brick",
+        "stone",
+        "ground",
+        "fabric",
+        "tiles",
+        "plaster",
+        "paint",
+      ]
+    : [process.argv[2] || "concrete"]
+
+  const limitPerCategory = Number.parseInt(process.argv[3] || "5", 10)
 
   console.log("🎨 CADHY Texture Downloader")
   console.log("=".repeat(50))
-  console.log(`Category: ${category}`)
-  console.log(`Limit: ${limit}`)
+  console.log(`Mode: ${downloadAll ? "ALL CATEGORIES" : "Single Category"}`)
+  console.log(`Categories: ${categories.join(", ")}`)
+  console.log(`Limit per category: ${limitPerCategory}`)
   console.log(`Resolution: ${RESOLUTION}`)
   console.log(`Output: ${OUTPUT_DIR}`)
   console.log("=".repeat(50))
@@ -169,23 +203,33 @@ async function main() {
     // Create output directory
     await mkdir(OUTPUT_DIR, { recursive: true })
 
-    // Fetch texture IDs
-    const textureIds = await fetchTextures(category, limit)
+    const allTextures: Record<string, string[]> = {}
 
-    // Download textures
-    for (const textureId of textureIds) {
-      try {
-        await downloadTexture(textureId)
-      } catch (error) {
-        console.error(`❌ Failed to download ${textureId}:`, error)
+    // Download textures for each category
+    for (const category of categories) {
+      console.log(`\n${"=".repeat(50)}`)
+      console.log(`📦 Processing category: ${category.toUpperCase()}`)
+      console.log("=".repeat(50))
+
+      const textureIds = await fetchTextures(category, limitPerCategory)
+      allTextures[category] = textureIds
+
+      for (const textureId of textureIds) {
+        try {
+          await downloadTexture(textureId)
+        } catch (error) {
+          console.error(`❌ Failed to download ${textureId}:`, error)
+        }
       }
     }
 
-    // Create manifest
-    await createManifest(textureIds, category)
+    // Create manifest with all categories
+    await createManifestMultiCategory(allTextures)
 
     console.log("\n✅ Download complete!")
     console.log(`📁 Textures saved to: ${OUTPUT_DIR}`)
+    console.log(`📊 Total categories: ${categories.length}`)
+    console.log(`📊 Total textures: ${Object.values(allTextures).flat().length}`)
   } catch (error) {
     console.error("❌ Error:", error)
     process.exit(1)

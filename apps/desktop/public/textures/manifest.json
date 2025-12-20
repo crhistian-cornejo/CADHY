@@ -1,13 +1,47 @@
 {
   "version": "1.0.0",
-  "category": "concrete",
   "resolution": "1k",
-  "textures": [
-    "anti_slip_concrete",
-    "asphalt_floor",
-    "brick_wall_006",
-    "brick_wall_02",
-    "brushed_concrete"
-  ],
-  "generated": "2025-12-20T00:48:06.929Z"
+  "categories": {
+    "concrete": [
+      "anti_slip_concrete",
+      "asphalt_floor",
+      "brick_wall_006",
+      "brick_wall_02",
+      "brushed_concrete"
+    ],
+    "metal": [
+      "blue_metal_plate",
+      "container_side",
+      "corrugated_iron",
+      "corrugated_iron_02",
+      "corrugated_iron_03"
+    ],
+    "wood": ["bark_brown_01", "bark_brown_02", "bark_willow", "bark_willow_02", "beam_wall_01"],
+    "brick": [
+      "blue_floor_tiles_01",
+      "brick_4",
+      "brick_crosswalk",
+      "brick_floor",
+      "brick_floor_003"
+    ],
+    "stone": [],
+    "ground": [],
+    "fabric": ["bi_stretch", "book_pattern", "brown_leather", "caban", "cotton_jersey"],
+    "tiles": [
+      "brown_floor_tiles",
+      "concrete_tiles_02",
+      "dirty_tiles",
+      "granite_tile_03",
+      "grey_cartago_01"
+    ],
+    "plaster": [
+      "beige_wall_001",
+      "beige_wall_002",
+      "blue_plaster_weathered",
+      "concrete_debris",
+      "concrete_floor_painted"
+    ],
+    "paint": []
+  },
+  "generated": "2025-12-20T01:01:59.079Z"
 }
