@@ -71,7 +71,7 @@ import {
   useSelectedIds,
   useViewportSettings,
 } from "@/stores/modeller-store"
-import { TextureMaterialPanel } from "./properties/TextureMaterialPanelSimple"
+import { TextureMaterialPanel } from "./properties/TextureMaterialPanel"
 
 // ============================================================================
 // TYPES

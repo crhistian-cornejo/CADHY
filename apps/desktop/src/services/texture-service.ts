@@ -63,22 +63,134 @@ const POLY_HAVEN_API = "https://api.polyhaven.com"
 const DEFAULT_RESOLUTION = "1k"
 
 /**
+ * Local textures base path (public folder)
+ */
+const LOCAL_TEXTURES_PATH = "/textures"
+
+/**
  * Texture cache to avoid re-downloading
  */
 const textureCache = new Map<string, PBRTextureMaps>()
+
+/**
+ * Local texture manifest
+ */
+interface LocalTextureManifest {
+  version: string
+  category: string
+  resolution: string
+  textures: string[]
+  generated: string
+}
+
+let localManifest: LocalTextureManifest | null = null
+
+// ============================================================================
+// LOCAL TEXTURES
+// ============================================================================
+
+/**
+ * Load local texture manifest
+ */
+async function loadLocalManifest(): Promise<LocalTextureManifest | null> {
+  if (localManifest) return localManifest
+
+  try {
+    const response = await fetch(`${LOCAL_TEXTURES_PATH}/manifest.json`)
+    if (!response.ok) return null
+
+    localManifest = await response.json()
+    return localManifest
+  } catch (error) {
+    console.warn("[TextureService] No local textures available:", error)
+    return null
+  }
+}
+
+/**
+ * Get local textures as TextureInfo array
+ */
+async function getLocalTextures(): Promise<TextureInfo[]> {
+  const manifest = await loadLocalManifest()
+  if (!manifest) return []
+
+  return manifest.textures.map((id) => ({
+    id,
+    name: id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+    category: manifest.category,
+    tags: [],
+    downloadUrl: "", // Not needed for local
+    previewUrl: `${LOCAL_TEXTURES_PATH}/${id}/albedo.jpg`,
+    resolution: manifest.resolution,
+    format: "jpg",
+  }))
+}
+
+/**
+ * Check if a texture exists locally
+ */
+async function isTextureLocal(textureId: string): Promise<boolean> {
+  const manifest = await loadLocalManifest()
+  return manifest?.textures.includes(textureId) ?? false
+}
+
+/**
+ * Load PBR texture maps from local assets
+ */
+async function loadLocalPBRTextures(textureId: string): Promise<PBRTextureMaps> {
+  const basePath = `${LOCAL_TEXTURES_PATH}/${textureId}`
+  const maps: PBRTextureMaps = {}
+  const loadPromises: Promise<void>[] = []
+
+  // Map types available locally
+  const mapTypes = ["albedo", "normal", "roughness", "ao", "displacement"]
+
+  for (const mapType of mapTypes) {
+    const url = `${basePath}/${mapType}.jpg`
+
+    loadPromises.push(
+      loadTextureFromUrl(url)
+        .then((tex) => {
+          // Apply correct color space
+          if (mapType === "albedo") {
+            tex.colorSpace = THREE.SRGBColorSpace
+          } else {
+            tex.colorSpace = THREE.LinearSRGBColorSpace
+          }
+
+          maps[mapType as keyof PBRTextureMaps] = tex
+        })
+        .catch(() => {
+          // Map might not exist, that's ok
+        })
+    )
+  }
+
+  await Promise.all(loadPromises)
+  return maps
+}
 
 // ============================================================================
 // POLY HAVEN API
 // ============================================================================
 
 /**
- * Fetch available textures from Poly Haven
+ * Fetch available textures (local first, then Poly Haven)
  */
 export async function fetchPolyHavenTextures(
   category?: string,
   limit = 20
 ): Promise<TextureInfo[]> {
+  // Try local textures first
+  const localTextures = await getLocalTextures()
+  if (localTextures.length > 0) {
+    console.log(`[TextureService] Using ${localTextures.length} local textures`)
+    return localTextures.slice(0, limit)
+  }
+
+  // Fallback to Poly Haven API
   try {
+    console.log("[TextureService] Fetching textures from Poly Haven API")
     const response = await fetch(`${POLY_HAVEN_API}/assets?t=textures`)
     if (!response.ok) throw new Error("Failed to fetch textures")
 
@@ -100,7 +212,7 @@ export async function fetchPolyHavenTextures(
         name: textureData.name,
         category: textureData.categories?.[0] || "general",
         tags: textureData.tags || [],
-        downloadUrl: `${POLY_HAVEN_API}/files/textures/${id}`,
+        downloadUrl: `${POLY_HAVEN_API}/files/${id}`,
         previewUrl: `https://cdn.polyhaven.com/asset_img/thumbs/${id}.png?width=256`,
         resolution: DEFAULT_RESOLUTION,
         format: "jpg",
@@ -180,17 +292,28 @@ function loadTextureFromUrl(url: string): Promise<THREE.Texture> {
 }
 
 /**
- * Load PBR texture maps from Poly Haven
+ * Load PBR texture maps (local first, then Poly Haven)
  */
 export async function loadPBRTexturesFromPolyHaven(
   textureId: string,
   resolution = DEFAULT_RESOLUTION
 ): Promise<PBRTextureMaps> {
   // Check cache first
-  const cacheKey = `polyhaven:${textureId}:${resolution}`
+  const cacheKey = `${textureId}:${resolution}`
   if (textureCache.has(cacheKey)) {
     return textureCache.get(cacheKey)!
   }
+
+  // Try local textures first
+  if (await isTextureLocal(textureId)) {
+    console.log(`[TextureService] Loading texture from local assets: ${textureId}`)
+    const maps = await loadLocalPBRTextures(textureId)
+    textureCache.set(cacheKey, maps)
+    return maps
+  }
+
+  // Fallback to Poly Haven API
+  console.log(`[TextureService] Loading texture from Poly Haven: ${textureId}`)
 
   try {
     // Get download URLs
