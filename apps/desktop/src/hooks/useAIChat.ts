@@ -171,6 +171,17 @@ const SCENE_KEYWORDS = [
   "build",
   "design",
   "place",
+  // English - enhancement/render keywords
+  "enhance",
+  "beautify",
+  "realistic",
+  "render",
+  "improve",
+  "lighting",
+  "sky",
+  "water",
+  "photorealistic",
+  "presentation",
   // Spanish - viewer/scene related
   "visor",
   "vista",
@@ -248,6 +259,18 @@ const SCENE_KEYWORDS = [
   "construir",
   "diseñar",
   "colocar",
+  // Spanish - enhancement/render keywords
+  "mejorar",
+  "mejorá",
+  "embellecer",
+  "realista",
+  "renderizar",
+  "renderizá",
+  "iluminación",
+  "cielo",
+  "agua",
+  "fotorealista",
+  "presentación",
 ] as const
 
 /** Minimum time to show the analyzing effect (ms) */
@@ -263,6 +286,24 @@ function getProviderFromModelId(modelId: string): string {
   return parts[0] || "openai"
 }
 
+/** Generated image data for AI-generated renders */
+export interface MessageImage {
+  /** Base64 encoded image data */
+  base64?: string
+  /** Raw binary data (Uint8Array) */
+  uint8Array?: Uint8Array
+  /** MIME type of the image */
+  mediaType: string
+}
+
+/** Return type for tool result handlers that may include images */
+export interface ToolResultOutput {
+  /** Text content to display */
+  text: string
+  /** Optional generated images */
+  images?: MessageImage[]
+}
+
 export interface Message {
   id: string
   role: "user" | "assistant"
@@ -274,6 +315,8 @@ export interface Message {
   modelId?: string
   /** Provider used for this message (e.g., "anthropic", "openai") */
   provider?: string
+  /** Generated images from AI render tools */
+  images?: MessageImage[]
 }
 
 // Alias for backward compatibility
@@ -286,9 +329,14 @@ export interface ToolCallInfo {
   result?: string
 }
 
+/** Tool category names (re-exported from ai-service) */
+export type ToolCategory = "cad" | "hydraulic" | "scene" | "render"
+
 export interface UseAIChatOptions {
   systemPrompt?: string
   onError?: (error: Error) => void
+  /** Enabled tool categories (defaults to all) */
+  enabledCategories?: ToolCategory[]
 }
 
 export interface UseAIChatReturn {
@@ -333,15 +381,9 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
   // Computed: Available Models based on Provider Availability
   // -------------------------------------------------------------------------
   const providerAvailability: ProviderAvailability = {
-    hasGeminiOAuth: ai.geminiOAuthStatus?.isValid ?? false,
     hasOllamaLocal: ai.ollamaLocalStatus?.available ?? false,
     ollamaModels: ai.ollamaLocalStatus?.models ?? [],
-    hasBYOKKeys: ai.hasOpenAIKey || ai.hasAnthropicKey || ai.hasGoogleKey,
-    hasOpenAIKey: ai.hasOpenAIKey,
-    hasAnthropicKey: ai.hasAnthropicKey,
-    hasGoogleKey: ai.hasGoogleKey,
-    hasOllamaCloud: ai.hasOllamaCloudKey,
-    activeProvider: ai.activeProvider,
+    activeProvider: ai.activeProvider ?? "gateway",
   }
 
   const modelGroups = getAvailableModelsForProvider(providerAvailability)
@@ -358,6 +400,8 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
   const messageIdCounter = useRef(0)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const analyzingStartTimeRef = useRef<number | null>(null)
+  /** Pending images from generateRender tool - keyed by toolCallId */
+  const pendingImagesRef = useRef<Map<string, MessageImage[]>>(new Map())
 
   // Store functions for creating objects
   const addObject = useModellerStore((s) => s.addObject)
@@ -515,6 +559,10 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
         polarArray: "polarArray",
         setLayer: "setLayer",
         setLOD: "setLOD",
+        // Render tools
+        generateRender: "generateRender",
+        describeSceneForRender: "describeSceneForRender",
+        enhanceViewport: "enhanceViewport",
       }
 
       // Map tool names to shape types for CAD tools
@@ -985,7 +1033,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
         if (finalAction === "addStillingBasin") {
           const basinResult = toolResult as unknown as AddStillingBasinResult
           const currentObjects = useModellerStore.getState().objects
-          const { updateObject, analyzeChute } = useModellerStore.getState()
+          const { updateObject, analyzeScene } = useModellerStore.getState()
 
           // Find the chute by ID or name
           let chute: ChuteObject | undefined
@@ -1067,8 +1115,8 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
           // Update the chute with the new basin
           updateObject(chute.id, { stillingBasin: basinConfig })
 
-          // Trigger re-analysis
-          analyzeChute(chute.id)
+          // Trigger re-analysis of the scene to update design notifications
+          analyzeScene()
 
           select(chute.id)
           return `Added ${basinType.toUpperCase()} stilling basin to "${chute.name}"\n• Basin length: ${basinConfig.length.toFixed(2)}m\n• Basin depth: ${basinConfig.depth.toFixed(2)}m\n• Froude number: ${froudeNumber.toFixed(2)}`
@@ -2729,6 +2777,294 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
           return lines.join("\n")
         }
 
+        // =====================================================================
+        // RENDER TOOLS
+        // =====================================================================
+
+        // Handle generateRender action
+        if (finalAction === "generateRender") {
+          const renderResult = toolResult as {
+            description: string
+            style?: string
+            context?: string
+            aspectRatio?: string
+          }
+
+          const styleLabel = renderResult.style || "photorealistic"
+          const aspectLabel = renderResult.aspectRatio || "16:9"
+
+          // Try to generate the image
+          try {
+            const apiKey = await getApiKey()
+
+            if (!apiKey) {
+              return `🎨 **Render Request**
+
+**Description:** ${renderResult.description}
+**Style:** ${styleLabel}
+**Aspect Ratio:** ${aspectLabel}
+${renderResult.context ? `**Context:** ${renderResult.context}` : ""}
+
+⚠️ _Image generation requires an API key. Configure it in Settings → AI to enable rendering._`
+            }
+
+            // Import and call the actual image generation
+            const { generateRender } = await import("@cadhy/ai")
+
+            logger.log("[useAIChat] Generating render:", {
+              description: renderResult.description,
+              style: styleLabel,
+              aspectRatio: aspectLabel,
+            })
+
+            const genResult = await generateRender(renderResult.description, {
+              apiKey,
+              style: renderResult.style as
+                | "photorealistic"
+                | "architectural"
+                | "technical"
+                | "artistic"
+                | "blueprint"
+                | "presentation"
+                | undefined,
+              context: renderResult.context,
+              aspectRatio: aspectLabel as "1:1" | "16:9" | "9:16" | "4:3" | "3:4",
+            })
+
+            if (!genResult.success || genResult.images.length === 0) {
+              return `🎨 **Render Failed**
+
+**Description:** ${renderResult.description}
+**Style:** ${styleLabel}
+
+❌ ${genResult.error || "No images were generated. Please try again."}`
+            }
+
+            // Store images in the pending ref for the onToolResult handler
+            pendingImagesRef.current.set(result.toolCallId, genResult.images)
+
+            logger.log("[useAIChat] Render generated successfully:", {
+              imageCount: genResult.images.length,
+              toolCallId: result.toolCallId,
+            })
+
+            return `🎨 **Render Complete**
+
+**Description:** ${renderResult.description}
+**Style:** ${styleLabel}
+**Aspect Ratio:** ${aspectLabel}
+
+✅ Generated ${genResult.images.length} image${genResult.images.length > 1 ? "s" : ""}.`
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : "Unknown error"
+            logger.error("[useAIChat] Render generation error:", error)
+
+            return `🎨 **Render Error**
+
+**Description:** ${renderResult.description}
+**Style:** ${styleLabel}
+
+❌ Error: ${errorMsg}`
+          }
+        }
+
+        // Handle describeSceneForRender action
+        if (finalAction === "describeSceneForRender") {
+          const describeResult = toolResult as {
+            focusObjectId?: string
+            includeEnvironment?: boolean
+          }
+
+          const currentObjects = useModellerStore.getState().objects
+
+          if (currentObjects.length === 0) {
+            return "The scene is empty. Create some objects first before generating a render description."
+          }
+
+          const lines: string[] = []
+          lines.push("## Scene Description for Rendering\n")
+
+          // If focusing on a specific object
+          if (describeResult.focusObjectId) {
+            const focusObj = currentObjects.find((o) => o.id === describeResult.focusObjectId)
+            if (focusObj) {
+              lines.push(`### Focus Object: ${focusObj.name}`)
+              lines.push(`- **Type:** ${focusObj.type}`)
+              if ("section" in focusObj && focusObj.section) {
+                lines.push(`- **Section Type:** ${focusObj.section.type}`)
+              }
+              lines.push("")
+            }
+          }
+
+          // Summarize scene contents
+          const channelCount = currentObjects.filter((o) => o.type === "channel").length
+          const transitionCount = currentObjects.filter((o) => o.type === "transition").length
+          const shapeCount = currentObjects.filter((o) => o.type === "shape").length
+          const chuteCount = currentObjects.filter((o) => o.type === "chute").length
+
+          lines.push("### Scene Contents")
+          if (channelCount > 0) lines.push(`- ${channelCount} channel(s)`)
+          if (transitionCount > 0) lines.push(`- ${transitionCount} transition(s)`)
+          if (chuteCount > 0) lines.push(`- ${chuteCount} chute(s)`)
+          if (shapeCount > 0) lines.push(`- ${shapeCount} shape(s)`)
+          lines.push("")
+
+          // Generate render description
+          lines.push("### Suggested Render Description\n")
+          const descParts: string[] = []
+
+          if (channelCount > 0) {
+            const channel = currentObjects.find((o) => o.type === "channel")
+            if (channel && "section" in channel && channel.section) {
+              descParts.push(`A ${channel.section.type} irrigation channel`)
+            }
+          }
+          if (chuteCount > 0) {
+            const chute = currentObjects.find((o) => o.type === "chute")
+            if (chute && "chuteType" in chute) {
+              descParts.push(`with a ${chute.chuteType} chute`)
+            }
+          }
+          if (transitionCount > 0) {
+            descParts.push("and hydraulic transitions")
+          }
+
+          if (descParts.length > 0) {
+            lines.push(
+              `"${descParts.join(" ")} made of concrete, with water flowing through the system."`
+            )
+          } else {
+            lines.push('"A hydraulic engineering structure made of concrete."')
+          }
+
+          if (describeResult.includeEnvironment !== false) {
+            lines.push("")
+            lines.push("### Suggested Environment")
+            lines.push("- Clear sky with soft sunlight")
+            lines.push("- Green grass and vegetation around the structure")
+            lines.push("- Water with realistic reflections")
+          }
+
+          lines.push("")
+          lines.push("### Recommended Styles")
+          lines.push("- **photorealistic** - For client presentations")
+          lines.push("- **architectural** - For technical documents")
+          lines.push("- **presentation** - For reports")
+
+          return lines.join("\n")
+        }
+
+        // Handle enhanceViewport action - AI-powered viewport enhancement
+        if (finalAction === "enhanceViewport") {
+          const enhanceResult = toolResult as {
+            style?: string
+            context?: string
+            customPrompt?: string
+          }
+
+          const styleLabel = enhanceResult.style || "photorealistic"
+
+          // Activate the analyzing effect for the viewport
+          setAnalyzingScene(true)
+          analyzingStartTimeRef.current = Date.now()
+
+          try {
+            const apiKey = await getApiKey()
+
+            if (!apiKey) {
+              stopAnalyzingScene()
+              return `✨ **Viewport Enhancement Request**
+
+**Style:** ${styleLabel}
+${enhanceResult.context ? `**Context:** ${enhanceResult.context}` : ""}
+${enhanceResult.customPrompt ? `**Custom:** ${enhanceResult.customPrompt}` : ""}
+
+⚠️ _Viewport enhancement requires an API key. Configure it in Settings → AI to enable this feature._`
+            }
+
+            // Capture the current viewport
+            const { captureViewportThumbnail } = await import("@/services/thumbnail-service")
+            const viewportImage = await captureViewportThumbnail()
+
+            if (!viewportImage) {
+              stopAnalyzingScene()
+              return `✨ **Viewport Enhancement Failed**
+
+❌ Could not capture the viewport. Make sure the 3D viewer is visible and has rendered content.`
+            }
+
+            logger.log("[useAIChat] Enhancing viewport via direct Google API:", {
+              style: styleLabel,
+              context: enhanceResult.context,
+              customPrompt: enhanceResult.customPrompt,
+              imageLength: viewportImage.length,
+            })
+
+            // Use direct Google API (allows CORS, unlike the AI Gateway)
+            const { enhanceViewport: enhanceViewportFn } = await import("@cadhy/ai")
+
+            const genResult = await enhanceViewportFn({
+              apiKey,
+              viewportImage,
+              mediaType: "image/png",
+              style: styleLabel as
+                | "photorealistic"
+                | "architectural"
+                | "technical"
+                | "artistic"
+                | "blueprint"
+                | "presentation",
+              context: enhanceResult.context,
+              customPrompt: enhanceResult.customPrompt,
+            })
+
+            stopAnalyzingScene()
+
+            if (!genResult.success || genResult.images.length === 0) {
+              return `✨ **Viewport Enhancement Failed**
+
+**Style:** ${styleLabel}
+
+❌ ${genResult.error || "No enhanced image was generated. Please try again."}`
+            }
+
+            // Convert images to base64 format for storage
+            // The @cadhy/ai function may return uint8Array or base64
+            const { uint8ArrayToBase64 } = await import("@cadhy/ai")
+            const convertedImages = genResult.images.map((img) => ({
+              base64: img.base64 || (img.uint8Array ? uint8ArrayToBase64(img.uint8Array) : ""),
+              mediaType: img.mediaType,
+            }))
+
+            // Store images in the pending ref for the onToolResult handler
+            pendingImagesRef.current.set(result.toolCallId, convertedImages)
+
+            logger.log("[useAIChat] Viewport enhanced successfully:", {
+              imageCount: genResult.images.length,
+              toolCallId: result.toolCallId,
+            })
+
+            return `✨ **Viewport Enhanced!**
+
+**Style:** ${styleLabel}
+${enhanceResult.context ? `**Context:** ${enhanceResult.context}` : ""}
+
+✅ Successfully enhanced the viewport with ${styleLabel} style.
+${genResult.text ? `\n_AI notes: ${genResult.text}_` : ""}`
+          } catch (error) {
+            stopAnalyzingScene()
+            const errorMsg = error instanceof Error ? error.message : "Unknown error"
+            logger.error("[useAIChat] Viewport enhancement error:", error)
+
+            return `✨ **Viewport Enhancement Error**
+
+**Style:** ${styleLabel}
+
+❌ Error: ${errorMsg}`
+          }
+        }
+
         return `Unknown action\n\nAction: "${finalAction}"\n\nThis action is not implemented.`
       } catch (error) {
         console.error("[useAIChat] Error handling tool result:", error)
@@ -2864,11 +3200,25 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
             },
             onToolResult: async (result) => {
               const resultMessage = await handleToolResult(result)
+
+              // Check if there are pending images for this tool call
+              const pendingImages = pendingImagesRef.current.get(result.toolCallId)
+              if (pendingImages) {
+                // Clear the pending images
+                pendingImagesRef.current.delete(result.toolCallId)
+                logger.log("[useAIChat] Attaching images to message:", {
+                  toolCallId: result.toolCallId,
+                  imageCount: pendingImages.length,
+                })
+              }
+
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
                     ? {
                         ...m,
+                        // Append images if present
+                        images: pendingImages ? [...(m.images ?? []), ...pendingImages] : m.images,
                         toolCalls: m.toolCalls?.map((tc) =>
                           tc.name === result.toolName
                             ? { ...tc, status: "completed" as const, result: resultMessage }
@@ -2927,6 +3277,7 @@ ${profile.stations.length > 5 ? `  ... (${profile.stations.length - 5} more poin
             modelId,
             systemPrompt: options.systemPrompt,
             apiKey: apiKey ?? undefined,
+            enabledCategories: options.enabledCategories,
           }
         )
 

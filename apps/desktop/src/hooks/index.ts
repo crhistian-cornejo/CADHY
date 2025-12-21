@@ -1,3 +1,9 @@
+export {
+  type GalleryImage,
+  type UseAIGalleryOptions,
+  type UseAIGalleryReturn,
+  useAIGallery,
+} from "./use-ai-gallery"
 export { useAIProvider } from "./use-ai-provider"
 export { useAppHotkeys } from "./use-app-hotkeys"
 
@@ -65,6 +71,7 @@ export {
 export {
   type Message as AIChatMessage,
   type ToolCallInfo,
+  type ToolCategory,
   type UseAIChatOptions,
   type UseAIChatReturn,
   useAIChat,
