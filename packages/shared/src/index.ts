@@ -1,2 +1,2 @@
-export type { Logger, Performance } from "./logger"
-export { logger, perf } from "./logger"
+export type { Logger, NamespacedLogger, Performance } from "./logger"
+export { createLogger, logger, loggers, perf } from "./logger"
