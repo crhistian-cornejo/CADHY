@@ -193,6 +193,8 @@ pub fn run() {
             commands::chat::chat_load_session,
             commands::chat::chat_list_sessions,
             commands::chat::chat_delete_session,
+            // AI Gateway proxy (CORS bypass for image enhancement)
+            commands::chat::ai_gateway_enhance_viewport,
             // System info
             commands::system::get_system_info,
             commands::system::get_extended_system_info,
