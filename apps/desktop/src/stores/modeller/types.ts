@@ -44,6 +44,23 @@ export interface Layer {
 }
 
 // ============================================================================
+// SCENE AREA (Hierarchical grouping above layers)
+// ============================================================================
+
+/**
+ * Scene Area - Groups objects for organization (like "Area (1)", "Area (2)")
+ * Areas are a higher-level grouping than layers, providing hierarchical
+ * organization in the scene panel.
+ */
+export interface SceneArea {
+  id: string
+  name: string
+  index: number
+  collapsed: boolean
+  color: string
+}
+
+// ============================================================================
 // SCENE OBJECTS
 // ============================================================================
 
@@ -53,6 +70,8 @@ export interface SceneObject {
   name: string
   type: ObjectType
   layerId: string
+  /** Optional area ID for hierarchical grouping */
+  areaId?: string
   transform: Transform
   visible: boolean
   locked: boolean
@@ -396,6 +415,22 @@ export interface GridSettings {
   showAxes: boolean
 }
 
+/**
+ * Available environment presets from Drei/Three.js
+ * These load HDRIs from Poly Haven CDN for realistic lighting
+ */
+export type EnvironmentPreset =
+  | "apartment"
+  | "city"
+  | "dawn"
+  | "forest"
+  | "lobby"
+  | "night"
+  | "park"
+  | "studio"
+  | "sunset"
+  | "warehouse"
+
 export interface ViewportSettings {
   viewMode: ViewMode
   showGrid: boolean
@@ -407,6 +442,16 @@ export interface ViewportSettings {
   antialiasing: boolean
   postProcessingQuality: "low" | "medium" | "high" | "ultra"
   enablePostProcessing: boolean
+  /** Global UV texture scale for consistent texture density across all geometry (1.0 = 1m world = 1m texture) */
+  textureScale: number
+  /** Environment lighting preset (HDRI) */
+  environmentPreset: EnvironmentPreset
+  /** Environment intensity (0-2) */
+  environmentIntensity: number
+  /** Show environment as background */
+  environmentBackground: boolean
+  /** Background blur amount (0-1) */
+  backgroundBlurriness: number
 }
 
 // ============================================================================
@@ -428,6 +473,7 @@ export interface HistoryEntry {
 export interface SceneData {
   objects: AnySceneObject[]
   layers: Layer[]
+  areas?: SceneArea[]
   viewportSettings?: ViewportSettings
   gridSettings?: GridSettings
   cameraPosition?: Vec3
@@ -447,6 +493,14 @@ export const DEFAULT_LAYER: Layer = {
   frozen: false,
   printable: true,
   order: 0,
+}
+
+export const DEFAULT_AREA: SceneArea = {
+  id: "area-1",
+  name: "Area",
+  index: 1,
+  collapsed: false,
+  color: "#3b82f6",
 }
 
 export const DEFAULT_TRANSFORM: Transform = {
@@ -475,6 +529,11 @@ export const DEFAULT_VIEWPORT_SETTINGS: ViewportSettings = {
   antialiasing: true,
   postProcessingQuality: "medium",
   enablePostProcessing: true,
+  textureScale: 1.0, // 1.0 = 1 meter in world = 1 meter of texture (consistent density)
+  environmentPreset: "apartment",
+  environmentIntensity: 1.0,
+  environmentBackground: false,
+  backgroundBlurriness: 0.5,
 }
 
 // ============================================================================
