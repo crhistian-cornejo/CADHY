@@ -16,6 +16,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import { useShallow } from "zustand/shallow"
+import { createAreasSlice } from "./areas-slice"
 import { createCameraSlice } from "./camera-slice"
 import { createHistorySlice } from "./history-slice"
 import { createHydraulicsSlice } from "./hydraulics-slice"
@@ -71,6 +72,7 @@ export type {
   ChuteType,
   DesignNotification,
   EndSillConfig,
+  EnvironmentPreset,
   GridSettings,
   HistoryEntry,
   Layer,
@@ -80,6 +82,7 @@ export type {
   NotificationSeverity,
   NotificationSummary,
   ObjectType,
+  SceneArea,
   SceneData,
   SceneObject,
   ShapeObject,
@@ -117,6 +120,7 @@ export const useModellerStore = create<ModellerStore>()(
       ...createSelectionSlice(...args),
       ...createTransformSlice(...args),
       ...createLayersSlice(...args),
+      ...createAreasSlice(...args),
       ...createCameraSlice(...args),
       ...createHistorySlice(...args),
       ...createSettingsSlice(...args),
@@ -169,6 +173,7 @@ export function formatSceneContextForPrompt(): string {
 
 export const useObjects = () => useModellerStore((s) => s.objects)
 export const useLayers = () => useModellerStore((s) => s.layers)
+export const useAreas = () => useModellerStore((s) => s.areas)
 export const useSelectedIds = () => useModellerStore((s) => s.selectedIds)
 
 // These selectors use useShallow to prevent infinite re-renders when the
@@ -186,6 +191,7 @@ export const useVisibleObjects = () =>
 export const useTransformMode = () => useModellerStore((s) => s.transformMode)
 export const useTransformSpace = () => useModellerStore((s) => s.transformSpace)
 export const useSnapMode = () => useModellerStore((s) => s.snapMode)
+export const useBoxSelectMode = () => useModellerStore((s) => s.isBoxSelectMode)
 export const useCameraView = () => useModellerStore((s) => s.cameraView)
 export const useFocusObjectId = () => useModellerStore((s) => s.focusObjectId)
 export const useGridSettings = () => useModellerStore((s) => s.gridSettings)

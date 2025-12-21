@@ -15,6 +15,7 @@ import type {
   Layer,
   NotificationSummary,
   ObjectType,
+  SceneArea,
   SceneData,
   SnapMode,
   TransformMode,
@@ -48,6 +49,9 @@ export interface ModellerStore {
 
   // Layers (layers-slice)
   layers: Layer[]
+
+  // Areas (areas-slice)
+  areas: SceneArea[]
 
   // Camera (camera-slice)
   cameraView: CameraView
@@ -109,6 +113,18 @@ export interface ModellerStore {
   toggleLayerVisibility: (id: string) => void
   toggleLayerLock: (id: string) => void
   moveObjectToLayer: (objectId: string, layerId: string) => void
+
+  // Areas (areas-slice)
+  createArea: (name?: string) => string
+  deleteArea: (areaId: string) => void
+  renameArea: (areaId: string, name: string) => void
+  updateArea: (areaId: string, updates: Partial<SceneArea>) => void
+  moveObjectToArea: (objectId: string, areaId: string | undefined) => void
+  moveObjectsToArea: (objectIds: string[], areaId: string | undefined) => void
+  toggleAreaCollapsed: (areaId: string) => void
+  reorderArea: (areaId: string, newIndex: number) => void
+  getAreaById: (areaId: string) => SceneArea | undefined
+  getObjectsByArea: (areaId: string) => string[]
 
   // Camera (camera-slice)
   setCameraView: (view: CameraView) => void

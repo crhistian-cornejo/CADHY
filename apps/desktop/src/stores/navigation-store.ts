@@ -18,6 +18,7 @@ export type ViewId =
   | "new-project"
   | "open"
   | "examples"
+  | "gallery"
   | "modeller"
   | "mesh"
   | "cfd"

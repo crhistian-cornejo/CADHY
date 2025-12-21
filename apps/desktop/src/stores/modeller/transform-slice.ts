@@ -19,12 +19,15 @@ export interface TransformSliceState {
   transformMode: TransformMode
   transformSpace: TransformSpace
   snapMode: SnapMode
+  /** Box selection mode - when true, camera controls are disabled and drag-to-select is enabled */
+  isBoxSelectMode: boolean
 }
 
 export interface TransformSliceActions {
   setTransformMode: (mode: TransformMode) => void
   setTransformSpace: (space: TransformSpace) => void
   setSnapMode: (mode: SnapMode) => void
+  setBoxSelectMode: (enabled: boolean) => void
   transformSelected: (transform: Partial<Transform>) => void
 }
 
@@ -38,6 +41,7 @@ export const initialTransformState: TransformSliceState = {
   transformMode: "translate",
   transformSpace: "world",
   snapMode: "grid",
+  isBoxSelectMode: false,
 }
 
 // ============================================================================
@@ -60,6 +64,10 @@ export const createTransformSlice: StateCreator<ModellerStore, [], [], Transform
 
   setSnapMode: (mode) => {
     set({ snapMode: mode })
+  },
+
+  setBoxSelectMode: (enabled) => {
+    set({ isBoxSelectMode: enabled })
   },
 
   transformSelected: (transform) => {
