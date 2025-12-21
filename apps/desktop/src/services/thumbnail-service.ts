@@ -5,6 +5,8 @@
  * Uses Three.js canvas capture and resizes for optimal storage.
  */
 
+import { logger } from "@cadhy/shared"
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -84,16 +86,38 @@ export async function captureViewportThumbnail(): Promise<string | null> {
 }
 
 /**
- * Captures thumbnail with a slight delay to ensure render is complete.
- * Useful after scene changes.
+ * Wait for multiple animation frames to ensure render is complete.
+ * This is more reliable than setTimeout for waiting on Three.js renders.
  */
-export async function captureViewportThumbnailDelayed(delayMs = 100): Promise<string | null> {
+function waitForFrames(frameCount: number): Promise<void> {
   return new Promise((resolve) => {
-    setTimeout(async () => {
-      const thumbnail = await captureViewportThumbnail()
-      resolve(thumbnail)
-    }, delayMs)
+    let count = 0
+    const tick = () => {
+      count++
+      if (count >= frameCount) {
+        resolve()
+      } else {
+        requestAnimationFrame(tick)
+      }
+    }
+    requestAnimationFrame(tick)
   })
+}
+
+/**
+ * Captures thumbnail after ensuring render is complete.
+ * Uses requestAnimationFrame for reliable timing with Three.js/R3F.
+ *
+ * @param frameCount - Number of frames to wait (default: 3 for textures to load)
+ */
+export async function captureViewportThumbnailDelayed(frameCount = 3): Promise<string | null> {
+  // Wait for frames to ensure textures and effects are rendered
+  await waitForFrames(frameCount)
+
+  // Small additional delay for any async texture loading
+  await new Promise((resolve) => setTimeout(resolve, 50))
+
+  return captureViewportThumbnail()
 }
 
 // ============================================================================

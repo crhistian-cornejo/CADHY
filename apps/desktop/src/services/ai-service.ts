@@ -23,6 +23,7 @@ import {
   HYDRAULIC_SYSTEM_PROMPT,
   hydraulicTools,
   type ModelConfig,
+  renderTools,
   sceneTools,
   // Re-exported from ai package via @cadhy/ai
   streamText,
@@ -61,6 +62,45 @@ export interface TokenUsageData {
   reasoningTokens?: number
   cachedInputTokens?: number
 }
+
+/** Tool category names */
+export type ToolCategory = "cad" | "hydraulic" | "scene" | "render"
+
+/** Tool categories configuration */
+export interface ToolCategoryConfig {
+  id: ToolCategory
+  name: string
+  description: string
+  enabled: boolean
+}
+
+/** Default tool categories */
+export const DEFAULT_TOOL_CATEGORIES: ToolCategoryConfig[] = [
+  {
+    id: "cad",
+    name: "CAD Tools",
+    description: "Create and modify 3D shapes",
+    enabled: true,
+  },
+  {
+    id: "hydraulic",
+    name: "Hydraulic Tools",
+    description: "Channels, chutes, and analysis",
+    enabled: true,
+  },
+  {
+    id: "scene",
+    name: "Scene Tools",
+    description: "Transform, camera, undo/redo",
+    enabled: true,
+  },
+  {
+    id: "render",
+    name: "Render Tools",
+    description: "Generate visualizations and images",
+    enabled: true,
+  },
+]
 
 /** Streaming callback types */
 export interface StreamCallbacks {
@@ -172,6 +212,29 @@ const allTools: ToolSet = {
   ...cadTools,
   ...hydraulicTools,
   ...sceneTools,
+  ...renderTools,
+}
+
+/**
+ * Get tools filtered by enabled categories
+ */
+export function getFilteredTools(enabledCategories: ToolCategory[]): ToolSet {
+  const tools: ToolSet = {}
+
+  if (enabledCategories.includes("cad")) {
+    Object.assign(tools, cadTools)
+  }
+  if (enabledCategories.includes("hydraulic")) {
+    Object.assign(tools, hydraulicTools)
+  }
+  if (enabledCategories.includes("scene")) {
+    Object.assign(tools, sceneTools)
+  }
+  if (enabledCategories.includes("render")) {
+    Object.assign(tools, renderTools)
+  }
+
+  return tools
 }
 
 /**
@@ -193,7 +256,7 @@ async function getModel(modelId: string, apiKey?: string) {
   if (activeProvider === "ollama-local") {
     logger.log("[AI Service] Using Ollama Local...")
     try {
-      const ollamaProvider = getOllamaProvider({ mode: "local" })
+      const ollamaProvider = await getOllamaProvider({ mode: "local" })
       // Use preferred Ollama model or default
       const ollamaModelId = useSettingsStore.getState().ai.preferredOllamaModel || "qwen3:8b"
       logger.log("[AI Service] ✓ Using Ollama Local with model:", ollamaModelId)
@@ -248,6 +311,8 @@ export async function streamChat(
     modelId?: string
     systemPrompt?: string
     apiKey?: string
+    /** Enabled tool categories (defaults to all) */
+    enabledCategories?: ToolCategory[]
   }
 ): Promise<AbortController> {
   const abortController = new AbortController()
@@ -255,6 +320,10 @@ export async function streamChat(
   try {
     const modelId = options?.modelId ?? DEFAULT_CHAT_MODEL
     const model = await getModel(modelId, options?.apiKey)
+
+    // Get tools based on enabled categories
+    const enabledCategories = options?.enabledCategories ?? ["cad", "hydraulic", "scene", "render"]
+    const tools = enabledCategories.length === 4 ? allTools : getFilteredTools(enabledCategories)
 
     // Convert messages to CoreMessage format
     const coreMessages: CoreMessage[] = messages.map((m) => ({
@@ -268,7 +337,7 @@ export async function streamChat(
       model,
       system: options?.systemPrompt ?? HYDRAULIC_SYSTEM_PROMPT,
       messages: coreMessages,
-      tools: allTools,
+      tools,
       abortSignal: abortController.signal,
     })
 
