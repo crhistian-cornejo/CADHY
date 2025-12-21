@@ -53,8 +53,17 @@ export function getSectionParams(section: ChannelSection): Record<string, number
  * - Backend Z (up/vertical) -> Three.js Y (up)
  *
  * The channel floor is at Z=0 in backend, which becomes Y=0 in Three.js (on the grid).
+ *
+ * IMPORTANT: Generates UV coordinates using box projection mapping since the Rust backend
+ * doesn't provide UVs. This is essential for texture mapping to work correctly.
+ *
+ * @param meshResult - The mesh data from Rust backend
+ * @param textureScale - Global UV scale for consistent texture density (default: 1.0)
  */
-export function meshResultToBufferGeometry(meshResult: MeshResult): THREE.BufferGeometry {
+export function meshResultToBufferGeometry(
+  meshResult: MeshResult,
+  textureScale = 1.0
+): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
 
   // Transform vertices: swap Y and Z axes
@@ -92,11 +101,91 @@ export function meshResultToBufferGeometry(meshResult: MeshResult): THREE.Buffer
     geometry.computeVertexNormals()
   }
 
+  // Generate UV coordinates using box projection with global texture scale
+  // This ensures consistent texture density across all geometry
+  generateBoxProjectionUVs(geometry, textureScale)
+
   // Compute bounding box/sphere for culling
   geometry.computeBoundingBox()
   geometry.computeBoundingSphere()
 
   return geometry
+}
+
+/**
+ * Generate UV coordinates using triplanar mapping
+ *
+ * Triplanar mapping projects textures from 3 axes and blends them based on surface normal.
+ * This provides seamless texturing on all surfaces regardless of orientation,
+ * which is ideal for hydraulic structures with vertical walls, floors, and sloped surfaces.
+ *
+ * The UVs are scaled to provide consistent texture density across ALL geometry.
+ * IMPORTANT: Uses a FIXED scale to ensure 1 meter in 3D = 1 meter of texture everywhere.
+ * This creates visual consistency - stairs, walls, and floors all show the same texture size.
+ *
+ * @param geometry - The geometry to generate UVs for
+ * @param baseScale - Optional scale multiplier (default: 1.0 = 1 world unit = 1 texture unit)
+ *                    - 0.5 = texture appears 2x larger (less tiling)
+ *                    - 2.0 = texture appears 2x smaller (more tiling)
+ */
+function generateBoxProjectionUVs(geometry: THREE.BufferGeometry, baseScale = 1.0): void {
+  const positions = geometry.getAttribute("position")
+  const normals = geometry.getAttribute("normal")
+
+  if (!positions || !normals) {
+    console.warn("[generateBoxProjectionUVs] Missing positions or normals, cannot generate UVs")
+    return
+  }
+
+  const uvs = new Float32Array(positions.count * 2)
+  const tempNormal = new THREE.Vector3()
+  const tempPos = new THREE.Vector3()
+
+  // CRITICAL: Use FIXED scale for consistency across all objects
+  // baseScale = 1.0 means 1 meter in world = 1 texture repeat
+  // This ensures stairs, walls, floors all have the same texture density
+  const textureScale = baseScale
+
+  for (let i = 0; i < positions.count; i++) {
+    // Get position and normal for this vertex
+    tempPos.fromBufferAttribute(positions, i)
+    tempNormal.fromBufferAttribute(normals, i)
+
+    // Get absolute normal components
+    const absX = Math.abs(tempNormal.x)
+    const absY = Math.abs(tempNormal.y)
+    const absZ = Math.abs(tempNormal.z)
+
+    let u = 0
+    let v = 0
+
+    // Project based on dominant normal axis
+    // Use world-space coordinates scaled by textureScale for consistent tiling
+    if (absX >= absY && absX >= absZ) {
+      // X-axis dominant (side walls parallel to flow direction)
+      // Map Y (vertical) to V and Z (transverse) to U
+      u = tempPos.z * textureScale
+      v = tempPos.y * textureScale
+    } else if (absY >= absX && absY >= absZ) {
+      // Y-axis dominant (horizontal surfaces - floors/ceilings)
+      // Map X (flow direction) to U and Z (transverse) to V
+      u = tempPos.x * textureScale
+      v = tempPos.z * textureScale
+    } else {
+      // Z-axis dominant (end walls perpendicular to flow)
+      // Map X (flow direction) to U and Y (vertical) to V
+      u = tempPos.x * textureScale
+      v = tempPos.y * textureScale
+    }
+
+    uvs[i * 2] = u
+    uvs[i * 2 + 1] = v
+  }
+
+  geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2))
+  console.log(
+    `[generateBoxProjectionUVs] Generated UVs for ${positions.count} vertices | Scale: ${textureScale.toFixed(2)} (1m world = ${textureScale.toFixed(2)}m texture)`
+  )
 }
 
 /**
@@ -164,8 +253,14 @@ export function mergeBufferGeometries(
  *
  * For open channels, we create the walls and floor as separate geometries
  * and merge them, avoiding any "cap" on top since water surface is free.
+ *
+ * @param channel - The channel object with dimensions
+ * @param textureScale - Global UV texture scale for consistent density (default: 1.0)
  */
-export function createChannelFallbackGeometry(channel: ChannelObject): THREE.BufferGeometry {
+export function createChannelFallbackGeometry(
+  channel: ChannelObject,
+  textureScale = 1.0
+): THREE.BufferGeometry {
   const { section, length } = channel
   const wallThickness = 0.1
   const geometries: THREE.BufferGeometry[] = []
@@ -307,9 +402,15 @@ export function createChannelFallbackGeometry(channel: ChannelObject): THREE.Buf
   // Rotate so channel extends along X axis (length direction)
   if (mergedGeometry) {
     mergedGeometry.rotateY(Math.PI / 2)
+
+    // Generate UV coordinates with triplanar mapping for consistent textures
+    generateBoxProjectionUVs(mergedGeometry, textureScale)
+
     return mergedGeometry
   }
 
   // Fallback if merge fails
-  return new THREE.BoxGeometry(length, 1, 2)
+  const fallbackGeo = new THREE.BoxGeometry(length, 1, 2)
+  generateBoxProjectionUVs(fallbackGeo, textureScale)
+  return fallbackGeo
 }

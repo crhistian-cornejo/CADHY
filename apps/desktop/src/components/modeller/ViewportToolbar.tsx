@@ -8,6 +8,11 @@
  * - Snap controls
  * - Undo/Redo
  * - Responsive overflow menu for small viewports
+ *
+ * @see ./toolbar/ToolButton.tsx - Reusable tool button component
+ * @see ./toolbar/MenuToolButton.tsx - Menu variant of tool button
+ * @see ./toolbar/ViewButton.tsx - Camera view button
+ * @see ./toolbar/use-container-width.ts - Responsive width hook
  */
 
 import {
@@ -33,6 +38,7 @@ import {
   PopoverContent,
   PopoverTrigger,
   Separator,
+  Slider,
   Switch,
   Tooltip,
   TooltipContent,
@@ -64,7 +70,7 @@ import {
   SquareIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { CameraViewsPopover } from "@/components/modeller/CameraViewsPopover"
 import { usePlatform } from "@/hooks/use-platform"
@@ -81,7 +87,9 @@ import {
 import { isTauriAvailable } from "@/services/hydraulics-service"
 import {
   type CameraView,
+  type EnvironmentPreset,
   type TransformMode,
+  useBoxSelectMode,
   useCameraView,
   useCanRedo,
   useCanUndo,
@@ -93,6 +101,13 @@ import {
   useTransformMode,
   useViewportSettings,
 } from "@/stores/modeller-store"
+import {
+  TOOLBAR_BREAKPOINTS as BREAKPOINTS,
+  MenuToolButton,
+  ToolButton,
+  useContainerWidth,
+  ViewButton,
+} from "./toolbar"
 
 // ============================================================================
 // CAD OPERATION TYPES
@@ -100,151 +115,24 @@ import {
 
 type ParameterOperation = "fillet" | "chamfer" | "shell" | null
 
-// ============================================================================
-// RESPONSIVE BREAKPOINTS
-// ============================================================================
+// Environment presets with their display names and Poly Haven HDRI IDs for previews
+// Drei preset → Poly Haven HDRI mapping
+const ENVIRONMENT_PRESETS: { id: EnvironmentPreset; name: string; hdriId: string }[] = [
+  { id: "apartment", name: "Apartment", hdriId: "lebombo" },
+  { id: "city", name: "City", hdriId: "potsdamer_platz" },
+  { id: "dawn", name: "Dawn", hdriId: "kiara_1_dawn" },
+  { id: "forest", name: "Forest", hdriId: "forest_slope" },
+  { id: "lobby", name: "Lobby", hdriId: "st_fagans_interior" },
+  { id: "night", name: "Night", hdriId: "dikhololo_night" },
+  { id: "park", name: "Park", hdriId: "rooitou_park" },
+  { id: "studio", name: "Studio", hdriId: "studio_small_03" },
+  { id: "sunset", name: "Sunset", hdriId: "venice_sunset" },
+  { id: "warehouse", name: "Warehouse", hdriId: "empty_warehouse_01" },
+]
 
-// Breakpoints for hiding toolbar groups (in pixels)
-// These are approximate widths where groups start getting hidden
-const BREAKPOINTS = {
-  SHOW_ALL: 700, // Show everything
-  HIDE_CAMERA: 580, // Hide camera views - also hides undo/redo, export, settings
-  HIDE_VIEW_MODE: 480, // Hide view mode buttons
-  HIDE_SNAP: 380, // Hide snap/grid
-  MINIMUM: 200, // Minimum - only transform + overflow
-}
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface ToolButtonProps {
-  icon: typeof Cursor01Icon
-  label: string
-  active?: boolean
-  disabled?: boolean
-  onClick?: () => void
-  shortcut?: string
-}
-
-// ============================================================================
-// TOOL BUTTON
-// ============================================================================
-
-function ToolButton({ icon, label, active, disabled, onClick, shortcut }: ToolButtonProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant={active ? "secondary" : "ghost"}
-            size="icon-sm"
-            disabled={disabled}
-            onClick={onClick}
-            className={cn("h-7 w-7", active && "bg-primary/20 text-primary hover:bg-primary/30")}
-          >
-            <HugeiconsIcon icon={icon} className="size-4" />
-          </Button>
-        }
-      />
-      <TooltipContent side="bottom" className="flex items-center gap-2">
-        <span>{label}</span>
-        {shortcut && (
-          <kbd className="rounded bg-background/20 px-1.5 py-0.5 text-[10px] font-mono text-inherit">
-            {shortcut}
-          </kbd>
-        )}
-      </TooltipContent>
-    </Tooltip>
-  )
-}
-
-// ============================================================================
-// VIEW BUTTON GROUP
-// ============================================================================
-
-interface ViewButtonProps {
-  view: CameraView
-  icon: typeof Home01Icon
-  label: string
-  currentView: CameraView
-  onClick: (view: CameraView) => void
-}
-
-function ViewButton({ view, icon, label, currentView, onClick }: ViewButtonProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant={currentView === view ? "secondary" : "ghost"}
-            size="icon-sm"
-            onClick={() => onClick(view)}
-            className="h-7 w-7"
-          >
-            <HugeiconsIcon icon={icon} className="size-4" />
-          </Button>
-        }
-      />
-      <TooltipContent side="bottom">{label}</TooltipContent>
-    </Tooltip>
-  )
-}
-
-// ============================================================================
-// MENU ITEM BUTTON (for dropdown menu)
-// ============================================================================
-
-interface MenuToolButtonProps {
-  icon: typeof Cursor01Icon
-  label: string
-  active?: boolean
-  disabled?: boolean
-  onClick?: () => void
-  shortcut?: string
-}
-
-function MenuToolButton({ icon, label, active, disabled, onClick, shortcut }: MenuToolButtonProps) {
-  return (
-    <DropdownMenuItem
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(active && "bg-primary/20 text-primary")}
-    >
-      <HugeiconsIcon icon={icon} className="mr-2 size-4" />
-      <span className="flex-1">{label}</span>
-      {shortcut && <kbd className="ml-auto text-[10px] text-muted-foreground">{shortcut}</kbd>}
-    </DropdownMenuItem>
-  )
-}
-
-// ============================================================================
-// CUSTOM HOOK FOR CONTAINER WIDTH
-// ============================================================================
-
-function useContainerWidth() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(800)
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setWidth(entry.contentRect.width)
-      }
-    })
-
-    observer.observe(container)
-    // Initial measurement
-    setWidth(container.offsetWidth)
-
-    return () => observer.disconnect()
-  }, [])
-
-  return { containerRef, width }
-}
+// Get Poly Haven thumbnail URL for HDRI preview
+const getHdriPreviewUrl = (hdriId: string) =>
+  `https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/${hdriId}.jpg`
 
 // ============================================================================
 // TYPES
@@ -274,6 +162,7 @@ export function ViewportToolbar({
   const cameraView = useCameraView()
   const viewportSettings = useViewportSettings()
   const snapMode = useSnapMode()
+  const isBoxSelectMode = useBoxSelectMode()
   const canUndo = useCanUndo()
   const canRedo = useCanRedo()
   const selectedObjects = useSelectedObjects()
@@ -323,6 +212,7 @@ export function ViewportToolbar({
     setCameraView,
     setViewportSettings,
     setSnapMode,
+    setBoxSelectMode,
     undo,
     redo,
     loadCameraView,
@@ -710,29 +600,48 @@ export function ViewportToolbar({
             icon={Cursor01Icon}
             label={t("toolbar.select")}
             shortcut="V"
-            active={transformMode === "none"}
-            onClick={() => handleTransformMode("none")}
+            active={transformMode === "none" && !isBoxSelectMode}
+            onClick={() => {
+              handleTransformMode("none")
+              setBoxSelectMode(false)
+            }}
+          />
+          <ToolButton
+            icon={SquareIcon}
+            label={t("toolbar.boxSelect", "Box Select")}
+            shortcut="B"
+            active={isBoxSelectMode}
+            onClick={() => setBoxSelectMode(!isBoxSelectMode)}
           />
           <ToolButton
             icon={Move01Icon}
             label={t("toolbar.move")}
             shortcut="G"
             active={transformMode === "translate"}
-            onClick={() => handleTransformMode("translate")}
+            onClick={() => {
+              handleTransformMode("translate")
+              setBoxSelectMode(false)
+            }}
           />
           <ToolButton
             icon={Rotate01Icon}
             label={t("toolbar.rotate")}
             shortcut="R"
             active={transformMode === "rotate"}
-            onClick={() => handleTransformMode("rotate")}
+            onClick={() => {
+              handleTransformMode("rotate")
+              setBoxSelectMode(false)
+            }}
           />
           <ToolButton
             icon={Resize01Icon}
             label={t("toolbar.scale")}
             shortcut="S"
             active={transformMode === "scale"}
-            onClick={() => handleTransformMode("scale")}
+            onClick={() => {
+              handleTransformMode("scale")
+              setBoxSelectMode(false)
+            }}
           />
         </div>
 
@@ -1426,6 +1335,109 @@ export function ViewportToolbar({
                           </Button>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  <Separator className="my-2" />
+
+                  {/* Environment Lighting */}
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                    {t("toolbar.environmentLighting", "Environment Lighting")}
+                  </p>
+
+                  {/* Environment Preset Grid with Previews */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] text-muted-foreground">
+                      {t("toolbar.preset", "Preset")}
+                    </Label>
+                    <div className="grid grid-cols-5 gap-1">
+                      {ENVIRONMENT_PRESETS.map((preset) => (
+                        <Tooltip key={preset.id}>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => setViewportSettings({ environmentPreset: preset.id })}
+                              className={cn(
+                                "relative w-8 h-8 rounded overflow-hidden border-2 transition-all",
+                                "hover:scale-110 hover:z-10",
+                                (viewportSettings.environmentPreset ?? "apartment") === preset.id
+                                  ? "border-primary ring-1 ring-primary/50"
+                                  : "border-transparent hover:border-muted-foreground/30"
+                              )}
+                            >
+                              <img
+                                src={getHdriPreviewUrl(preset.hdriId)}
+                                alt={preset.name}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs">
+                            {preset.name}
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Environment Intensity Slider */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] text-muted-foreground">
+                        {t("toolbar.intensity", "Intensity")}
+                      </Label>
+                      <span className="text-[10px] text-muted-foreground">
+                        {(viewportSettings.environmentIntensity ?? 1).toFixed(1)}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[viewportSettings.environmentIntensity ?? 1]}
+                      onValueChange={([value]) =>
+                        setViewportSettings({ environmentIntensity: value })
+                      }
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Environment Background Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="envBackground" className="text-xs font-normal">
+                      {t("toolbar.showAsBackground", "Show as Background")}
+                    </Label>
+                    <Switch
+                      id="envBackground"
+                      checked={viewportSettings.environmentBackground ?? false}
+                      onCheckedChange={(checked) =>
+                        setViewportSettings({ environmentBackground: checked })
+                      }
+                    />
+                  </div>
+
+                  {/* Background Blur Slider (only when background is enabled) */}
+                  {(viewportSettings.environmentBackground ?? false) && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[10px] text-muted-foreground">
+                          {t("toolbar.backgroundBlur", "Background Blur")}
+                        </Label>
+                        <span className="text-[10px] text-muted-foreground">
+                          {(viewportSettings.backgroundBlurriness ?? 0.5).toFixed(1)}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[viewportSettings.backgroundBlurriness ?? 0.5]}
+                        onValueChange={([value]) =>
+                          setViewportSettings({ backgroundBlurriness: value })
+                        }
+                        min={0}
+                        max={1}
+                        step={0.1}
+                        className="w-full"
+                      />
                     </div>
                   )}
                 </div>

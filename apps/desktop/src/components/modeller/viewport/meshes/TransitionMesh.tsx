@@ -6,16 +6,25 @@
  * Supports optional stilling basin for drop transitions.
  */
 
+import { loggers } from "@cadhy/shared"
 import type { ThreeEvent } from "@react-three/fiber"
-import { useEffect, useMemo, useRef, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
+
 import {
   generateTransitionMesh,
   isTauriAvailable,
   type TransitionGeometryInput,
 } from "@/services/hydraulics-service"
-import type { StillingBasinConfig, TransitionObject } from "@/stores/modeller-store"
+import type { PBRTextureMaps } from "@/services/texture-service"
+import {
+  type StillingBasinConfig,
+  type TransitionObject,
+  useViewportSettings,
+} from "@/stores/modeller-store"
 import { mergeBufferGeometries, meshResultToBufferGeometry, safeNumber } from "../geometry-utils"
+
+const log = loggers.mesh
 
 export interface TransitionMeshProps {
   transition: TransitionObject
@@ -30,6 +39,8 @@ export interface TransitionMeshProps {
   onPointerOut: () => void
   meshRef?: React.RefObject<THREE.Mesh | THREE.Group | null>
   onMeshReady?: () => void
+  pbrTextures?: PBRTextureMaps | null
+  uvRepeat?: { x: number; y: number }
 }
 
 /**
@@ -123,7 +134,7 @@ function createStillingBasinGeometry(
 /**
  * TransitionMesh - Renders a hydraulic transition with Rust-generated geometry
  */
-export function TransitionMesh({
+export const TransitionMesh = React.memo(function TransitionMesh({
   transition,
   color,
   opacity,
@@ -136,12 +147,47 @@ export function TransitionMesh({
   onPointerOut,
   meshRef: externalMeshRef,
   onMeshReady,
+  pbrTextures,
+  uvRepeat = { x: 1, y: 1 },
 }: TransitionMeshProps) {
   const internalGroupRef = useRef<THREE.Group>(null)
   const internalMeshRef = useRef<THREE.Mesh>(null)
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const viewportSettings = useViewportSettings()
+
+  // Store texture reference to update UV repeat without re-render
+  const texturesRef = useRef<PBRTextureMaps | null>(null)
+  texturesRef.current = pbrTextures
+
+  // Apply UV repeat to textures when they first load
+  useEffect(() => {
+    if (pbrTextures) {
+      log.log("Applying textures:", Object.keys(pbrTextures), "UV repeat:", uvRepeat)
+      Object.values(pbrTextures).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+          texture.wrapS = THREE.RepeatWrapping
+          texture.wrapT = THREE.RepeatWrapping
+          texture.needsUpdate = true
+        }
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pbrTextures])
+
+  // Update UV repeat on slider change (without re-rendering geometry)
+  useEffect(() => {
+    if (texturesRef.current) {
+      Object.values(texturesRef.current).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+          // Don't set needsUpdate - it causes GPU re-upload and flicker
+        }
+      })
+    }
+  }, [uvRepeat.x, uvRepeat.y])
 
   // Generate stilling basin geometry if configured
   const basinGeometry = useMemo(() => {
@@ -241,12 +287,12 @@ export function TransitionMesh({
         const meshResult = await generateTransitionMesh(input)
 
         if (!cancelled && meshResult) {
-          const geo = meshResultToBufferGeometry(meshResult)
+          const geo = meshResultToBufferGeometry(meshResult, viewportSettings.textureScale)
           setGeometry(geo)
           setIsLoading(false)
         }
       } catch (err) {
-        console.error("Failed to generate transition mesh:", err)
+        log.error("Failed to generate transition mesh:", err)
         if (!cancelled) {
           setError(String(err))
           // Use fallback geometry
@@ -281,6 +327,7 @@ export function TransitionMesh({
     transition.outlet?.sideSlope,
     transition.outlet?.wallThickness,
     transition.outlet?.floorThickness,
+    viewportSettings.textureScale, // Regenerate UVs when global texture scale changes
   ])
 
   // Clean up geometry on unmount
@@ -292,6 +339,7 @@ export function TransitionMesh({
   }, [geometry, basinGeometry])
 
   // Forward mesh ref (using group when we have basin, mesh otherwise)
+  // Must depend on geometry so it triggers when mesh becomes available after loading
   useEffect(() => {
     const targetRef = basinGeometry ? internalGroupRef.current : internalMeshRef.current
     if (externalMeshRef && targetRef) {
@@ -304,7 +352,7 @@ export function TransitionMesh({
         ;(externalMeshRef as React.MutableRefObject<THREE.Mesh | THREE.Group | null>).current = null
       }
     }
-  }, [externalMeshRef, onMeshReady, basinGeometry])
+  }, [externalMeshRef, onMeshReady, basinGeometry, geometry])
 
   if (isLoading || !geometry) {
     return (
@@ -320,13 +368,19 @@ export function TransitionMesh({
 
   // Material props shared between transition and basin
   const materialProps = {
-    color: error ? "#ef4444" : color,
+    color: error ? "#ef4444" : pbrTextures?.albedo ? "#ffffff" : color,
     wireframe,
     transparent: opacity < 1,
     opacity,
     side: THREE.DoubleSide,
     metalness,
     roughness,
+    // PBR Texture Maps (only include if they exist)
+    ...(pbrTextures?.albedo && { map: pbrTextures.albedo }),
+    ...(pbrTextures?.normal && { normalMap: pbrTextures.normal }),
+    ...(pbrTextures?.roughness && { roughnessMap: pbrTextures.roughness }),
+    ...(pbrTextures?.metalness && { metalnessMap: pbrTextures.metalness }),
+    ...(pbrTextures?.ao && { aoMap: pbrTextures.ao, aoMapIntensity: 1 }),
   }
 
   // If we have a stilling basin, wrap everything in a group
@@ -342,23 +396,11 @@ export function TransitionMesh({
         {/* Main transition mesh */}
         <mesh ref={internalMeshRef} geometry={geometry}>
           <meshStandardMaterial {...materialProps} />
-          {isSelected && (
-            <lineSegments>
-              <edgesGeometry args={[geometry]} />
-              <lineBasicMaterial color="#22c55e" linewidth={2} />
-            </lineSegments>
-          )}
         </mesh>
 
         {/* Stilling basin mesh */}
         <mesh geometry={basinGeometry}>
           <meshStandardMaterial {...materialProps} />
-          {isSelected && (
-            <lineSegments>
-              <edgesGeometry args={[basinGeometry]} />
-              <lineBasicMaterial color="#22c55e" linewidth={2} />
-            </lineSegments>
-          )}
         </mesh>
       </group>
     )
@@ -375,14 +417,8 @@ export function TransitionMesh({
       onPointerOut={onPointerOut}
     >
       <meshStandardMaterial {...materialProps} />
-      {isSelected && (
-        <lineSegments>
-          <edgesGeometry args={[geometry]} />
-          <lineBasicMaterial color="#22c55e" linewidth={2} />
-        </lineSegments>
-      )}
     </mesh>
   )
-}
+})
 
 export default TransitionMesh

@@ -7,21 +7,26 @@
  * Falls back to a placeholder box when Tauri is not available.
  */
 
+import { loggers } from "@cadhy/shared"
 import type { ThreeEvent } from "@react-three/fiber"
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import * as THREE from "three"
+
 import {
   type ChannelSectionType,
   convertSectionToBackend,
   generateChannelMesh,
   isTauriAvailable,
 } from "@/services/hydraulics-service"
-import type { ChannelObject } from "@/stores/modeller-store"
+import type { PBRTextureMaps } from "@/services/texture-service"
+import { type ChannelObject, useViewportSettings } from "@/stores/modeller-store"
 import {
   createChannelFallbackGeometry,
   getSectionParams,
   meshResultToBufferGeometry,
 } from "../geometry-utils"
+
+const log = loggers.mesh
 
 export interface ChannelMeshProps {
   channel: ChannelObject
@@ -36,9 +41,11 @@ export interface ChannelMeshProps {
   onPointerOut: () => void
   meshRef?: React.RefObject<THREE.Mesh | THREE.Group | null>
   onMeshReady?: () => void
+  pbrTextures?: PBRTextureMaps | null
+  uvRepeat?: { x: number; y: number }
 }
 
-export function ChannelMesh({
+export const ChannelMesh = React.memo(function ChannelMesh({
   channel,
   color,
   opacity,
@@ -51,11 +58,44 @@ export function ChannelMesh({
   onPointerOut,
   meshRef: externalMeshRef,
   onMeshReady,
+  pbrTextures,
+  uvRepeat = { x: 1, y: 1 },
 }: ChannelMeshProps) {
   const internalMeshRef = useRef<THREE.Mesh>(null)
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const viewportSettings = useViewportSettings()
+
+  // Store texture reference to update UV repeat without re-render
+  const texturesRef = useRef<PBRTextureMaps | null>(null)
+  texturesRef.current = pbrTextures
+
+  // Apply UV repeat to textures when they first load
+  useEffect(() => {
+    if (pbrTextures) {
+      Object.values(pbrTextures).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+          texture.wrapS = THREE.RepeatWrapping
+          texture.wrapT = THREE.RepeatWrapping
+          texture.needsUpdate = true
+        }
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pbrTextures])
+
+  // Update UV repeat on slider change (without re-rendering geometry)
+  useEffect(() => {
+    if (texturesRef.current) {
+      Object.values(texturesRef.current).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+        }
+      })
+    }
+  }, [uvRepeat.x, uvRepeat.y])
 
   // Generate geometry from Rust backend
   useEffect(() => {
@@ -64,7 +104,7 @@ export function ChannelMesh({
     async function loadGeometry() {
       if (!isTauriAvailable()) {
         // Fallback: create placeholder geometry based on channel dimensions
-        const fallbackGeo = createChannelFallbackGeometry(channel)
+        const fallbackGeo = createChannelFallbackGeometry(channel, viewportSettings.textureScale)
         if (!cancelled) {
           setGeometry(fallbackGeo)
           setIsLoading(false)
@@ -102,15 +142,15 @@ export function ChannelMesh({
 
         if (cancelled) return
 
-        // Convert MeshResult to Three.js BufferGeometry
-        const geo = meshResultToBufferGeometry(meshResult)
+        // Convert MeshResult to Three.js BufferGeometry with global texture scale
+        const geo = meshResultToBufferGeometry(meshResult, viewportSettings.textureScale)
         setGeometry(geo)
       } catch (err) {
         if (!cancelled) {
-          console.error("Failed to generate channel mesh:", err)
+          log.error("Failed to generate channel mesh:", err)
           setError(err instanceof Error ? err.message : "Unknown error")
           // Use fallback geometry on error
-          const fallbackGeo = createChannelFallbackGeometry(channel)
+          const fallbackGeo = createChannelFallbackGeometry(channel, viewportSettings.textureScale)
           setGeometry(fallbackGeo)
         }
       } finally {
@@ -134,6 +174,7 @@ export function ChannelMesh({
     channel.startElevation,
     channel.thickness,
     channel,
+    viewportSettings.textureScale, // Regenerate UVs when global texture scale changes
   ])
 
   // Clean up geometry on unmount
@@ -143,7 +184,15 @@ export function ChannelMesh({
     }
   }, [geometry])
 
+  // Set userData for LOD tracking
+  useEffect(() => {
+    if (internalMeshRef.current) {
+      internalMeshRef.current.userData.objectId = channel.id
+    }
+  }, [channel.id])
+
   // Sync external ref with internal ref and notify when ready
+  // Must depend on geometry so it triggers when mesh becomes available after loading
   useEffect(() => {
     if (externalMeshRef && internalMeshRef.current) {
       ;(externalMeshRef as React.MutableRefObject<THREE.Mesh | null>).current =
@@ -155,7 +204,7 @@ export function ChannelMesh({
         ;(externalMeshRef as React.MutableRefObject<THREE.Mesh | null>).current = null
       }
     }
-  }, [externalMeshRef, onMeshReady]) // Also trigger when geometry changes
+  }, [externalMeshRef, onMeshReady, geometry])
 
   // Show loading placeholder at correct world position
   if (isLoading || !geometry) {
@@ -202,23 +251,21 @@ export function ChannelMesh({
       onPointerOut={onPointerOut}
     >
       <meshStandardMaterial
-        color={error ? "#ef4444" : color}
+        color={error ? "#ef4444" : pbrTextures?.albedo ? "#ffffff" : color}
         wireframe={wireframe}
         transparent={opacity < 1}
         opacity={opacity}
         side={THREE.DoubleSide}
         metalness={metalness}
         roughness={roughness}
+        {...(pbrTextures?.albedo && { map: pbrTextures.albedo })}
+        {...(pbrTextures?.normal && { normalMap: pbrTextures.normal })}
+        {...(pbrTextures?.roughness && { roughnessMap: pbrTextures.roughness })}
+        {...(pbrTextures?.metalness && { metalnessMap: pbrTextures.metalness })}
+        {...(pbrTextures?.ao && { aoMap: pbrTextures.ao, aoMapIntensity: 1 })}
       />
-      {/* Selection outline */}
-      {isSelected && (
-        <lineSegments>
-          <edgesGeometry args={[geometry]} />
-          <lineBasicMaterial color="#22c55e" linewidth={2} />
-        </lineSegments>
-      )}
     </mesh>
   )
-}
+})
 
 export default ChannelMesh

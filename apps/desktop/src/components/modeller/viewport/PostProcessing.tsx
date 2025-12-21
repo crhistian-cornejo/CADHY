@@ -33,44 +33,64 @@ export interface PostProcessingProps {
 // QUALITY CONFIGURATIONS
 // ============================================================================
 
+/**
+ * Quality configurations for post-processing effects.
+ *
+ * The main tradeoffs are:
+ * - Low: Minimal effects, best for slow hardware or complex scenes
+ * - Medium: Balanced quality and performance (recommended)
+ * - High: Enhanced effects, noticeable ambient occlusion
+ * - Ultra: Maximum quality with strong SSAO and high-res bloom
+ *
+ * Note: On modern GPUs, all presets typically maintain 60fps.
+ * The visual difference is most apparent with complex geometry.
+ */
 const QUALITY_CONFIG = {
   low: {
     multisampling: 0,
-    ssaoSamples: 16, // Más samples = menos ruido
-    ssaoRadius: 0.2, // Radio reducido
-    ssaoIntensity: 1.5, // MUCHO más bajo para reducir ruido
-    ssoaBias: 0.025,
-    bloomLuminanceSmoothing: 0.7,
+    ssaoSamples: 8,
+    ssaoRadius: 0.15,
+    ssaoIntensity: 0.5, // Very subtle AO
+    ssoaBias: 0.03,
+    bloomIntensity: 0.2,
+    bloomLuminanceThreshold: 0.9,
+    bloomLuminanceSmoothing: 0.5,
     bloomResolution: 128,
-    ssaoResolutionScale: 1, // Full res para menos ruido
+    ssaoResolutionScale: 0.5, // Half resolution for speed
   },
   medium: {
     multisampling: 2,
-    ssaoSamples: 32, // Más samples
+    ssaoSamples: 24,
     ssaoRadius: 0.25,
-    ssaoIntensity: 2.0, // Reducido drásticamente
+    ssaoIntensity: 1.5, // Visible AO in corners
     ssoaBias: 0.02,
-    bloomLuminanceSmoothing: 0.9,
+    bloomIntensity: 0.4,
+    bloomLuminanceThreshold: 0.85,
+    bloomLuminanceSmoothing: 0.7,
     bloomResolution: 256,
-    ssaoResolutionScale: 1,
+    ssaoResolutionScale: 0.75,
   },
   high: {
     multisampling: 4,
-    ssaoSamples: 64, // Muchos más samples
-    ssaoRadius: 0.3,
-    ssaoIntensity: 2.5, // Reducido
+    ssaoSamples: 48,
+    ssaoRadius: 0.4,
+    ssaoIntensity: 3.0, // Strong AO, clearly visible
     ssoaBias: 0.015,
-    bloomLuminanceSmoothing: 0.95,
+    bloomIntensity: 0.5,
+    bloomLuminanceThreshold: 0.8,
+    bloomLuminanceSmoothing: 0.85,
     bloomResolution: 512,
     ssaoResolutionScale: 1,
   },
   ultra: {
     multisampling: 8,
-    ssaoSamples: 128, // Máximos samples para calidad
-    ssaoRadius: 0.35,
-    ssaoIntensity: 3.0, // Aún bajo
+    ssaoSamples: 64,
+    ssaoRadius: 0.5,
+    ssaoIntensity: 5.0, // Very strong AO for dramatic effect
     ssoaBias: 0.01,
-    bloomLuminanceSmoothing: 0.99,
+    bloomIntensity: 0.6,
+    bloomLuminanceThreshold: 0.75,
+    bloomLuminanceSmoothing: 0.95,
     bloomResolution: 1024,
     ssaoResolutionScale: 1,
   },
@@ -124,8 +144,8 @@ export const PostProcessing = memo(function PostProcessing({
       {/* Bloom - Glow effect for bright areas and metals */}
       {enableBloom && (
         <Bloom
-          intensity={0.4}
-          luminanceThreshold={0.85}
+          intensity={config.bloomIntensity}
+          luminanceThreshold={config.bloomLuminanceThreshold}
           luminanceSmoothing={config.bloomLuminanceSmoothing}
           radius={0.5}
           mipmapBlur

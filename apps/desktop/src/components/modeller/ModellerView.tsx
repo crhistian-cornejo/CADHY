@@ -28,6 +28,7 @@ import {
   HierarchyIcon,
   Layers01Icon,
   Settings01Icon,
+  SquareIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { listen } from "@tauri-apps/api/event"
@@ -51,6 +52,7 @@ import { LayersPanel } from "./LayersPanel"
 import { NotificationsPanel } from "./NotificationsPanel"
 import { PropertiesPanel } from "./PropertiesPanel"
 import { ScenePanel } from "./ScenePanel"
+import { ToolsPanel } from "./ToolsPanel"
 import { Viewport3D } from "./Viewport3D"
 import { ViewportToolbar } from "./ViewportToolbar"
 
@@ -64,7 +66,7 @@ interface ModellerViewProps {
   onOpenProject?: () => void
 }
 
-type LeftPanelTab = "create" | "props" | "layers" | "scene" | "checks"
+type LeftPanelTab = "create" | "props" | "layers" | "scene" | "checks" | "tools"
 
 // ============================================================================
 // ANIMATED GRID BACKGROUND
@@ -366,7 +368,7 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
                   className="flex flex-col h-full"
                 >
                   <div className="flex items-center gap-1 border-b border-border/40 bg-background/95 px-2 py-1 backdrop-blur-sm">
-                    <TabsList className="flex-1 h-8 p-0.5 bg-muted/30 border rounded-md grid grid-cols-5 gap-0.5">
+                    <TabsList className="flex-1 h-8 p-0.5 bg-muted/30 border rounded-md grid grid-cols-6 gap-0.5">
                       <TabsTrigger
                         value="create"
                         className="h-7 px-1.5 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm flex items-center justify-center gap-1"
@@ -429,6 +431,16 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
                           </span>
                         )}
                       </TabsTrigger>
+                      <TabsTrigger
+                        value="tools"
+                        className="h-7 px-1.5 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm flex items-center justify-center gap-1"
+                        title={t("modeller.tabs.toolsTooltip", "Advanced Tools")}
+                      >
+                        <HugeiconsIcon icon={SquareIcon} className="size-3.5" />
+                        <span className="hidden lg:inline">
+                          {t("modeller.tabs.tools", "Tools")}
+                        </span>
+                      </TabsTrigger>
                     </TabsList>
                   </div>
 
@@ -457,6 +469,11 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
                     <TabsContent value="checks" className="h-full m-0 data-[state=inactive]:hidden">
                       <PanelErrorBoundary context="Notifications Panel">
                         <NotificationsPanel />
+                      </PanelErrorBoundary>
+                    </TabsContent>
+                    <TabsContent value="tools" className="h-full m-0 data-[state=inactive]:hidden">
+                      <PanelErrorBoundary context="Tools Panel">
+                        <ToolsPanel />
                       </PanelErrorBoundary>
                     </TabsContent>
                   </div>

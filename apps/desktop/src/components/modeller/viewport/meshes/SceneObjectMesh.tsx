@@ -5,9 +5,12 @@
  * Handles selection, hover states, and view modes.
  */
 
+import { loggers } from "@cadhy/shared"
 import type { ThreeEvent } from "@react-three/fiber"
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import React, { useCallback, useEffect, useMemo, useRef } from "react"
 import * as THREE from "three"
+import { type PBRTextureMaps, usePBRTextures } from "@/hooks/usePBRTextures"
+
 import type {
   AnySceneObject,
   ChannelObject,
@@ -15,9 +18,12 @@ import type {
   ShapeObject,
   TransitionObject,
 } from "@/stores/modeller-store"
+import { useViewportSettings } from "@/stores/modeller-store"
 import { ChannelMesh } from "./ChannelMesh"
 import { ChuteMesh } from "./ChuteMesh"
 import { TransitionMesh } from "./TransitionMesh"
+
+const log = loggers.mesh
 
 export interface SceneObjectMeshProps {
   object: AnySceneObject
@@ -30,7 +36,7 @@ export interface SceneObjectMeshProps {
   onMeshReady?: () => void
 }
 
-export function SceneObjectMesh({
+export const SceneObjectMesh = React.memo(function SceneObjectMesh({
   object,
   isSelected,
   isHovered,
@@ -94,6 +100,54 @@ export function SceneObjectMesh({
     return { metalness: 0.1, roughness: 0.6 }
   }, [object])
 
+  // Load PBR textures (only for shapes with post-processing enabled)
+  const viewportSettings = useViewportSettings()
+  const shapeMaterial = object.type === "shape" ? (object as ShapeObject).material : undefined
+  const pbrTextures = usePBRTextures(shapeMaterial, viewportSettings.enablePostProcessing ?? false)
+
+  // UV repeat from material
+  const uvRepeat = useMemo(() => {
+    if (object.type === "shape") {
+      const shape = object as ShapeObject
+      return {
+        x: shape.material?.pbr?.repeatX ?? 1,
+        y: shape.material?.pbr?.repeatY ?? 1,
+      }
+    }
+    return { x: 1, y: 1 }
+  }, [object])
+
+  // Store texture reference to update UV repeat without re-render
+  const texturesRef = useRef<PBRTextureMaps | null>(null)
+  texturesRef.current = pbrTextures
+
+  // Apply UV repeat to textures when they first load
+  useEffect(() => {
+    if (pbrTextures) {
+      log.log("Applying textures:", Object.keys(pbrTextures), "UV repeat:", uvRepeat)
+      Object.values(pbrTextures).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+          texture.wrapS = THREE.RepeatWrapping
+          texture.wrapT = THREE.RepeatWrapping
+          texture.needsUpdate = true
+        }
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pbrTextures])
+
+  // Update UV repeat on slider change (without re-rendering geometry)
+  useEffect(() => {
+    if (texturesRef.current) {
+      Object.values(texturesRef.current).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+        }
+      })
+    }
+  }, [uvRepeat.x, uvRepeat.y])
+
   // Event handlers
   const handleClick = useCallback(
     (event: ThreeEvent<MouseEvent>) => {
@@ -122,6 +176,14 @@ export function SceneObjectMesh({
   // Use ChannelMesh for channel objects
   if (object.type === "channel") {
     const channelObj = object as ChannelObject
+    const channelTextures = usePBRTextures(
+      channelObj.material,
+      viewportSettings.enablePostProcessing ?? false
+    )
+    const channelUvRepeat = {
+      x: channelObj.material?.pbr?.repeatX ?? 1,
+      y: channelObj.material?.pbr?.repeatY ?? 1,
+    }
     return (
       <ChannelMesh
         channel={channelObj}
@@ -136,6 +198,8 @@ export function SceneObjectMesh({
         onPointerOut={handlePointerOut}
         meshRef={externalMeshRef}
         onMeshReady={onMeshReady}
+        pbrTextures={channelTextures}
+        uvRepeat={channelUvRepeat}
       />
     )
   }
@@ -143,6 +207,14 @@ export function SceneObjectMesh({
   // Use TransitionMesh for transition objects
   if (object.type === "transition") {
     const transitionObj = object as TransitionObject
+    const transitionTextures = usePBRTextures(
+      transitionObj.material,
+      viewportSettings.enablePostProcessing ?? false
+    )
+    const transitionUvRepeat = {
+      x: transitionObj.material?.pbr?.repeatX ?? 1,
+      y: transitionObj.material?.pbr?.repeatY ?? 1,
+    }
     return (
       <TransitionMesh
         transition={transitionObj}
@@ -157,6 +229,8 @@ export function SceneObjectMesh({
         onPointerOut={handlePointerOut}
         meshRef={externalMeshRef}
         onMeshReady={onMeshReady}
+        pbrTextures={transitionTextures}
+        uvRepeat={transitionUvRepeat}
       />
     )
   }
@@ -164,6 +238,14 @@ export function SceneObjectMesh({
   // Use ChuteMesh for chute objects
   if (object.type === "chute") {
     const chuteObj = object as ChuteObject
+    const chuteTextures = usePBRTextures(
+      chuteObj.material,
+      viewportSettings.enablePostProcessing ?? false
+    )
+    const chuteUvRepeat = {
+      x: chuteObj.material?.pbr?.repeatX ?? 1,
+      y: chuteObj.material?.pbr?.repeatY ?? 1,
+    }
     return (
       <ChuteMesh
         chute={chuteObj}
@@ -178,6 +260,8 @@ export function SceneObjectMesh({
         onPointerOut={handlePointerOut}
         meshRef={externalMeshRef}
         onMeshReady={onMeshReady}
+        pbrTextures={chuteTextures}
+        uvRepeat={chuteUvRepeat}
       />
     )
   }
@@ -316,23 +400,21 @@ export function SceneObjectMesh({
       onPointerOut={handlePointerOut}
     >
       <meshStandardMaterial
-        color={isHovered ? "#3b82f6" : color}
+        color={isHovered ? "#3b82f6" : pbrTextures?.albedo ? "#ffffff" : color}
         wireframe={viewMode === "wireframe"}
         transparent={opacity < 1 || viewMode === "xray"}
         opacity={opacity}
         side={THREE.DoubleSide}
         metalness={materialProps.metalness}
         roughness={materialProps.roughness}
+        {...(pbrTextures?.albedo && { map: pbrTextures.albedo })}
+        {...(pbrTextures?.normal && { normalMap: pbrTextures.normal })}
+        {...(pbrTextures?.roughness && { roughnessMap: pbrTextures.roughness })}
+        {...(pbrTextures?.metalness && { metalnessMap: pbrTextures.metalness })}
+        {...(pbrTextures?.ao && { aoMap: pbrTextures.ao, aoMapIntensity: 1 })}
       />
-      {/* Selection outline */}
-      {isSelected && (
-        <lineSegments>
-          <edgesGeometry args={[geometry]} />
-          <lineBasicMaterial color="#22c55e" linewidth={2} />
-        </lineSegments>
-      )}
     </mesh>
   )
-}
+})
 
 export default SceneObjectMesh

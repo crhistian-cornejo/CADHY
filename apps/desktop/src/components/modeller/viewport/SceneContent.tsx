@@ -25,10 +25,13 @@ import type {
   OrbitControls as OrbitControlsImpl,
   TransformControls as TransformControlsImpl,
 } from "three-stdlib"
+import { lodManager } from "@/services/lod-manager"
+import { registerCamera, registerRenderer, registerScene } from "@/services/viewport-registry"
 import {
   type AnySceneObject,
   type ChannelObject,
   type ShapeObject,
+  useBoxSelectMode,
   useCameraAnimations,
   useCameraView,
   useCurrentAnimation,
@@ -61,6 +64,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
   const viewportSettings = useViewportSettings()
   const gridSettings = useGridSettings()
   const snapMode = useSnapMode()
+  const isBoxSelectMode = useBoxSelectMode()
   const hoveredId = useModellerStore((s) => s.hoveredId)
   const updateObject = useModellerStore((s) => s.updateObject)
   const focusObjectId = useFocusObjectId()
@@ -100,8 +104,20 @@ export function SceneContent({ showStats }: SceneContentProps) {
     progress: number
   } | null>(null)
 
-  // Get camera and scene from Three.js context
-  const { camera, scene } = useThree()
+  // Get camera, scene and renderer from Three.js context
+  const { camera, scene, gl } = useThree()
+
+  // Register camera, scene and renderer for external access (e.g., selection box, debug stats)
+  useEffect(() => {
+    registerCamera(camera)
+    registerScene(scene)
+    registerRenderer(gl)
+    return () => {
+      registerCamera(null)
+      registerScene(null)
+      registerRenderer(null)
+    }
+  }, [camera, scene, gl])
 
   // Update scene background when viewport settings change
   useEffect(() => {
@@ -111,27 +127,32 @@ export function SceneContent({ showStats }: SceneContentProps) {
   }, [scene, viewportSettings.backgroundColor])
 
   // State to trigger re-render when mesh is ready
-  const [meshReady, setMeshReady] = useState(false)
+  // Track which object id the mesh is ready for to avoid race conditions
+  const [meshReadyForId, setMeshReadyForId] = useState<string | null>(null)
 
   // Get the first selected object for transform
   const firstSelectedObject = selectedObjects.length > 0 ? selectedObjects[0] : null
   const _firstSelectedId = firstSelectedObject?.id
 
-  // Reset meshReady when selection changes
-  useEffect(() => {
-    setMeshReady(false)
-    // Check if mesh is already available on next frame
-    requestAnimationFrame(() => {
-      if (selectedMeshRef.current) {
-        setMeshReady(true)
-      }
-    })
-  }, [])
+  // Check if mesh is ready for the current selection
+  const meshReady = meshReadyForId === _firstSelectedId && _firstSelectedId != null
 
-  // Reset meshReady when first selected changes
+  // Reset meshReadyForId when selection changes (clear stale state)
   useEffect(() => {
-    setMeshReady(false)
-  }, [_firstSelectedId])
+    if (_firstSelectedId !== meshReadyForId) {
+      // Selection changed - if mesh ref is already set, we can mark it ready
+      // Otherwise wait for onMeshReady callback
+      if (selectedMeshRef.current && _firstSelectedId) {
+        // Use requestAnimationFrame to allow child effects to run first
+        const frame = requestAnimationFrame(() => {
+          if (selectedMeshRef.current) {
+            setMeshReadyForId(_firstSelectedId)
+          }
+        })
+        return () => cancelAnimationFrame(frame)
+      }
+    }
+  }, [_firstSelectedId, meshReadyForId])
 
   // Handle focus object - animate camera to center on object
   useEffect(() => {
@@ -289,6 +310,9 @@ export function SceneContent({ showStats }: SceneContentProps) {
       // Re-enable orbit controls when not playing
       orbitControlsRef.current.enabled = true
     }
+
+    // Update LOD (Level of Detail) system for performance optimization
+    lodManager.updateLOD(camera, scene)
   })
 
   // Sync camera with store when cameraPosition or cameraTarget changes
@@ -482,8 +506,11 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
   // Callback to notify when mesh is mounted
   const handleMeshReady = useCallback(() => {
-    setMeshReady(true)
-  }, [])
+    // Set the mesh ready for the current selection
+    if (_firstSelectedId) {
+      setMeshReadyForId(_firstSelectedId)
+    }
+  }, [_firstSelectedId])
 
   // Convert store position to array for camera components with validation
   const safeVal = (n: number, fallback: number) => (Number.isFinite(n) ? n : fallback)
@@ -506,6 +533,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
       <OrbitControls
         ref={orbitControlsRef}
         makeDefault
+        enabled={!isBoxSelectMode}
         enableDamping
         dampingFactor={0.05}
         minDistance={1}
@@ -518,8 +546,13 @@ export function SceneContent({ showStats }: SceneContentProps) {
       <directionalLight position={[10, 15, 10]} intensity={0.8} />
       <directionalLight position={[-5, 5, -5]} intensity={0.3} />
 
-      {/* Environment map for reflections - using preset that loads from CDN */}
-      <Environment preset="apartment" background={false} />
+      {/* Environment map for reflections - using preset from settings */}
+      <Environment
+        preset={viewportSettings.environmentPreset ?? "apartment"}
+        background={viewportSettings.environmentBackground ?? false}
+        backgroundBlurriness={viewportSettings.backgroundBlurriness ?? 0.5}
+        environmentIntensity={viewportSettings.environmentIntensity ?? 1}
+      />
 
       {/* Grid */}
       {viewportSettings.showGrid && (

@@ -2,12 +2,12 @@
  * Scene Panel Component - CADHY
  *
  * Outliner/Scene tree panel with:
- * - Hierarchical tree view of all objects
- * - Drag & drop reorganization (future)
+ * - Hierarchical tree view organized by Areas
  * - Quick visibility/lock toggles
  * - Multi-select support
  * - Search/filter
- * - Group objects
+ * - Type-specific icons for shapes
+ * - Material preview circles
  */
 
 import {
@@ -24,32 +24,44 @@ import {
   DropdownMenuTrigger,
   Input,
   ScrollArea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@cadhy/ui"
 import {
+  Add01Icon,
   ArrowDown01Icon,
   ArrowRight01Icon,
   Copy01Icon,
-  CubeIcon,
   Delete01Icon,
   FilterIcon,
+  Folder01Icon,
   FolderOpenIcon,
   LockIcon,
   MoreVerticalIcon,
+  PencilEdit01Icon,
   Search01Icon,
   SortingAZ01Icon,
   SquareUnlock02Icon,
   Target01Icon,
   ViewIcon,
   ViewOffIcon,
-  WaterEnergyIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import React, { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import {
+  getObjectIcon,
+  getObjectTypeLabel,
+  getShapeTypeLabel,
+} from "@/components/modeller/panels/scene-utils"
 import { useVirtualList } from "@/hooks/useVirtualList"
 import {
   type AnySceneObject,
   type ObjectType,
+  type SceneArea,
+  type ShapeObject,
+  useAreas,
   useLayers,
   useModellerStore,
   useObjects,
@@ -64,17 +76,17 @@ interface ScenePanelProps {
   className?: string
 }
 
-type SortMode = "name" | "type" | "created" | "layer"
+type SortMode = "name" | "type" | "created" | "area"
 type FilterType = "all" | ObjectType
 
 // ============================================================================
-// SCENE OBJECT ITEM
+// SCENE OBJECT ITEM (Improved with type-specific icons and material preview)
 // ============================================================================
 
 interface SceneObjectItemProps {
   object: AnySceneObject
+  index: number
   isSelected: boolean
-  layerColor: string
   onSelect: (id: string, additive: boolean) => void
   onToggleVisibility: (id: string) => void
   onToggleLock: (id: string) => void
@@ -85,8 +97,8 @@ interface SceneObjectItemProps {
 
 const SceneObjectItem = React.memo(function SceneObjectItem({
   object,
+  index,
   isSelected,
-  layerColor,
   onSelect,
   onToggleVisibility,
   onToggleLock,
@@ -96,24 +108,31 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
 }: SceneObjectItemProps) {
   const { t } = useTranslation()
 
-  const getObjectIcon = (type: ObjectType) => {
-    switch (type) {
-      case "channel":
-        return WaterEnergyIcon
-      default:
-        return CubeIcon
+  // Get material info for preview
+  const getMaterialInfo = (
+    obj: AnySceneObject
+  ): { color: string | null; textureId: string | null; texturePreview: string | null } => {
+    if ("material" in obj && obj.material) {
+      const mat = obj.material as { color: string; pbr?: { albedoTextureId?: string } }
+      const textureId = mat.pbr?.albedoTextureId || null
+      // Generate texture preview URL if texture is set
+      const texturePreview = textureId ? `/textures/${textureId}/albedo.jpg` : null
+      return {
+        color: mat.color,
+        textureId,
+        texturePreview,
+      }
     }
+    return { color: null, textureId: null, texturePreview: null }
   }
 
-  const getObjectColor = (obj: AnySceneObject) => {
-    if (obj.type === "shape") {
-      return (obj as { material?: { color: string } }).material?.color ?? "#6366f1"
-    }
-    if (obj.type === "channel") {
-      return "#0ea5e9"
-    }
-    return layerColor
-  }
+  const materialInfo = getMaterialInfo(object)
+  const shapeType = object.type === "shape" ? (object as ShapeObject).shapeType : undefined
+  const Icon = getObjectIcon(object.type, shapeType)
+  const typeLabel =
+    object.type === "shape" && shapeType
+      ? getShapeTypeLabel(shapeType)
+      : getObjectTypeLabel(object.type)
 
   return (
     <div
@@ -129,20 +148,31 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
         !object.visible && "opacity-50"
       )}
     >
-      {/* Color indicator */}
-      <div
-        className="size-2.5 rounded-sm shrink-0"
-        style={{ backgroundColor: getObjectColor(object) }}
-      />
+      {/* Index number */}
+      <span className="w-4 text-[10px] text-muted-foreground/60 font-mono shrink-0">{index}</span>
 
-      {/* Icon */}
-      <HugeiconsIcon
-        icon={getObjectIcon(object.type)}
-        className={cn(
-          "size-3.5 shrink-0",
-          object.type === "channel" ? "text-cyan-500" : "text-muted-foreground"
-        )}
-      />
+      {/* Type icon */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="shrink-0">
+            <HugeiconsIcon
+              icon={Icon}
+              className={cn(
+                "size-3.5",
+                object.type === "channel" && "text-cyan-500",
+                object.type === "transition" && "text-amber-500",
+                object.type === "chute" && "text-orange-500",
+                object.type === "shape" && "text-indigo-400",
+                object.type === "structure" && "text-emerald-500",
+                object.type === "annotation" && "text-purple-400"
+              )}
+            />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="text-xs">
+          {typeLabel}
+        </TooltipContent>
+      </Tooltip>
 
       {/* Name */}
       <span
@@ -154,6 +184,42 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
       >
         {object.name}
       </span>
+
+      {/* Material preview circle - shows texture if available, otherwise color */}
+      {(materialInfo.texturePreview || materialInfo.color) && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className="size-3.5 rounded-full border border-border/50 shrink-0 shadow-sm overflow-hidden"
+              style={{
+                backgroundColor: materialInfo.texturePreview
+                  ? undefined
+                  : (materialInfo.color ?? undefined),
+              }}
+            >
+              {materialInfo.texturePreview && (
+                <img
+                  src={materialInfo.texturePreview}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // If texture image fails to load, hide it and show color
+                    e.currentTarget.style.display = "none"
+                    if (e.currentTarget.parentElement && materialInfo.color) {
+                      e.currentTarget.parentElement.style.backgroundColor = materialInfo.color
+                    }
+                  }}
+                />
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="text-xs">
+            {materialInfo.textureId
+              ? `${t("scenePanel.texture")}: ${materialInfo.textureId.replace(/_/g, " ")}`
+              : `${t("scenePanel.material")}: ${materialInfo.color}`}
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Quick actions - visible on hover */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -227,13 +293,11 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
 })
 
 // ============================================================================
-// LAYER GROUP
+// AREA GROUP (New hierarchical grouping)
 // ============================================================================
 
-interface LayerGroupProps {
-  layerId: string
-  layerName: string
-  layerColor: string
+interface AreaGroupProps {
+  area: SceneArea
   objects: AnySceneObject[]
   selectedIds: string[]
   onSelect: (id: string, additive: boolean) => void
@@ -242,13 +306,12 @@ interface LayerGroupProps {
   onDelete: (id: string) => void
   onDuplicate: (id: string) => void
   onFocus: (id: string) => void
-  defaultOpen?: boolean
+  onRenameArea: (areaId: string) => void
+  onDeleteArea: (areaId: string) => void
 }
 
-const LayerGroup = React.memo(function LayerGroup({
-  layerId,
-  layerName,
-  layerColor,
+const AreaGroup = React.memo(function AreaGroup({
+  area,
   objects,
   selectedIds,
   onSelect,
@@ -257,10 +320,123 @@ const LayerGroup = React.memo(function LayerGroup({
   onDelete,
   onDuplicate,
   onFocus,
-  defaultOpen = true,
-}: LayerGroupProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
-  const selectedInLayer = objects.filter((o) => selectedIds.includes(o.id)).length
+  onRenameArea,
+  onDeleteArea,
+}: AreaGroupProps) {
+  const { t } = useTranslation()
+  const { toggleAreaCollapsed } = useModellerStore()
+  const selectedInArea = objects.filter((o) => selectedIds.includes(o.id)).length
+
+  return (
+    <Collapsible open={!area.collapsed} onOpenChange={() => toggleAreaCollapsed(area.id)}>
+      {/* Use a div wrapper to avoid button-in-button nesting */}
+      <div className="flex w-full items-center gap-2 px-2 py-1.5 hover:bg-muted/30 rounded-md transition-colors group">
+        <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0">
+          <HugeiconsIcon
+            icon={area.collapsed ? ArrowRight01Icon : ArrowDown01Icon}
+            className="size-3 text-muted-foreground shrink-0"
+          />
+          <HugeiconsIcon
+            icon={Folder01Icon}
+            className="size-3.5 shrink-0"
+            style={{ color: area.color }}
+          />
+          <span className="text-[11px] font-medium flex-1 text-left truncate">
+            {area.name} ({area.index})
+          </span>
+        </CollapsibleTrigger>
+        <Badge variant="secondary" className="h-4 px-1.5 text-[9px] shrink-0">
+          {objects.length}
+        </Badge>
+        {selectedInArea > 0 && (
+          <Badge variant="default" className="h-4 px-1.5 text-[9px] shrink-0">
+            {selectedInArea}
+          </Badge>
+        )}
+        {/* Area actions - visible on hover, outside of CollapsibleTrigger */}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="h-5 w-5"
+            onClick={(e) => {
+              e.stopPropagation()
+              onRenameArea(area.id)
+            }}
+            title={t("scenePanel.renameArea")}
+          >
+            <HugeiconsIcon icon={PencilEdit01Icon} className="size-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="h-5 w-5"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDeleteArea(area.id)
+            }}
+            title={t("scenePanel.deleteArea")}
+          >
+            <HugeiconsIcon icon={Delete01Icon} className="size-3 text-destructive" />
+          </Button>
+        </div>
+      </div>
+      <CollapsibleContent>
+        <div className="ml-4 pl-2 border-l border-border/40 space-y-0.5 py-1">
+          {objects.length === 0 ? (
+            <div className="text-[10px] text-muted-foreground/50 py-2 px-2 italic">
+              {t("scenePanel.emptyArea")}
+            </div>
+          ) : (
+            objects.map((obj, idx) => (
+              <SceneObjectItem
+                key={obj.id}
+                object={obj}
+                index={idx}
+                isSelected={selectedIds.includes(obj.id)}
+                onSelect={onSelect}
+                onToggleVisibility={onToggleVisibility}
+                onToggleLock={onToggleLock}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                onFocus={onFocus}
+              />
+            ))
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+})
+
+// ============================================================================
+// UNASSIGNED OBJECTS GROUP
+// ============================================================================
+
+interface UnassignedGroupProps {
+  objects: AnySceneObject[]
+  selectedIds: string[]
+  onSelect: (id: string, additive: boolean) => void
+  onToggleVisibility: (id: string) => void
+  onToggleLock: (id: string) => void
+  onDelete: (id: string) => void
+  onDuplicate: (id: string) => void
+  onFocus: (id: string) => void
+}
+
+const UnassignedGroup = React.memo(function UnassignedGroup({
+  objects,
+  selectedIds,
+  onSelect,
+  onToggleVisibility,
+  onToggleLock,
+  onDelete,
+  onDuplicate,
+  onFocus,
+}: UnassignedGroupProps) {
+  const { t } = useTranslation()
+  const [isOpen, setIsOpen] = useState(true)
+  const selectedInGroup = objects.filter((o) => selectedIds.includes(o.id)).length
 
   if (objects.length === 0) return null
 
@@ -271,25 +447,27 @@ const LayerGroup = React.memo(function LayerGroup({
           icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon}
           className="size-3 text-muted-foreground"
         />
-        <div className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: layerColor }} />
-        <span className="text-[11px] font-medium flex-1 text-left truncate">{layerName}</span>
+        <HugeiconsIcon icon={Folder01Icon} className="size-3.5 text-muted-foreground/50 shrink-0" />
+        <span className="text-[11px] font-medium flex-1 text-left truncate text-muted-foreground">
+          {t("scenePanel.unassigned")}
+        </span>
         <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">
           {objects.length}
         </Badge>
-        {selectedInLayer > 0 && (
+        {selectedInGroup > 0 && (
           <Badge variant="default" className="h-4 px-1.5 text-[9px]">
-            {selectedInLayer}
+            {selectedInGroup}
           </Badge>
         )}
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="ml-3 pl-2 border-l border-border/40 space-y-0.5 py-1">
-          {objects.map((obj) => (
+        <div className="ml-4 pl-2 border-l border-border/40 space-y-0.5 py-1">
+          {objects.map((obj, idx) => (
             <SceneObjectItem
               key={obj.id}
               object={obj}
+              index={idx}
               isSelected={selectedIds.includes(obj.id)}
-              layerColor={layerColor}
               onSelect={onSelect}
               onToggleVisibility={onToggleVisibility}
               onToggleLock={onToggleLock}
@@ -313,20 +491,25 @@ export function ScenePanel({ className }: ScenePanelProps) {
   const objects = useObjects()
   const selectedIds = useSelectedIds()
   const layers = useLayers()
+  const areas = useAreas()
   const {
     select,
-    selectMultiple,
     updateObject,
     deleteObject,
     duplicateObject,
     selectAll,
     deselectAll,
     focusObject,
+    createArea,
+    deleteArea,
+    renameArea,
   } = useModellerStore()
 
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState<FilterType>("all")
-  const [sortMode, setSortMode] = useState<SortMode>("layer")
+  const [sortMode, setSortMode] = useState<SortMode>("area")
+  const [renamingAreaId, setRenamingAreaId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState("")
 
   // Filter and sort objects
   const filteredObjects = useMemo(() => {
@@ -355,26 +538,28 @@ export function ScenePanel({ className }: ScenePanelProps) {
         result.sort((a, b) => b.createdAt - a.createdAt)
         break
       default:
-        // Keep original order, will be grouped by layer
+        // Keep original order, will be grouped by area
         break
     }
 
     return result
   }, [objects, searchQuery, filterType, sortMode])
 
-  // Group objects by layer
-  const objectsByLayer = useMemo(() => {
+  // Group objects by area
+  const objectsByArea = useMemo(() => {
     const groups: Record<string, AnySceneObject[]> = {}
-    for (const layer of layers) {
-      groups[layer.id] = filteredObjects.filter((o) => o.layerId === layer.id)
+    for (const area of areas) {
+      groups[area.id] = filteredObjects.filter((o) => o.areaId === area.id)
     }
+    // Objects without area
+    groups["unassigned"] = filteredObjects.filter((o) => !o.areaId)
     return groups
-  }, [filteredObjects, layers])
+  }, [filteredObjects, areas])
 
-  // Virtualization for flat list mode (when sortMode !== "layer")
+  // Virtualization for flat list mode
   const { parentRef, virtualItems, totalSize } = useVirtualList({
     items: filteredObjects,
-    estimateSize: 40, // Estimated height of each SceneObjectItem
+    estimateSize: 40,
     overscan: 5,
   })
 
@@ -426,6 +611,38 @@ export function ScenePanel({ className }: ScenePanelProps) {
     [focusObject]
   )
 
+  const handleCreateArea = useCallback(() => {
+    const newId = createArea()
+    setRenamingAreaId(newId)
+    setRenameValue("Area")
+  }, [createArea])
+
+  const handleRenameArea = useCallback(
+    (areaId: string) => {
+      const area = areas.find((a) => a.id === areaId)
+      if (area) {
+        setRenamingAreaId(areaId)
+        setRenameValue(area.name)
+      }
+    },
+    [areas]
+  )
+
+  const handleConfirmRename = useCallback(() => {
+    if (renamingAreaId && renameValue.trim()) {
+      renameArea(renamingAreaId, renameValue.trim())
+    }
+    setRenamingAreaId(null)
+    setRenameValue("")
+  }, [renamingAreaId, renameValue, renameArea])
+
+  const handleDeleteArea = useCallback(
+    (areaId: string) => {
+      deleteArea(areaId)
+    },
+    [deleteArea]
+  )
+
   const objectTypeCounts = useMemo(() => {
     const counts: Record<string, number> = { all: objects.length }
     for (const obj of objects) {
@@ -467,14 +684,13 @@ export function ScenePanel({ className }: ScenePanelProps) {
                 {t("scenePanel.all")} ({objectTypeCounts.all || 0})
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setFilterType("shape")}>
-                <HugeiconsIcon icon={CubeIcon} className="size-3.5 mr-2" />
-                {t("scenePanel.shapes")} ({objectTypeCounts.shape || 0})
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType("channel")}>
-                <HugeiconsIcon icon={WaterEnergyIcon} className="size-3.5 mr-2 text-cyan-500" />
-                {t("scenePanel.channels")} ({objectTypeCounts.channel || 0})
-              </DropdownMenuItem>
+              {Object.entries(objectTypeCounts)
+                .filter(([key]) => key !== "all")
+                .map(([type, count]) => (
+                  <DropdownMenuItem key={type} onClick={() => setFilterType(type as ObjectType)}>
+                    {type} ({count})
+                  </DropdownMenuItem>
+                ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -487,8 +703,8 @@ export function ScenePanel({ className }: ScenePanelProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-32">
-              <DropdownMenuItem onClick={() => setSortMode("layer")}>
-                {t("scenePanel.byLayer")}
+              <DropdownMenuItem onClick={() => setSortMode("area")}>
+                {t("scenePanel.byArea")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setSortMode("name")}>
                 {t("scenePanel.byName")}
@@ -504,24 +720,16 @@ export function ScenePanel({ className }: ScenePanelProps) {
 
           <div className="flex-1" />
 
-          {/* Quick actions */}
+          {/* Add Area button */}
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 text-[10px] px-2"
-            onClick={selectAll}
-            title={t("scenePanel.selectAll")}
+            className="h-6 text-[10px] px-2 gap-1"
+            onClick={handleCreateArea}
+            title={t("scenePanel.addArea")}
           >
-            {t("scenePanel.selectAll")}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 text-[10px] px-2"
-            onClick={deselectAll}
-            title={t("scenePanel.selectNone")}
-          >
-            {t("scenePanel.selectNone")}
+            <HugeiconsIcon icon={Add01Icon} className="size-3" />
+            {t("scenePanel.addArea")}
           </Button>
         </div>
       </div>
@@ -545,16 +753,52 @@ export function ScenePanel({ className }: ScenePanelProps) {
             <HugeiconsIcon icon={Search01Icon} className="size-8 text-muted-foreground/50 mb-2" />
             <p className="text-xs text-muted-foreground">{t("scenePanel.noMatchingObjects")}</p>
           </div>
-        ) : sortMode === "layer" ? (
-          // Grouped by layer
+        ) : sortMode === "area" ? (
+          // Grouped by area
           <div className="p-2 space-y-1">
-            {layers.map((layer) => (
-              <LayerGroup
-                key={layer.id}
-                layerId={layer.id}
-                layerName={layer.name}
-                layerColor={layer.color}
-                objects={objectsByLayer[layer.id] || []}
+            {/* Rename dialog overlay */}
+            {renamingAreaId && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-background border rounded-lg p-4 shadow-lg w-64">
+                  <h3 className="text-sm font-medium mb-3">{t("scenePanel.renameArea")}</h3>
+                  <Input
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleConfirmRename()
+                      if (e.key === "Escape") {
+                        setRenamingAreaId(null)
+                        setRenameValue("")
+                      }
+                    }}
+                    className="h-8 text-sm mb-3"
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setRenamingAreaId(null)
+                        setRenameValue("")
+                      }}
+                    >
+                      {t("common.cancel")}
+                    </Button>
+                    <Button size="sm" onClick={handleConfirmRename}>
+                      {t("common.save")}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Areas */}
+            {areas.map((area) => (
+              <AreaGroup
+                key={area.id}
+                area={area}
+                objects={objectsByArea[area.id] || []}
                 selectedIds={selectedIds}
                 onSelect={handleSelect}
                 onToggleVisibility={handleToggleVisibility}
@@ -562,8 +806,22 @@ export function ScenePanel({ className }: ScenePanelProps) {
                 onDelete={handleDelete}
                 onDuplicate={handleDuplicate}
                 onFocus={handleFocus}
+                onRenameArea={handleRenameArea}
+                onDeleteArea={handleDeleteArea}
               />
             ))}
+
+            {/* Unassigned objects */}
+            <UnassignedGroup
+              objects={objectsByArea["unassigned"] || []}
+              selectedIds={selectedIds}
+              onSelect={handleSelect}
+              onToggleVisibility={handleToggleVisibility}
+              onToggleLock={handleToggleLock}
+              onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
+              onFocus={handleFocus}
+            />
           </div>
         ) : (
           // Flat list (virtualized for performance)
@@ -571,7 +829,6 @@ export function ScenePanel({ className }: ScenePanelProps) {
             <div style={{ height: totalSize, position: "relative" }}>
               {virtualItems.map((virtualItem) => {
                 const obj = filteredObjects[virtualItem.index]
-                const layer = layers.find((l) => l.id === obj.layerId)
                 return (
                   <div
                     key={obj.id}
@@ -586,8 +843,8 @@ export function ScenePanel({ className }: ScenePanelProps) {
                   >
                     <SceneObjectItem
                       object={obj}
+                      index={virtualItem.index}
                       isSelected={selectedIds.includes(obj.id)}
-                      layerColor={layer?.color ?? "#6366f1"}
                       onSelect={handleSelect}
                       onToggleVisibility={handleToggleVisibility}
                       onToggleLock={handleToggleLock}
@@ -609,6 +866,8 @@ export function ScenePanel({ className }: ScenePanelProps) {
           <span>
             {objects.length}{" "}
             {objects.length !== 1 ? t("scenePanel.objects") : t("scenePanel.object")}
+            {" | "}
+            {areas.length} {areas.length !== 1 ? t("scenePanel.areas") : t("scenePanel.area")}
           </span>
           {selectedIds.length > 0 && (
             <span className="text-primary">
