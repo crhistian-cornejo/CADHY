@@ -15,6 +15,13 @@ export {
   getGatewayModel,
 } from "./gateway"
 export {
+  clearGoogleProviderCache,
+  GOOGLE_IMAGE_MODELS,
+  type GoogleImageModelId,
+  type GoogleProviderConfig,
+  getGoogleProvider,
+} from "./google"
+export {
   // Provider-based model filtering
   type AIProviderType,
   AVAILABLE_MODELS,
