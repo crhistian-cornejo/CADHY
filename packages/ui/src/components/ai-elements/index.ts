@@ -43,6 +43,25 @@ export {
   type ConversationScrollButtonProps,
   useConversation,
 } from "./conversation"
+// Image - AI generated image display
+export {
+  AIImage,
+  AIImageActions,
+  type AIImageActionsProps,
+  AIImageCopyButton,
+  type AIImageCopyButtonProps,
+  type AIImageData,
+  AIImageDownloadButton,
+  type AIImageDownloadButtonProps,
+  AIImageGrid,
+  type AIImageGridProps,
+  AIImagePreview,
+  type AIImagePreviewProps,
+  type AIImageProps,
+  AIImageSkeleton,
+  type AIImageSkeletonProps,
+  type AIImageStatus,
+} from "./image"
 // Message - chat message components
 export {
   Message,
@@ -62,6 +81,44 @@ export {
   MessageToolbar,
   type MessageToolbarProps,
 } from "./message"
+// Prompt Input - composable chat input
+export {
+  type AttachmentFile,
+  type AttachmentsContext,
+  PromptInput,
+  PromptInputActions,
+  type PromptInputActionsProps,
+  PromptInputAddButton,
+  type PromptInputAddButtonProps,
+  PromptInputAttachment,
+  type PromptInputAttachmentProps,
+  PromptInputAttachments,
+  type PromptInputAttachmentsProps,
+  PromptInputBody,
+  type PromptInputBodyProps,
+  type PromptInputControllerValue,
+  PromptInputFooter,
+  type PromptInputFooterProps,
+  PromptInputImageButton,
+  type PromptInputImageButtonProps,
+  PromptInputMicButton,
+  type PromptInputMicButtonProps,
+  type PromptInputProps,
+  PromptInputProvider,
+  type PromptInputProviderProps,
+  type PromptInputStatus,
+  PromptInputSubmit,
+  type PromptInputSubmitProps,
+  PromptInputTextarea,
+  type PromptInputTextareaProps,
+  type PromptInputTextInputContext,
+  PromptInputToolMenu,
+  type PromptInputToolMenuProps,
+  PromptInputTools,
+  type PromptInputToolsProps,
+  type ToolOption,
+  usePromptInputController,
+} from "./prompt-input"
 // Reasoning - AI thinking process display
 export {
   Reasoning,
