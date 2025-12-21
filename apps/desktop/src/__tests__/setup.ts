@@ -6,7 +6,41 @@
  * Also configures happy-dom for React component testing.
  */
 
+import { mock } from "bun:test"
 import { Window } from "happy-dom"
+
+// Create mock logger that can be reused
+const mockLogger = {
+  log: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+  info: () => {},
+}
+const mockLoggers = {
+  store: mockLogger,
+  chat: mockLogger,
+  mesh: mockLogger,
+  project: mockLogger,
+  hydraulics: mockLogger,
+  app: mockLogger,
+  modeller: mockLogger,
+  layout: mockLogger,
+}
+
+// Mock @cadhy/shared loggers globally before any imports
+mock.module("@cadhy/shared", () => ({
+  loggers: mockLoggers,
+  logger: mockLogger,
+  createLogger: () => mockLogger,
+}))
+
+// Also mock the /logger sub-path import
+mock.module("@cadhy/shared/logger", () => ({
+  loggers: mockLoggers,
+  logger: mockLogger,
+  createLogger: () => mockLogger,
+}))
 
 // Create a window instance for DOM testing
 const window = new Window({
