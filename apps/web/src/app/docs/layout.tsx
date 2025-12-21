@@ -10,6 +10,7 @@ import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useEffect, useRef, useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
+import { DocsBreadcrumb } from "@/components/docs/docs-breadcrumb"
 import { Footer } from "@/components/footer"
 import { Navbar } from "@/components/navbar"
 import { DOCS_SIDEBAR, type DocSection } from "@/lib/source"
@@ -29,9 +30,14 @@ export default function DocsLayout() {
           </aside>
 
           {/* Content */}
-          <main className="flex-1 min-w-0 p-6 md:p-8 lg:p-12">
-            <div className="max-w-3xl mx-auto lg:mx-0">
-              <Outlet />
+          <main className="flex-1 min-w-0">
+            {/* Mobile breadcrumb with hamburger menu */}
+            <DocsBreadcrumb />
+
+            <div className="p-6 md:p-8 lg:p-12">
+              <div className="max-w-3xl mx-auto lg:mx-0">
+                <Outlet />
+              </div>
             </div>
           </main>
 
