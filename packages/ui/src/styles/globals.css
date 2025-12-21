@@ -323,7 +323,7 @@ input[type="text"],
 input[type="number"],
 input[type="email"],
 input[type="password"],
-textarea,
+textarea:not([data-no-focus-ring]),
 select {
   @apply w-full px-3 py-2 transition-all duration-150;
   background-color: var(--input);
@@ -331,11 +331,24 @@ select {
   color: var(--foreground);
 }
 
+/* Clean textareas (like AI chat) - no background or border */
+textarea[data-no-focus-ring] {
+  background-color: transparent;
+  border: none;
+}
+
 input:focus,
-textarea:focus,
+textarea:focus:not([data-no-focus-ring]),
 select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px oklch(0.488 0.243 264.376 / 0.2);
+  outline: none;
+}
+
+/* Textareas with data-no-focus-ring should have NO focus styles */
+textarea[data-no-focus-ring]:focus {
+  border-color: transparent;
+  box-shadow: none;
   outline: none;
 }
 
