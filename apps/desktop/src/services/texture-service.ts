@@ -5,7 +5,10 @@
  * Provides texture loading, caching, and material application.
  */
 
+import { loggers } from "@cadhy/shared"
 import * as THREE from "three"
+
+const log = loggers.texture
 
 // ============================================================================
 // TYPES
@@ -114,7 +117,7 @@ async function loadLocalManifest(): Promise<LocalTextureManifest | null> {
     localManifest = await response.json()
     return localManifest
   } catch (error) {
-    console.warn("[TextureService] No local textures available:", error)
+    log.warn("No local textures available:", error)
     return null
   }
 }
@@ -235,15 +238,15 @@ export async function fetchPolyHavenTextures(
   // Try local textures first (with category filter)
   const localTextures = await getLocalTextures(category)
   if (localTextures.length > 0) {
-    console.log(
-      `[TextureService] Using ${localTextures.length} local textures${category ? ` (category: ${category})` : ""}`
+    log.log(
+      `Using ${localTextures.length} local textures${category ? ` (category: ${category})` : ""}`
     )
     return localTextures.slice(0, limit)
   }
 
   // Fallback to Poly Haven API
   try {
-    console.log("[TextureService] Fetching textures from Poly Haven API")
+    log.log("Fetching textures from Poly Haven API")
     const response = await fetch(`${POLY_HAVEN_API}/assets?t=textures`)
     if (!response.ok) throw new Error("Failed to fetch textures")
 
@@ -276,7 +279,7 @@ export async function fetchPolyHavenTextures(
 
     return textures
   } catch (error) {
-    console.error("[TextureService] Failed to fetch Poly Haven textures:", error)
+    log.error("Failed to fetch Poly Haven textures:", error)
     return []
   }
 }
@@ -314,7 +317,7 @@ async function getPolyHavenTextureUrls(
 
     return urls
   } catch (error) {
-    console.error(`[TextureService] Failed to get texture URLs for ${textureId}:`, error)
+    log.error(`Failed to get texture URLs for ${textureId}:`, error)
     return {}
   }
 }
@@ -359,14 +362,14 @@ export async function loadPBRTexturesFromPolyHaven(
 
   // Try local textures first
   if (await isTextureLocal(textureId)) {
-    console.log(`[TextureService] Loading texture from local assets: ${textureId}`)
+    log.log(`Loading texture from local assets: ${textureId}`)
     const maps = await loadLocalPBRTextures(textureId)
     textureCache.set(cacheKey, maps)
     return maps
   }
 
   // Fallback to Poly Haven API
-  console.log(`[TextureService] Loading texture from Poly Haven: ${textureId}`)
+  log.log(`Loading texture from Poly Haven: ${textureId}`)
 
   try {
     // Get download URLs
@@ -436,7 +439,7 @@ export async function loadPBRTexturesFromPolyHaven(
 
     return maps
   } catch (error) {
-    console.error(`[TextureService] Failed to load PBR textures for ${textureId}:`, error)
+    log.error(`Failed to load PBR textures for ${textureId}:`, error)
     return {}
   }
 }
@@ -528,12 +531,12 @@ export const TEXTURE_CATEGORIES = [
   "metal",
   "wood",
   "brick",
-  "stone",
-  "ground",
+  "rock",
+  "terrain",
   "fabric",
   "tiles",
   "plaster",
-  "paint",
+  "cobblestone",
 ]
 
 /**
