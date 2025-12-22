@@ -25,7 +25,7 @@ import { motion, useAnimationFrame, useMotionTemplate, useMotionValue } from "mo
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { PanelErrorBoundary, ViewerErrorBoundary } from "@/components/common"
-import { useGlobalHotkeyHandler } from "@/hooks"
+import { useCADOperationHotkeys, useGlobalHotkeyHandler } from "@/hooks"
 import { useLayoutActions, useShowModellerLeft, useShowModellerRight } from "@/stores/layout-store"
 import { useModellerStore, useObjects, useSelectedIds } from "@/stores/modeller"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
@@ -35,6 +35,19 @@ import { CameraAnimationPanel } from "./panels"
 import { PropertiesPanel } from "./properties"
 import { ScenePanel } from "./scene"
 import { Viewport3D, ViewportSettingsPanel } from "./viewport"
+
+// ============================================================================
+// CAD HOTKEYS REGISTRATION
+// ============================================================================
+
+/**
+ * Component that registers CAD operation hotkeys.
+ * Must be inside CADOperationsProvider to access context.
+ */
+function CADHotkeysRegistration() {
+  useCADOperationHotkeys()
+  return null
+}
 
 // ============================================================================
 // TYPES
@@ -333,6 +346,7 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
 
   return (
     <CADOperationsProvider>
+      <CADHotkeysRegistration />
       <div className={cn("flex h-full flex-row bg-background", className)}>
         {/* Main Content Area - Plasticity layout: Left sidebar + Full Viewport */}
         <ResizablePanelGroup

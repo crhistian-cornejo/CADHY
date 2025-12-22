@@ -6,7 +6,7 @@
  */
 
 import { createContext, type ReactNode, useContext } from "react"
-import { type OperationDialogState, useCADOperationHotkeys, useCADOperations } from "@/hooks"
+import { type OperationDialogState, useCADOperations } from "@/hooks"
 import { CADOperationDialog } from "./CADOperationDialog"
 
 // ============================================================================
@@ -50,9 +50,6 @@ export function CADOperationsProvider({ children }: CADOperationsProviderProps) 
     executeChamfer,
     executeShell,
   } = useCADOperations()
-
-  // Register CAD operation hotkeys (F for Fillet, C for Chamfer, H for Shell, etc.)
-  useCADOperationHotkeys()
 
   return (
     <CADOperationsContext.Provider
