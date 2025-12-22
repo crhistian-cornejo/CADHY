@@ -29,6 +29,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useState } from "react"
+import { useCADOperationsContext } from "@/components/modeller/dialogs"
 import { getPlatformSync } from "@/hooks/use-platform"
 import {
   type TransformMode,
@@ -333,6 +334,9 @@ function LeftToolbar() {
 function BottomToolbar() {
   const [operationsOpen, setOperationsOpen] = useState(false)
 
+  // CAD Operations context
+  const { openOperationDialog } = useCADOperationsContext()
+
   // Transform settings
   const viewportSettings = useViewportSettings()
   const { setViewportSettings, deleteObject } = useModellerStore()
@@ -363,27 +367,29 @@ function BottomToolbar() {
       }
 
       switch (operationId) {
+        case "fillet":
+          openOperationDialog("fillet")
+          break
+        case "chamfer":
+          openOperationDialog("chamfer")
+          break
+        case "shell":
+          openOperationDialog("shell")
+          break
         case "mirror":
           toast.info("Mirror operation - Coming soon!")
-          // TODO: Implement mirror operation
-          break
-        case "fillet":
-          toast.info("Fillet operation - Coming soon!")
-          // TODO: Implement fillet operation
           break
         case "duplicate":
           toast.info("Duplicate operation - Coming soon!")
-          // TODO: Implement duplicate operation
           break
         case "pipe":
           toast.info("Pipe operation - Coming soon!")
-          // TODO: Implement pipe operation
           break
         default:
           toast.error(`Unknown operation: ${operationId}`)
       }
     },
-    [selectedObjects]
+    [selectedObjects, openOperationDialog]
   )
 
   const operations = [
