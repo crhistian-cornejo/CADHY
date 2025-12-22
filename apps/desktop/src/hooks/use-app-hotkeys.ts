@@ -582,7 +582,8 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       context: "modeller",
     },
     useCallback(() => {
-      const selectedObjects = useModellerStore.getState().selectedObjects
+      const state = useModellerStore.getState()
+      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
       if (selectedObjects.length === 0) {
         toast.error("No objects selected. Select an object first.")
         return
@@ -602,7 +603,8 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       context: "modeller",
     },
     useCallback(() => {
-      const selectedObjects = useModellerStore.getState().selectedObjects
+      const state = useModellerStore.getState()
+      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
       if (selectedObjects.length === 0) {
         toast.error("No objects selected. Select an object first.")
         return
@@ -622,7 +624,8 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       context: "modeller",
     },
     useCallback(() => {
-      const selectedObjects = useModellerStore.getState().selectedObjects
+      const state = useModellerStore.getState()
+      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
       if (selectedObjects.length === 0) {
         toast.error("No objects selected. Select an object first.")
         return
@@ -642,7 +645,8 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       context: "modeller",
     },
     useCallback(() => {
-      const selectedObjects = useModellerStore.getState().selectedObjects
+      const state = useModellerStore.getState()
+      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
       if (selectedObjects.length === 0) {
         toast.error("No objects selected. Select an object first.")
         return
@@ -662,7 +666,8 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       context: "modeller",
     },
     useCallback(() => {
-      const selectedObjects = useModellerStore.getState().selectedObjects
+      const state = useModellerStore.getState()
+      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
       if (selectedObjects.length === 0) {
         toast.error("No objects selected. Select an object first.")
         return
@@ -682,7 +687,8 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       context: "modeller",
     },
     useCallback(() => {
-      const selectedObjects = useModellerStore.getState().selectedObjects
+      const state = useModellerStore.getState()
+      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
       if (selectedObjects.length < 2) {
         toast.error("Select at least 2 objects to create a loft.")
         return
@@ -702,7 +708,8 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       context: "modeller",
     },
     useCallback(() => {
-      const selectedObjects = useModellerStore.getState().selectedObjects
+      const state = useModellerStore.getState()
+      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
       if (selectedObjects.length === 0) {
         toast.error("No objects selected. Select an object first.")
         return
