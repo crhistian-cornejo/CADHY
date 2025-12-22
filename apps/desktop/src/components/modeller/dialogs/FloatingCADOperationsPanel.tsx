@@ -112,7 +112,7 @@ export function FloatingCADOperationsPanel({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.15 }}
-          className="absolute bottom-3 left-3 w-[280px] rounded-lg bg-background/95 backdrop-blur-md border border-border/40 shadow-2xl pointer-events-auto z-50 overflow-hidden"
+          className="absolute bottom-3 left-[280px] w-[280px] rounded-lg bg-background/95 backdrop-blur-md border border-border/40 shadow-2xl pointer-events-auto z-[100] overflow-hidden"
         >
           {/* Header */}
           <button
