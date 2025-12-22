@@ -1,4 +1,12 @@
 export {
+  type Message as AIChatMessage,
+  type ToolCallInfo,
+  type ToolCategory,
+  type UseAIChatOptions,
+  type UseAIChatReturn,
+  useAIChat,
+} from "./use-ai-chat"
+export {
   type GalleryImage,
   type UseAIGalleryOptions,
   type UseAIGalleryReturn,
@@ -6,12 +14,13 @@ export {
 } from "./use-ai-gallery"
 export { useAIProvider } from "./use-ai-provider"
 export { useAppHotkeys } from "./use-app-hotkeys"
-
 export {
   useAutoSave,
   useProjectShortcuts,
   useUnsavedChangesWarning,
 } from "./use-auto-save"
+export { shapeIdMap, useCAD } from "./use-cad"
+export { type ActiveOperationState, type CommandContext, useCommand } from "./use-command"
 export {
   type UseHotkeyOptions,
   useFormattedKeys,
@@ -22,6 +31,7 @@ export {
   useHotkeyRegistry,
   useHotkeysByCategory,
 } from "./use-hotkey"
+export { usePBRTextures } from "./use-pbr-textures"
 export {
   getPlatformSync,
   isLinux,
@@ -68,12 +78,4 @@ export {
   type UseUpdaterReturn,
   useUpdater,
 } from "./use-updater"
-export {
-  type Message as AIChatMessage,
-  type ToolCallInfo,
-  type ToolCategory,
-  type UseAIChatOptions,
-  type UseAIChatReturn,
-  useAIChat,
-} from "./useAIChat"
-export { useCAD } from "./useCAD"
+export { useVirtualList } from "./use-virtual-list"

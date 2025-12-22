@@ -6,7 +6,7 @@
  */
 
 import { invoke } from "@tauri-apps/api/core"
-import type { Message } from "@/hooks/useAIChat"
+import type { Message } from "@/hooks/use-ai-chat"
 
 // ============================================================================
 // HELPERS

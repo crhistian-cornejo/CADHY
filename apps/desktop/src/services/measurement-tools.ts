@@ -19,7 +19,6 @@ export interface MeasurementResult {
 
 export class MeasurementTools {
   private measurements: THREE.Group
-  private font: Font | null = null
 
   constructor() {
     this.measurements = new THREE.Group()

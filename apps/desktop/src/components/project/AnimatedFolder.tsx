@@ -74,7 +74,7 @@ const FolderCard = forwardRef<HTMLDivElement, FolderCardProps>(
           opacity: isVisible ? 1 : 0,
           transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
           transitionDelay: `${index * 60}ms`,
-          zIndex: 20 - index,
+          zIndex: 110 - index, // High z-index to be above everything
         }}
         onClick={(e) => {
           e.stopPropagation()
@@ -140,7 +140,7 @@ export const AnimatedFolder = memo(function AnimatedFolder({
             "relative flex flex-col items-center justify-center p-6 rounded-xl cursor-pointer",
             "bg-card border border-border/40 hover:border-border/60 transition-all duration-300",
             "hover:shadow-lg group",
-            isHovered && "z-50", // Ensure folder is on top when hovered
+            isHovered && "z-[100]", // Ensure folder is on top when hovered
             className
           )}
           style={{

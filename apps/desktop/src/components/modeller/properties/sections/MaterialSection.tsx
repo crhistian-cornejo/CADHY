@@ -9,7 +9,7 @@ import { cn, Slider } from "@cadhy/ui"
 import { PaintBrush01Icon } from "@hugeicons/core-free-icons"
 import { useCallback } from "react"
 import { useTranslation } from "react-i18next"
-import type { ShapeObject } from "@/stores/modeller-store"
+import type { ShapeObject } from "@/stores/modeller"
 import { PropertyRow } from "../shared/PropertyRow"
 import { PropertySection } from "../shared/PropertySection"
 

@@ -13,7 +13,13 @@ import { useShallow } from "zustand/shallow"
 // TYPES
 // ============================================================================
 
-export type PanelId = "sidebar" | "aiChat" | "properties" | "results"
+export type PanelId =
+  | "sidebar"
+  | "aiChat"
+  | "properties"
+  | "results"
+  | "modellerLeft"
+  | "modellerRight"
 
 export interface LayoutState {
   // Panel visibility
@@ -22,6 +28,10 @@ export interface LayoutState {
     aiChat: boolean
     properties: boolean
     results: boolean
+    /** Modeller left panel (OUTLINER/ASSETS) */
+    modellerLeft: boolean
+    /** Modeller right panel (Viewport Settings) */
+    modellerRight: boolean
   }
 
   // Sidebar collapsed state
@@ -53,6 +63,8 @@ const DEFAULT_PANELS: LayoutState["panels"] = {
   aiChat: false,
   properties: true,
   results: false,
+  modellerLeft: true,
+  modellerRight: true,
 }
 
 export const useLayoutStore = create<LayoutStore>()(
@@ -114,7 +126,7 @@ export const useLayoutStore = create<LayoutStore>()(
     }),
     {
       name: "cadhy-layout",
-      version: 2,
+      version: 3,
     }
   )
 )
@@ -127,6 +139,8 @@ export const useShowSidebar = () => useLayoutStore((s) => s.panels.sidebar)
 export const useShowAiChat = () => useLayoutStore((s) => s.panels.aiChat)
 export const useShowProperties = () => useLayoutStore((s) => s.panels.properties)
 export const useShowResults = () => useLayoutStore((s) => s.panels.results)
+export const useShowModellerLeft = () => useLayoutStore((s) => s.panels.modellerLeft)
+export const useShowModellerRight = () => useLayoutStore((s) => s.panels.modellerRight)
 export const useSidebarCollapsed = () => useLayoutStore((s) => s.sidebarCollapsed)
 export const useLayoutActions = () =>
   useLayoutStore(

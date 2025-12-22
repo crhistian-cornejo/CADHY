@@ -526,4 +526,60 @@ impl Operations {
     pub fn count_components(shape: &Shape, level: i32) -> i32 {
         ffi::count_shape_components(shape.inner(), level)
     }
+
+    /// Simplify a shape by unifying faces and edges
+    ///
+    /// This operation is **CRITICAL** after boolean operations to clean up geometry.
+    /// It merges coplanar faces, collinear edges, and removes tiny gaps.
+    ///
+    /// # Arguments
+    /// * `shape` - Input shape
+    /// * `unify_edges` - Whether to unify collinear edges
+    /// * `unify_faces` - Whether to unify coplanar faces
+    ///
+    /// # Example
+    /// ```no_run
+    /// // After a boolean operation, simplify the result
+    /// let box1 = cadhy_cad::Primitives::make_box(10.0, 10.0, 10.0).unwrap();
+    /// let box2 = cadhy_cad::Primitives::make_box_at(5.0, 0.0, 0.0, 10.0, 10.0, 10.0).unwrap();
+    /// let fused = cadhy_cad::Operations::fuse(&box1, &box2).unwrap();
+    /// let simplified = cadhy_cad::Operations::simplify(&fused, true, true).unwrap();
+    /// ```
+    pub fn simplify(shape: &Shape, unify_edges: bool, unify_faces: bool) -> OcctResult<Shape> {
+        let ptr = ffi::simplify_shape(shape.inner(), unify_edges, unify_faces);
+        Shape::from_ptr(ptr)
+            .map_err(|_| OcctError::OperationFailed("Simplify shape failed".to_string()))
+    }
+
+    /// Combine multiple shapes into a compound
+    ///
+    /// This creates a compound shape (assembly) from multiple separate shapes.
+    /// Unlike boolean operations, this doesn't merge the shapes - they remain separate.
+    ///
+    /// # Arguments
+    /// * `shapes` - Slice of shape references to combine
+    ///
+    /// # Example
+    /// ```no_run
+    /// let box1 = cadhy_cad::Primitives::make_box(10.0, 10.0, 10.0).unwrap();
+    /// let sphere = cadhy_cad::Primitives::make_sphere(0.0, 0.0, 20.0, 5.0).unwrap();
+    /// let cylinder = cadhy_cad::Primitives::make_cylinder(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 3.0, 15.0).unwrap();
+    /// let assembly = cadhy_cad::Operations::combine(&[&box1, &sphere, &cylinder]).unwrap();
+    /// ```
+    pub fn combine(shapes: &[&Shape]) -> OcctResult<Shape> {
+        if shapes.is_empty() {
+            return Err(OcctError::OperationFailed(
+                "At least one shape required for combine".to_string(),
+            ));
+        }
+
+        let shape_ptrs: Vec<*const ffi::OcctShape> = shapes
+            .iter()
+            .map(|s| s.inner() as *const ffi::OcctShape)
+            .collect();
+
+        let ptr = ffi::combine_shapes(&shape_ptrs);
+        Shape::from_ptr(ptr)
+            .map_err(|_| OcctError::OperationFailed("Combine shapes failed".to_string()))
+    }
 }

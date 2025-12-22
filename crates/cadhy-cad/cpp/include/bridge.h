@@ -45,6 +45,9 @@ inline namespace cxxbridge1 {
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
+#include <BRepBuilderAPI_MakePolygon.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
+#include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepBuilderAPI_GTransform.hxx>
 
@@ -71,6 +74,9 @@ inline namespace cxxbridge1 {
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_MakeOffsetShape.hxx>
 #include <TopTools_ListOfShape.hxx>
+
+// Shape upgrade/simplification
+#include <ShapeUpgrade_UnifySameDomain.hxx>
 
 // Loft/Sweep operations
 #include <BRepOffsetAPI_ThruSections.hxx>
@@ -100,6 +106,11 @@ inline namespace cxxbridge1 {
 #include <Geom_Line.hxx>
 #include <GC_MakeCircle.hxx>
 #include <GC_MakeArcOfCircle.hxx>
+#include <gp_Elips.hxx>
+#include <GeomAPI_Interpolate.hxx>
+#include <Geom_BezierCurve.hxx>
+#include <TColgp_Array1OfPnt.hxx>
+#include <TColgp_HArray1OfPnt.hxx>
 
 // Properties/Measurement
 #include <Bnd_Box.hxx>
@@ -305,6 +316,44 @@ std::unique_ptr<OcctShape> make_helix_at(
     bool clockwise
 );
 
+/// Create a pyramid (square base tapering to a point)
+/// @param x Base width
+/// @param y Base depth
+/// @param z Height
+/// @param px, py, pz Base center position
+/// @param dx, dy, dz Normal direction
+std::unique_ptr<OcctShape> make_pyramid(
+    double x, double y, double z,
+    double px, double py, double pz,
+    double dx, double dy, double dz
+);
+
+/// Create an ellipsoid (3D ellipse with different radii)
+/// @param cx, cy, cz Center position
+/// @param rx, ry, rz Radii along X, Y, Z axes
+std::unique_ptr<OcctShape> make_ellipsoid(
+    double cx, double cy, double cz,
+    double rx, double ry, double rz
+);
+
+/// Create a vertex (point)
+/// @param x, y, z Position
+std::unique_ptr<OcctShape> make_vertex(double x, double y, double z);
+
+// ============================================================
+// SHAPE OPERATIONS
+// ============================================================
+
+/// Simplify a shape by unifying faces and edges
+/// @param shape Input shape
+/// @param unify_edges Whether to unify edges
+/// @param unify_faces Whether to unify faces
+std::unique_ptr<OcctShape> simplify_shape(const OcctShape& shape, bool unify_edges, bool unify_faces);
+
+/// Combine multiple shapes into a compound
+/// Note: This will be exposed differently via FFI - accepting shape IDs from Rust
+std::unique_ptr<OcctShape> combine_shapes(rust::Slice<const OcctShape* const> shapes);
+
 // ============================================================
 // BOOLEAN OPERATIONS
 // ============================================================
@@ -431,6 +480,32 @@ std::unique_ptr<OcctShape> make_polygon_wire(rust::Slice<const Vertex> points);
 /// Create a closed polygon wire from a list of 3D points
 /// Points should be in order, last point connects to first
 std::unique_ptr<OcctShape> make_polygon_wire_3d(rust::Slice<const Vertex> points);
+
+/// Create an ellipse edge
+std::unique_ptr<OcctShape> make_ellipse(
+    double cx, double cy, double cz,
+    double nx, double ny, double nz,
+    double major_radius, double minor_radius,
+    double rotation
+);
+
+/// Create an arc through 3 points
+std::unique_ptr<OcctShape> make_arc_3_points(
+    double x1, double y1, double z1,
+    double x2, double y2, double z2,
+    double x3, double y3, double z3
+);
+
+/// Create a B-spline curve interpolating through points
+std::unique_ptr<OcctShape> make_bspline_interpolate(
+    rust::Slice<const Vertex> points,
+    bool closed
+);
+
+/// Create a Bezier curve from control points
+std::unique_ptr<OcctShape> make_bezier(
+    rust::Slice<const Vertex> control_points
+);
 
 // ============================================================
 // TESSELLATION

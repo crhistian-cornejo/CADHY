@@ -6,6 +6,9 @@
  */
 
 import type { Transform } from "@cadhy/types"
+import type { CameraAnimation, PlaybackState, SavedCameraView } from "./camera-slice"
+import type { HelpersSlice } from "./helpers-slice"
+import type { TemporarySlice } from "./temporary-slice"
 import type {
   AnySceneObject,
   CameraView,
@@ -32,7 +35,7 @@ export type { Vec3 } from "@cadhy/types"
  * This interface combines all slice states and actions.
  * Each slice uses this type to access other slices' state/actions.
  */
-export interface ModellerStore {
+export interface ModellerStore extends TemporarySlice, HelpersSlice {
   // ========== STATE ==========
 
   // Objects (objects-slice)
@@ -46,6 +49,10 @@ export interface ModellerStore {
   transformMode: TransformMode
   transformSpace: TransformSpace
   snapMode: SnapMode
+  /** Box selection mode - when true, camera controls are disabled and drag-to-select is enabled */
+  isBoxSelectMode: boolean
+  /** Selection mode - body/face/edge/vertex (Plasticity-style) */
+  selectionMode: "body" | "face" | "edge" | "vertex"
 
   // Layers (layers-slice)
   layers: Layer[]
@@ -58,11 +65,19 @@ export interface ModellerStore {
   cameraPosition: { x: number; y: number; z: number }
   cameraTarget: { x: number; y: number; z: number }
   focusObjectId: string | null
+  savedViews: SavedCameraView[]
+  animations: CameraAnimation[]
+  currentAnimation: string | null
+  playbackState: PlaybackState
+  playbackTime: number
 
   // Settings (settings-slice)
   gridSettings: GridSettings
   viewportSettings: ViewportSettings
   activeTool: string | null
+  isCreatePanelOpen: boolean
+  isChuteCreatorOpen: boolean
+  isTransitionCreatorOpen: boolean
 
   // History (history-slice)
   history: HistoryEntry[]
@@ -103,6 +118,8 @@ export interface ModellerStore {
   setTransformMode: (mode: TransformMode) => void
   setTransformSpace: (space: TransformSpace) => void
   setSnapMode: (mode: SnapMode) => void
+  setBoxSelectMode: (enabled: boolean) => void
+  setSelectionMode: (mode: "body" | "face" | "edge" | "vertex") => void
   transformSelected: (transform: Partial<Transform>) => void
 
   // Layers (layers-slice)
@@ -134,11 +151,37 @@ export interface ModellerStore {
   clearFocus: () => void
   fitToSelection: () => void
   fitToAll: () => void
+  // Saved views management
+  saveCameraView: (name: string, fov?: number) => void
+  loadCameraView: (id: string) => void
+  deleteCameraView: (id: string) => void
+  renameCameraView: (id: string, name: string) => void
+  // Animation management
+  createAnimation: (name: string) => void
+  deleteAnimation: (id: string) => void
+  renameAnimation: (id: string, name: string) => void
+  setCurrentAnimation: (id: string | null) => void
+  addKeyframe: (animationId: string, time?: number) => void
+  deleteKeyframe: (animationId: string, keyframeId: string) => void
+  setAnimationDuration: (animationId: string, duration: number) => void
+  // Playback controls
+  play: () => void
+  pause: () => void
+  stop: () => void
+  setPlaybackTime: (time: number) => void
+  createExampleAnimations: () => void
 
   // Settings (settings-slice)
   setGridSettings: (settings: Partial<GridSettings>) => void
   setViewportSettings: (settings: Partial<ViewportSettings>) => void
   setActiveTool: (tool: string | null) => void
+  toggleCreatePanel: () => void
+  openCreatePanel: () => void
+  closeCreatePanel: () => void
+  openChuteCreator: () => void
+  closeChuteCreator: () => void
+  openTransitionCreator: () => void
+  closeTransitionCreator: () => void
 
   // History (history-slice)
   undo: () => void

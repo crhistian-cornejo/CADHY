@@ -228,6 +228,9 @@ async function loadLocalPBRTextures(textureId: string): Promise<PBRTextureMaps> 
 // POLY HAVEN API
 // ============================================================================
 
+// Cache for the Poly Haven manifest to avoid repeated large downloads
+let polyHavenManifestCache: Record<string, any> | null = null
+
 /**
  * Fetch available textures (local first, then Poly Haven)
  */
@@ -238,23 +241,25 @@ export async function fetchPolyHavenTextures(
   // Try local textures first (with category filter)
   const localTextures = await getLocalTextures(category)
   if (localTextures.length > 0) {
-    log.log(
-      `Using ${localTextures.length} local textures${category ? ` (category: ${category})` : ""}`
-    )
     return localTextures.slice(0, limit)
   }
 
   // Fallback to Poly Haven API
   try {
-    log.log("Fetching textures from Poly Haven API")
-    const response = await fetch(`${POLY_HAVEN_API}/assets?t=textures`)
-    if (!response.ok) throw new Error("Failed to fetch textures")
+    let data = polyHavenManifestCache
 
-    const data = await response.json()
+    if (!data) {
+      log.log("Fetching textures from Poly Haven API")
+      const response = await fetch(`${POLY_HAVEN_API}/assets?t=textures`)
+      if (!response.ok) throw new Error("Failed to fetch textures")
+      data = await response.json()
+      polyHavenManifestCache = data
+    }
+
     const textures: TextureInfo[] = []
 
     // Convert API response to TextureInfo array
-    for (const [id, info] of Object.entries(data)) {
+    for (const [id, info] of Object.entries(data || {})) {
       const textureData = info as {
         name: string
         categories: string[]

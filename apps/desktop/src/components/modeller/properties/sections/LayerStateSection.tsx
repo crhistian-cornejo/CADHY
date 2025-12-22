@@ -23,7 +23,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import type { AnySceneObject, Layer } from "@/stores/modeller-store"
+import type { AnySceneObject, Layer } from "@/stores/modeller"
 import { PropertyRow } from "../shared/PropertyRow"
 import { PropertySection } from "../shared/PropertySection"
 

@@ -62,7 +62,7 @@ export class InstancedMeshManager {
 
     // Update instance transformations
     const matrix = new THREE.Matrix4()
-    const color = new THREE.Color()
+    const _color = new THREE.Color()
 
     for (let i = 0; i < count; i++) {
       const instance = instances[i]

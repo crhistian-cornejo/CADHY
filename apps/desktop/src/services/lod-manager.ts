@@ -12,6 +12,7 @@
 
 import * as THREE from "three"
 import { SimplifyModifier } from "three/examples/jsm/modifiers/SimplifyModifier.js"
+import { frustumCuller } from "./frustum-culler"
 
 export interface LODLevel {
   distance: number // Max distance for this LOD level
@@ -27,12 +28,12 @@ export interface LODConfig {
 export const DEFAULT_LOD_CONFIG: LODConfig = {
   enabled: true,
   levels: [
-    { distance: 20, quality: 1.0 }, // Close: full quality
-    { distance: 50, quality: 0.6 }, // Medium: 60% polygons
-    { distance: 100, quality: 0.3 }, // Far: 30% polygons
-    { distance: Infinity, quality: 0.1 }, // Very far: 10% polygons (box placeholder)
+    { distance: 15, quality: 1.0 }, // Close: full quality
+    { distance: 40, quality: 0.7 }, // Medium: 70% polygons (better quality)
+    { distance: 80, quality: 0.4 }, // Far: 40% polygons
+    { distance: Infinity, quality: 0.15 }, // Very far: 15% polygons
   ],
-  updateInterval: 200, // Update LOD every 200ms
+  updateInterval: 150, // Update LOD every 150ms (more responsive)
 }
 
 interface CachedLOD {
@@ -53,6 +54,7 @@ export class LODManager {
 
   /**
    * Update LOD levels for all objects in the scene based on camera distance
+   * Now includes frustum culling to skip objects outside view
    */
   updateLOD(camera: THREE.Camera, scene: THREE.Scene): void {
     if (!this.config.enabled) return
@@ -63,11 +65,19 @@ export class LODManager {
     }
     this.lastUpdateTime = now
 
+    // Update frustum for culling
+    frustumCuller.updateFrustum(camera)
+
     const cameraPosition = new THREE.Vector3()
     camera.getWorldPosition(cameraPosition)
 
     scene.traverse((object) => {
       if (object instanceof THREE.Mesh && object.geometry) {
+        // Skip objects outside frustum - major performance win
+        if (!frustumCuller.isObject3DVisible(object)) {
+          return
+        }
+
         this.updateObjectLOD(object, cameraPosition)
       }
     })
@@ -79,6 +89,9 @@ export class LODManager {
   private updateObjectLOD(mesh: THREE.Mesh, cameraPosition: THREE.Vector3): void {
     // Skip if object doesn't have user data with ID
     if (!mesh.userData.objectId) return
+
+    // Skip invisible objects for performance
+    if (!mesh.visible) return
 
     const objectId = mesh.userData.objectId as string
     const objectPosition = new THREE.Vector3()

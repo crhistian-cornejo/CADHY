@@ -21,13 +21,14 @@ import {
   type AnySceneObject,
   type ChannelObject,
   type ChuteObject,
+  type MaterialProperties,
   type ShapeObject,
   type TransitionObject,
   useLayers,
   useModellerStore,
   useSelectedIds,
   useViewportSettings,
-} from "@/stores/modeller-store"
+} from "@/stores/modeller"
 import { ChannelPropertiesPanel } from "./panels/ChannelPropertiesPanel"
 import { ChutePropertiesPanel } from "./panels/ChutePropertiesPanel"
 import { TransitionPropertiesPanel } from "./panels/TransitionPropertiesPanel"
@@ -35,7 +36,6 @@ import { GeometrySection } from "./sections/GeometrySection"
 import { InfoSection } from "./sections/InfoSection"
 import { LayerStateSection } from "./sections/LayerStateSection"
 import { MaterialSection } from "./sections/MaterialSection"
-import { TransformSection } from "./sections/TransformSection"
 import { PropertyRow } from "./shared/PropertyRow"
 import { MultipleSelection } from "./states/MultipleSelection"
 import { NoSelection } from "./states/NoSelection"
@@ -93,20 +93,23 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
   const handleUpdateAll = useCallback(
     (updates: Partial<AnySceneObject>) => {
       selectedIds.forEach((id) => {
-        // Merge updates with existing material properties
         const obj = objects.find((o) => o.id === id)
-        if (obj) {
+        if (!obj) return
+
+        if (obj.material) {
           updateObject(id, {
             ...updates,
             material: {
               ...obj.material,
               ...(updates.material ?? {}),
               pbr: {
-                ...obj.material?.pbr,
+                ...obj.material.pbr,
                 ...(updates.material?.pbr ?? {}),
               },
-            },
+            } as MaterialProperties,
           })
+        } else {
+          updateObject(id, updates)
         }
       })
     },
@@ -176,9 +179,6 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
               </PropertyRow>
             </div>
 
-            {/* Transform */}
-            <TransformSection object={selectedObject} onUpdate={handleUpdate} />
-
             {/* Geometry (for shapes) */}
             {selectedObject.type === "shape" && (
               <GeometrySection
@@ -220,43 +220,47 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
             )}
 
             {/* PBR Textures (for all objects when post-processing is enabled) */}
-            <TextureMaterialPanel
-              postProcessingEnabled={viewportSettings.enablePostProcessing ?? false}
-              currentTextureId={selectedObject.material.pbr?.albedoTextureId}
-              repeatX={selectedObject.material.pbr?.repeatX ?? 1}
-              repeatY={selectedObject.material.pbr?.repeatY ?? 1}
-              onTexturesChange={(maps, textureId) => {
-                // Store the texture ID in material.pbr so it can be loaded later
-                handleUpdate({
-                  material: {
-                    ...selectedObject.material,
-                    pbr: {
-                      ...selectedObject.material.pbr,
-                      albedoTextureId: textureId,
-                      normalTextureId: maps.normal ? textureId : undefined,
-                      roughnessTextureId: maps.roughness ? textureId : undefined,
-                      metalnessTextureId: maps.metalness ? textureId : undefined,
-                      aoTextureId: maps.ao ? textureId : undefined,
-                      // Preserve current UV repeat values when applying new texture
-                      repeatX: selectedObject.material.pbr?.repeatX ?? 1,
-                      repeatY: selectedObject.material.pbr?.repeatY ?? 1,
-                    },
-                  },
-                })
-              }}
-              onRepeatChange={(x, y) => {
-                handleUpdate({
-                  material: {
-                    ...selectedObject.material,
-                    pbr: {
-                      ...selectedObject.material.pbr,
-                      repeatX: x,
-                      repeatY: y,
-                    },
-                  },
-                })
-              }}
-            />
+            {selectedObject.material && (
+              <TextureMaterialPanel
+                postProcessingEnabled={viewportSettings.enablePostProcessing ?? false}
+                currentTextureId={selectedObject.material.pbr?.albedoTextureId}
+                repeatX={selectedObject.material.pbr?.repeatX ?? 1}
+                repeatY={selectedObject.material.pbr?.repeatY ?? 1}
+                onTexturesChange={(maps, textureId) => {
+                  if (!selectedObject.material) return
+                  // Store the texture ID in material.pbr so it can be loaded later
+                  handleUpdate({
+                    material: {
+                      ...selectedObject.material,
+                      pbr: {
+                        ...selectedObject.material.pbr,
+                        albedoTextureId: textureId,
+                        normalTextureId: maps.normal ? textureId : undefined,
+                        roughnessTextureId: maps.roughness ? textureId : undefined,
+                        metalnessTextureId: maps.metalness ? textureId : undefined,
+                        aoTextureId: maps.ao ? textureId : undefined,
+                        // Preserve current UV repeat values when applying new texture
+                        repeatX: selectedObject.material.pbr?.repeatX ?? 1,
+                        repeatY: selectedObject.material.pbr?.repeatY ?? 1,
+                      },
+                    } as MaterialProperties,
+                  })
+                }}
+                onRepeatChange={(x, y) => {
+                  if (!selectedObject.material) return
+                  handleUpdate({
+                    material: {
+                      ...selectedObject.material,
+                      pbr: {
+                        ...selectedObject.material.pbr,
+                        repeatX: x,
+                        repeatY: y,
+                      },
+                    } as MaterialProperties,
+                  })
+                }}
+              />
+            )}
 
             {/* Layer & State */}
             <LayerStateSection object={selectedObject} layers={layers} onUpdate={handleUpdate} />

@@ -1,11 +1,10 @@
 /**
  * Modeller View Component - CADHY
  *
- * Main 3D modelling workspace with:
- * - Viewport with GPU-accelerated 3D rendering
- * - Toolbar for transform and view controls
- * - Left sidebar with tabs (Create, Props, Layers, Scene)
- * - Resizable panels
+ * Main 3D modelling workspace with Plasticity-inspired layout:
+ * - Left sidebar with 2 tabs (Outliner/Scene + Assets/Props)
+ * - Full viewport with floating overlays inside (toolbars, panels)
+ * - All toolbars are inside the 3D viewport as floating overlays
  */
 
 import {
@@ -19,42 +18,22 @@ import {
   TabsList,
   TabsTrigger,
 } from "@cadhy/ui"
-import {
-  Add01Icon,
-  Alert01Icon,
-  CubeIcon,
-  File01Icon,
-  FolderOpenIcon,
-  HierarchyIcon,
-  Layers01Icon,
-  Settings01Icon,
-  SquareIcon,
-} from "@hugeicons/core-free-icons"
+import { Add01Icon, CubeIcon, File01Icon, FolderOpenIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { listen } from "@tauri-apps/api/event"
 import { motion, useAnimationFrame, useMotionTemplate, useMotionValue } from "motion/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { PanelErrorBoundary, ViewerErrorBoundary } from "@/components/common"
-import {
-  useModellerStore,
-  useNotificationSummary,
-  useObjects,
-  useSelectedIds,
-  useSnapMode,
-  useViewportSettings,
-} from "@/stores/modeller-store"
+import { useGlobalHotkeyHandler } from "@/hooks"
+import { useLayoutActions, useShowModellerLeft, useShowModellerRight } from "@/stores/layout-store"
+import { useModellerStore, useObjects, useSelectedIds } from "@/stores/modeller"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
-import { BoxLoader } from "./BoxLoader"
-import { CameraAnimationPanel } from "./CameraAnimationPanel"
-import { CreatePanel } from "./CreatePanel"
-import { LayersPanel } from "./LayersPanel"
-import { NotificationsPanel } from "./NotificationsPanel"
-import { PropertiesPanel } from "./PropertiesPanel"
-import { ScenePanel } from "./ScenePanel"
-import { ToolsPanel } from "./ToolsPanel"
-import { Viewport3D } from "./Viewport3D"
-import { ViewportToolbar } from "./ViewportToolbar"
+import { BoxLoader, ChuteCreator, TransitionCreator } from "./creators"
+import { CameraAnimationPanel } from "./panels"
+import { PropertiesPanel } from "./properties"
+import { ScenePanel } from "./scene"
+import { Viewport3D, ViewportSettingsPanel } from "./viewport"
 
 // ============================================================================
 // TYPES
@@ -66,7 +45,8 @@ interface ModellerViewProps {
   onOpenProject?: () => void
 }
 
-type LeftPanelTab = "create" | "props" | "layers" | "scene" | "checks" | "tools"
+// Plasticity-style: OUTLINER + ASSETS (we use Scene + Props)
+type LeftPanelTab = "scene" | "props"
 
 // ============================================================================
 // ANIMATED GRID BACKGROUND
@@ -287,42 +267,50 @@ function useKeyboardShortcuts(onToggleLeftPanel?: () => void) {
 
 export function ModellerView({ className, onNewProject, onOpenProject }: ModellerViewProps) {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState<LeftPanelTab>("create")
-  const [showLeftPanel, setShowLeftPanel] = useState(true)
+  // Plasticity-style: OUTLINER first (scene), then ASSETS (props)
+  const [activeTab, setActiveTab] = useState<LeftPanelTab>("scene")
   const [showAnimationPanel, setShowAnimationPanel] = useState(false)
-  const selectedIds = useSelectedIds()
-  const objects = useObjects()
-  const notificationSummary = useNotificationSummary()
-  const prevSelectedCountRef = useRef(0)
+  const _selectedIds = useSelectedIds()
+  const _objects = useObjects()
   const currentProject = useCurrentProject()
   const isLoading = useIsProjectLoading()
 
+  // Use layout store for panel visibility (controlled from Titlebar)
+  const showLeftPanel = useShowModellerLeft()
+  const showRightPanel = useShowModellerRight()
+  const { togglePanel } = useLayoutActions()
+
+  // Get dialog states from store
+  const isChuteCreatorOpen = useModellerStore((state) => state.isChuteCreatorOpen)
+  const isTransitionCreatorOpen = useModellerStore((state) => state.isTransitionCreatorOpen)
+  const { closeChuteCreator, closeTransitionCreator } = useModellerStore()
+
   // Toggle left panel callback for keyboard shortcut
   const handleToggleLeftPanel = useCallback(() => {
-    setShowLeftPanel((prev) => !prev)
-  }, [])
+    togglePanel("modellerLeft")
+  }, [togglePanel])
 
   // Toggle animation panel callback
   const handleToggleAnimationPanel = useCallback(() => {
     setShowAnimationPanel((prev) => !prev)
   }, [])
 
+  // Dialog handlers
+  const handleChuteCreated = useCallback(() => {
+    closeChuteCreator()
+    // Could add toast notification here if desired
+  }, [closeChuteCreator])
+
+  const handleTransitionCreated = useCallback(() => {
+    closeTransitionCreator()
+    // Could add toast notification here if desired
+  }, [closeTransitionCreator])
+
   // Enable keyboard shortcuts
   useKeyboardShortcuts(handleToggleLeftPanel)
 
-  // Auto-switch to Props when an object is selected from viewport
-  // Only switch if we went from 0 to 1+ selection AND we're on create/layers tab
-  // Don't switch if on Scene tab (user is browsing objects there)
-  useEffect(() => {
-    const hadNoSelection = prevSelectedCountRef.current === 0
-    const hasSelection = selectedIds.length > 0
-    const shouldAutoSwitch = activeTab === "create" || activeTab === "layers"
-
-    if (hasSelection && hadNoSelection && shouldAutoSwitch) {
-      setActiveTab("props")
-    }
-    prevSelectedCountRef.current = selectedIds.length
-  }, [selectedIds.length, activeTab])
+  // Enable modeller-specific hotkeys (View Mode 1/2/3, etc.)
+  useGlobalHotkeyHandler("modeller")
 
   // Show loading state while project is being opened
   if (isLoading) {
@@ -344,111 +332,47 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
 
   return (
     <div className={cn("flex h-full flex-row bg-background", className)}>
-      {/* Main Content */}
+      {/* Main Content Area - Plasticity layout: Left sidebar + Full Viewport */}
       <ResizablePanelGroup
         direction="horizontal"
         className="flex-1"
-        autoSaveId="cadhy-modeller-layout"
+        autoSaveId="cadhy-modeller-layout-v5"
       >
-        {/* Left Panel with Tabs */}
+        {/* Left Panel - OUTLINER + ASSETS (Scene + Props) */}
         {showLeftPanel && (
           <>
-            <ResizablePanel
-              id="left-panel"
-              order={1}
-              defaultSize={showAnimationPanel ? 25 : 35}
-              minSize={20}
-              maxSize={50}
-            >
-              <div className="flex h-full flex-col border-r border-border/40 bg-background">
-                {/* Horizontal Tabs - symmetric with toolbar */}
+            <ResizablePanel id="left-panel" order={1} defaultSize={15} minSize={9} maxSize={30}>
+              <div className="flex h-full flex-col bg-background">
+                {/* Tab Header */}
                 <Tabs
                   value={activeTab}
                   onValueChange={(v) => setActiveTab(v as LeftPanelTab)}
                   className="flex flex-col h-full"
                 >
-                  <div className="flex items-center gap-1 border-b border-border/40 bg-background/95 px-2 py-1 backdrop-blur-sm">
-                    <TabsList className="flex-1 h-8 p-0.5 bg-muted/30 border rounded-md grid grid-cols-6 gap-0.5">
+                  <div className="flex items-center bg-background">
+                    <TabsList className="flex-1 h-11 p-1.5 bg-muted/20 rounded-full border-0 grid grid-cols-2 gap-1.5">
                       <TabsTrigger
-                        value="create"
-                        className="h-7 px-1.5 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm flex items-center justify-center gap-1"
-                        title={t("modeller.tabs.createTooltip")}
+                        value="scene"
+                        className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                        title={t("modeller.tabs.sceneTooltip")}
                       >
-                        <HugeiconsIcon icon={Add01Icon} className="size-3.5" />
-                        <span className="hidden lg:inline">{t("modeller.tabs.create")}</span>
+                        {t("modeller.tabs.scene", "Scene")}
                       </TabsTrigger>
                       <TabsTrigger
                         value="props"
-                        className="h-7 px-1.5 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm flex items-center justify-center gap-1 relative"
+                        className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
                         title={t("modeller.tabs.propsTooltip")}
                       >
-                        <HugeiconsIcon icon={Settings01Icon} className="size-3.5" />
-                        <span className="hidden lg:inline">{t("modeller.tabs.props")}</span>
-                        {selectedIds.length > 0 && (
-                          <span className="absolute -top-0.5 -right-0.5 size-2 bg-green-500 rounded-full" />
-                        )}
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="layers"
-                        className="h-7 px-1.5 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm flex items-center justify-center gap-1"
-                        title={t("modeller.tabs.layersTooltip")}
-                      >
-                        <HugeiconsIcon icon={Layers01Icon} className="size-3.5" />
-                        <span className="hidden lg:inline">{t("modeller.tabs.layers")}</span>
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="scene"
-                        className="h-7 px-1.5 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm flex items-center justify-center gap-1 relative"
-                        title={t("modeller.tabs.sceneTooltip")}
-                      >
-                        <HugeiconsIcon icon={HierarchyIcon} className="size-3.5" />
-                        <span className="hidden lg:inline">{t("modeller.tabs.scene")}</span>
-                        {objects.length > 0 && (
-                          <span className="absolute -top-0.5 -right-0.5 size-3.5 text-[8px] bg-primary text-primary-foreground rounded-full flex items-center justify-center font-medium">
-                            {objects.length > 9 ? "9+" : objects.length}
-                          </span>
-                        )}
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="checks"
-                        className="h-7 px-1.5 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm flex items-center justify-center gap-1 relative"
-                        title={t("modeller.tabs.checksTooltip")}
-                      >
-                        <HugeiconsIcon icon={Alert01Icon} className="size-3.5" />
-                        <span className="hidden lg:inline">{t("modeller.tabs.checks")}</span>
-                        {notificationSummary.total > 0 && (
-                          <span
-                            className={cn(
-                              "absolute -top-0.5 -right-0.5 size-3.5 text-[8px] rounded-full flex items-center justify-center font-medium",
-                              notificationSummary.error > 0
-                                ? "bg-red-500 text-white"
-                                : notificationSummary.warning > 0
-                                  ? "bg-amber-500 text-white"
-                                  : "bg-blue-500 text-white"
-                            )}
-                          >
-                            {notificationSummary.total > 9 ? "9+" : notificationSummary.total}
-                          </span>
-                        )}
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="tools"
-                        className="h-7 px-1.5 text-[10px] data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm flex items-center justify-center gap-1"
-                        title={t("modeller.tabs.toolsTooltip", "Advanced Tools")}
-                      >
-                        <HugeiconsIcon icon={SquareIcon} className="size-3.5" />
-                        <span className="hidden lg:inline">
-                          {t("modeller.tabs.tools", "Tools")}
-                        </span>
+                        {t("modeller.tabs.props", "Properties")}
                       </TabsTrigger>
                     </TabsList>
                   </div>
 
                   {/* Tab Contents */}
                   <div className="flex-1 min-h-0 overflow-hidden">
-                    <TabsContent value="create" className="h-full m-0 data-[state=inactive]:hidden">
-                      <PanelErrorBoundary context="Create Panel">
-                        <CreatePanel />
+                    <TabsContent value="scene" className="h-full m-0 data-[state=inactive]:hidden">
+                      <PanelErrorBoundary context="Scene Panel">
+                        <ScenePanel />
                       </PanelErrorBoundary>
                     </TabsContent>
                     <TabsContent value="props" className="h-full m-0 data-[state=inactive]:hidden">
@@ -456,70 +380,47 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
                         <PropertiesPanel />
                       </PanelErrorBoundary>
                     </TabsContent>
-                    <TabsContent value="layers" className="h-full m-0 data-[state=inactive]:hidden">
-                      <PanelErrorBoundary context="Layers Panel">
-                        <LayersPanel />
-                      </PanelErrorBoundary>
-                    </TabsContent>
-                    <TabsContent value="scene" className="h-full m-0 data-[state=inactive]:hidden">
-                      <PanelErrorBoundary context="Scene Panel">
-                        <ScenePanel />
-                      </PanelErrorBoundary>
-                    </TabsContent>
-                    <TabsContent value="checks" className="h-full m-0 data-[state=inactive]:hidden">
-                      <PanelErrorBoundary context="Notifications Panel">
-                        <NotificationsPanel />
-                      </PanelErrorBoundary>
-                    </TabsContent>
-                    <TabsContent value="tools" className="h-full m-0 data-[state=inactive]:hidden">
-                      <PanelErrorBoundary context="Tools Panel">
-                        <ToolsPanel />
-                      </PanelErrorBoundary>
-                    </TabsContent>
                   </div>
                 </Tabs>
               </div>
             </ResizablePanel>
 
-            <ResizableHandle withHandle />
+            <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
           </>
         )}
 
-        {/* Center - Viewport */}
-        <ResizablePanel
-          id="viewport"
-          order={2}
-          defaultSize={showAnimationPanel ? 50 : showLeftPanel ? 65 : 100}
-          minSize={40}
-        >
-          <div className="h-full flex flex-col">
-            {/* Viewport Toolbar */}
-            <ViewportToolbar
-              showLeftPanel={showLeftPanel}
-              onToggleLeftPanel={handleToggleLeftPanel}
+        {/* Center - Full Viewport (all toolbars are floating overlays inside) */}
+        <ResizablePanel id="viewport" order={2} defaultSize={64} minSize={40}>
+          <ViewerErrorBoundary>
+            <Viewport3D
               showAnimationPanel={showAnimationPanel}
               onToggleAnimationPanel={handleToggleAnimationPanel}
             />
-
-            {/* Viewport */}
-            <div className="flex-1 relative">
-              <ViewerErrorBoundary>
-                <Viewport3D showAnimationPanel={showAnimationPanel} />
-              </ViewerErrorBoundary>
-            </div>
-          </div>
+          </ViewerErrorBoundary>
         </ResizablePanel>
 
-        {/* Right Panel - Camera Animations */}
+        {/* Right Panel - Viewport Settings */}
+        {showRightPanel && (
+          <>
+            <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
+            <ResizablePanel id="right-panel" order={3} defaultSize={15} minSize={9} maxSize={25}>
+              <PanelErrorBoundary context="Viewport Settings Panel">
+                <ViewportSettingsPanel />
+              </PanelErrorBoundary>
+            </ResizablePanel>
+          </>
+        )}
+
+        {/* Animation Panel (optional, shown when needed) */}
         {showAnimationPanel && (
           <>
-            <ResizableHandle withHandle />
+            <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
             <ResizablePanel
               id="animation-panel"
-              order={3}
-              defaultSize={25}
-              minSize={20}
-              maxSize={40}
+              order={4}
+              defaultSize={18}
+              minSize={15}
+              maxSize={30}
             >
               <PanelErrorBoundary context="Camera Animation Panel">
                 <CameraAnimationPanel onClose={handleToggleAnimationPanel} />
@@ -528,6 +429,26 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
           </>
         )}
       </ResizablePanelGroup>
+
+      {/* Hydraulic Creation Dialogs */}
+      {isChuteCreatorOpen && (
+        <div className="absolute inset-0 z-50 pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
+            <ChuteCreator onClose={closeChuteCreator} onCreated={handleChuteCreated} />
+          </div>
+        </div>
+      )}
+
+      {isTransitionCreatorOpen && (
+        <div className="absolute inset-0 z-50 pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
+            <TransitionCreator
+              onClose={closeTransitionCreator}
+              onCreated={handleTransitionCreated}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

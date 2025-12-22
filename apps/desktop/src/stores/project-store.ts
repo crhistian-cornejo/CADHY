@@ -25,7 +25,7 @@ import {
 } from "@/services/project-service"
 import { captureViewportThumbnailDelayed } from "@/services/thumbnail-service"
 import { useLayoutStore } from "./layout-store"
-import { useModellerStore } from "./modeller-store"
+import { useModellerStore } from "./modeller"
 import { useRecentProjectsStore } from "./recent-projects-store"
 import { useStatusNotificationStore } from "./status-notification-store"
 

@@ -10,7 +10,7 @@ import { Copy01Icon, Delete01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import type { AnySceneObject } from "@/stores/modeller-store"
+import type { AnySceneObject } from "@/stores/modeller"
 import { TextureMaterialPanel } from "../TextureMaterialPanel"
 
 // ============================================================================

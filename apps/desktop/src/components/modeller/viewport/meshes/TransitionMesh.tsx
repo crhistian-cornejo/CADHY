@@ -21,7 +21,7 @@ import {
   type StillingBasinConfig,
   type TransitionObject,
   useViewportSettings,
-} from "@/stores/modeller-store"
+} from "@/stores/modeller"
 import { mergeBufferGeometries, meshResultToBufferGeometry, safeNumber } from "../geometry-utils"
 
 const log = loggers.mesh
@@ -175,7 +175,7 @@ export const TransitionMesh = React.memo(function TransitionMesh({
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pbrTextures])
+  }, [pbrTextures, uvRepeat])
 
   // Update UV repeat on slider change (without re-rendering geometry)
   useEffect(() => {
@@ -352,7 +352,7 @@ export const TransitionMesh = React.memo(function TransitionMesh({
         ;(externalMeshRef as React.MutableRefObject<THREE.Mesh | THREE.Group | null>).current = null
       }
     }
-  }, [externalMeshRef, onMeshReady, basinGeometry, geometry])
+  }, [externalMeshRef, onMeshReady, basinGeometry])
 
   if (isLoading || !geometry) {
     return (

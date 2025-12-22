@@ -10,7 +10,7 @@ import { instancingManager } from "@/services/instancing-manager"
 import { lodManager } from "@/services/lod-manager"
 import { textureCache } from "@/services/texture-cache"
 import { getRenderer } from "@/services/viewport-registry"
-import { useObjects } from "@/stores/modeller-store"
+import { useObjects } from "@/stores/modeller"
 
 interface PerformanceStats {
   fps: number

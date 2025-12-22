@@ -9,7 +9,7 @@
 import type { Transform } from "@cadhy/types"
 import type { StateCreator } from "zustand"
 import type { ModellerStore } from "./store-types"
-import type { SnapMode, TransformMode, TransformSpace } from "./types"
+import type { SelectionMode, SnapMode, TransformMode, TransformSpace } from "./types"
 
 // ============================================================================
 // SLICE STATE & ACTIONS
@@ -21,6 +21,8 @@ export interface TransformSliceState {
   snapMode: SnapMode
   /** Box selection mode - when true, camera controls are disabled and drag-to-select is enabled */
   isBoxSelectMode: boolean
+  /** Selection mode - body/face/edge/vertex (Plasticity-style) */
+  selectionMode: SelectionMode
 }
 
 export interface TransformSliceActions {
@@ -28,6 +30,7 @@ export interface TransformSliceActions {
   setTransformSpace: (space: TransformSpace) => void
   setSnapMode: (mode: SnapMode) => void
   setBoxSelectMode: (enabled: boolean) => void
+  setSelectionMode: (mode: SelectionMode) => void
   transformSelected: (transform: Partial<Transform>) => void
 }
 
@@ -42,6 +45,7 @@ export const initialTransformState: TransformSliceState = {
   transformSpace: "world",
   snapMode: "grid",
   isBoxSelectMode: false,
+  selectionMode: "body",
 }
 
 // ============================================================================
@@ -68,6 +72,10 @@ export const createTransformSlice: StateCreator<ModellerStore, [], [], Transform
 
   setBoxSelectMode: (enabled) => {
     set({ isBoxSelectMode: enabled })
+  },
+
+  setSelectionMode: (mode) => {
+    set({ selectionMode: mode })
   },
 
   transformSelected: (transform) => {

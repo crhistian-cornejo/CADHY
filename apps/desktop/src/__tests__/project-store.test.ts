@@ -33,7 +33,7 @@ mock.module("@/services/thumbnail-service", () => ({
   captureViewportThumbnailDelayed: mock(() => Promise.resolve(null)),
 }))
 
-// NOTE: We don't mock @/stores/modeller-store because mock.module persists
+// NOTE: We don't mock @/stores/modeller because mock.module persists
 // across test files in bun, which would break modeller-store.test.ts.
 // Instead, we rely on the real modeller-store but mock its external dependencies.
 // The modeller-store itself is safe to use in tests since it has localStorage mocked via setup.ts.

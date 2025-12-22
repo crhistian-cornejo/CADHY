@@ -6,7 +6,7 @@
 
 import * as THREE from "three"
 import type { MeshResult } from "@/services/hydraulics-service"
-import type { ChannelObject, ChannelSection } from "@/stores/modeller-store"
+import type { ChannelObject, ChannelSection } from "@/stores/modeller"
 
 /**
  * Ensure a value is a valid finite number, otherwise return the default.

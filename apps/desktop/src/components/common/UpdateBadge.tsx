@@ -55,7 +55,7 @@ export function UpdateBadge() {
     setBadgeState(null)
   }
 
-  const handleDismiss = (e: React.MouseEvent) => {
+  const _handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation()
     localStorage.removeItem("cadhy-update-badge")
     setBadgeState(null)

@@ -22,7 +22,7 @@ import {
   type TransitionSection,
   type TransitionTypeEnum,
   useModellerStore,
-} from "@/stores/modeller-store"
+} from "@/stores/modeller"
 import { TransitionSectionPreview } from "../previews/TransitionSectionPreview"
 import { PropertyRow } from "../shared/PropertyRow"
 import { PropertySection } from "../shared/PropertySection"

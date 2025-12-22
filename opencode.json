@@ -12,11 +12,6 @@
     "biome": {}
   },
 
-  "lsp": {
-    "typescript": {},
-    "rust": {}
-  },
-
   "instructions": [".agents/**/*.md", "CLAUDE.md"],
 
   "permission": {

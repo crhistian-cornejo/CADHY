@@ -5,7 +5,7 @@
  */
 
 import React from "react"
-import type { TransitionSection } from "@/stores/modeller-store"
+import type { TransitionSection } from "@/stores/modeller"
 
 // ============================================================================
 // TYPES

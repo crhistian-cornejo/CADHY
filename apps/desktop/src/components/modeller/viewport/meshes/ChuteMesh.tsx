@@ -21,7 +21,7 @@ import {
   type StillingBasinDef,
 } from "@/services/hydraulics-service"
 import type { PBRTextureMaps } from "@/services/texture-service"
-import { type ChuteObject, useViewportSettings } from "@/stores/modeller-store"
+import { type ChuteObject, useViewportSettings } from "@/stores/modeller"
 import { meshResultToBufferGeometry, safeNumber } from "../geometry-utils"
 
 const log = loggers.mesh
@@ -128,7 +128,7 @@ export const ChuteMesh = React.memo(function ChuteMesh({
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pbrTextures])
+  }, [pbrTextures, uvRepeat.x, uvRepeat.y])
 
   // Update UV repeat on slider change (without re-rendering geometry)
   useEffect(() => {
@@ -256,7 +256,7 @@ export const ChuteMesh = React.memo(function ChuteMesh({
         ;(externalMeshRef as React.MutableRefObject<THREE.Mesh | null>).current = null
       }
     }
-  }, [externalMeshRef, onMeshReady, geometry])
+  }, [externalMeshRef, onMeshReady])
 
   if (isLoading || !geometry) {
     // Loading placeholder

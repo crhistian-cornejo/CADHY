@@ -2,31 +2,25 @@
  * TextureMaterialPanel Component
  *
  * Panel UI for assigning PBR textures to objects with:
- * - Horizontal carousels per category
- * - Improved 2D texture previews
- * - "See all" expandable views
+ * - Select-based category filter
+ * - Grid of texture previews with names
  */
 
-import { Button } from "@cadhy/ui/components/button"
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@cadhy/ui/components/carousel"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@cadhy/ui/components/collapsible"
-import { Input } from "@cadhy/ui/components/input"
-import { Label } from "@cadhy/ui/components/label"
-import { ScrollArea } from "@cadhy/ui/components/scroll-area"
-import { Separator } from "@cadhy/ui/components/separator"
-import { Slider } from "@cadhy/ui/components/slider"
-import { cn } from "@cadhy/ui/lib/utils"
-import { ArrowDown01Icon, ArrowRight01Icon, PaintBrush01Icon } from "@hugeicons/core-free-icons"
+  Button,
+  cn,
+  Input,
+  Label,
+  ScrollArea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
+  Slider,
+} from "@cadhy/ui"
+import { PaintBrush01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -59,17 +53,6 @@ export interface TextureMaterialPanelProps {
   onRepeatChange?: (x: number, y: number) => void
 }
 
-interface CategoryCarouselProps {
-  category: string
-  textures: TextureInfo[]
-  currentTextureId?: string
-  isLoading: boolean
-  isOpen: boolean
-  onToggle: () => void
-  onSelect: (texture: TextureInfo) => void
-  onSeeAll: () => void
-}
-
 // ============================================================================
 // TEXTURE PREVIEW COMPONENT
 // ============================================================================
@@ -83,200 +66,49 @@ interface TexturePreviewProps {
 
 function TexturePreview({ texture, isSelected, isLoading, onClick }: TexturePreviewProps) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={isLoading}
-      className={cn(
-        "relative w-14 h-14 rounded-lg overflow-hidden transition-all group",
-        "border-2 hover:scale-105 hover:shadow-md",
-        isSelected
-          ? "border-primary ring-2 ring-primary/30"
-          : "border-transparent hover:border-primary/50"
-      )}
-      title={texture.name}
-    >
-      <img
-        src={texture.previewUrl}
-        alt={texture.name}
-        className="w-full h-full object-cover"
-        loading="lazy"
-        onError={(e) => {
-          e.currentTarget.style.display = "none"
-        }}
-      />
-      {/* Selected indicator */}
-      {isSelected && (
-        <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
-          <svg
-            className="w-2 h-2 text-primary-foreground"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-      )}
-      {/* Hover overlay with name */}
-      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none p-0.5">
-        <span className="text-[8px] text-white text-center leading-tight line-clamp-2">
-          {texture.name}
-        </span>
-      </div>
-    </button>
-  )
-}
-
-// ============================================================================
-// CATEGORY CAROUSEL COMPONENT
-// ============================================================================
-
-function CategoryCarousel({
-  category,
-  textures,
-  currentTextureId,
-  isLoading,
-  isOpen,
-  onToggle,
-  onSelect,
-  onSeeAll,
-}: CategoryCarouselProps) {
-  const { t } = useTranslation()
-
-  // Don't hide categories completely, just show them collapsed
-  const hasContent = textures.length > 0 || isLoading
-
-  return (
-    <Collapsible open={isOpen} onOpenChange={onToggle}>
-      {/* Category Header - Always visible */}
-      <div className="flex items-center justify-between">
-        <CollapsibleTrigger className="flex items-center gap-1.5 hover:text-foreground transition-colors group">
-          <HugeiconsIcon
-            icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon}
-            className="size-3 text-muted-foreground group-hover:text-foreground transition-colors"
-          />
-          <h3 className="text-xs font-medium text-muted-foreground group-hover:text-foreground capitalize transition-colors">
-            {t(`modeller.properties.textures.categories.${category}`, category)}
-          </h3>
-          {!isOpen && textures.length > 0 && (
-            <span className="text-[10px] text-muted-foreground/60">({textures.length})</span>
-          )}
-        </CollapsibleTrigger>
-        {isOpen && hasContent && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5 text-[10px] text-muted-foreground hover:text-foreground gap-0.5 px-1"
-            onClick={onSeeAll}
-          >
-            {t("modeller.properties.textures.seeAll", "See all")}
-            <HugeiconsIcon icon={ArrowRight01Icon} className="size-3" />
-          </Button>
+    <div className="flex flex-col gap-1.5 group">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={isLoading}
+        className={cn(
+          "relative aspect-[16/9] w-full rounded-md overflow-hidden transition-all duration-200",
+          "border border-zinc-500/30 hover:border-primary/50 bg-muted outline-none",
+          isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background border-primary"
         )}
-      </div>
-
-      {/* Collapsible Content - Carousel */}
-      <CollapsibleContent>
-        <div className="relative px-8 mt-2">
-          {isLoading ? (
-            <div className="flex gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="w-14 h-14 rounded-lg bg-muted animate-pulse shrink-0" />
-              ))}
-            </div>
-          ) : textures.length > 0 ? (
-            <Carousel
-              opts={{
-                align: "start",
-                dragFree: true,
-                containScroll: "trimSnaps",
-              }}
+        title={texture.name}
+      >
+        <img
+          src={texture.previewUrl}
+          alt={texture.name}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+          onError={(e) => {
+            e.currentTarget.style.display = "none"
+          }}
+        />
+        {/* Selected indicator */}
+        {isSelected && (
+          <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-primary rounded-full flex items-center justify-center shadow-lg">
+            <svg
+              className="w-2.5 h-2.5 text-primary-foreground"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <CarouselContent className="-ml-2">
-                {textures.slice(0, 12).map((texture) => (
-                  <CarouselItem key={texture.id} className="pl-2 basis-auto">
-                    <TexturePreview
-                      texture={texture}
-                      isSelected={currentTextureId === texture.id}
-                      isLoading={isLoading}
-                      onClick={() => onSelect(texture)}
-                    />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-0 h-6 w-6" />
-              <CarouselNext className="right-0 h-6 w-6" />
-            </Carousel>
-          ) : (
-            <p className="text-xs text-muted-foreground/60 py-2">
-              {t("modeller.properties.textures.noTextures", "No textures available")}
-            </p>
-          )}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  )
-}
-
-// ============================================================================
-// EXPANDED CATEGORY VIEW
-// ============================================================================
-
-interface ExpandedCategoryViewProps {
-  category: string
-  textures: TextureInfo[]
-  currentTextureId?: string
-  isLoading: boolean
-  onSelect: (texture: TextureInfo) => void
-  onClose: () => void
-}
-
-function ExpandedCategoryView({
-  category,
-  textures,
-  currentTextureId,
-  isLoading,
-  onSelect,
-  onClose,
-}: ExpandedCategoryViewProps) {
-  const { t } = useTranslation()
-
-  return (
-    <div className="space-y-3">
-      {/* Header with back button */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={onClose}>
-          {t("common.close", "Close")}
-        </Button>
-        <span className="text-sm font-medium capitalize">{category}</span>
-        <span className="text-xs text-muted-foreground">({textures.length})</span>
-      </div>
-
-      {/* Grid of all textures */}
-      <ScrollArea className="h-64">
-        {isLoading ? (
-          <div className="grid grid-cols-4 gap-2">
-            {Array(12)
-              .fill(0)
-              .map((_, i) => (
-                <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" />
-              ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-2 pr-2">
-            {textures.map((texture) => (
-              <TexturePreview
-                key={texture.id}
-                texture={texture}
-                isSelected={currentTextureId === texture.id}
-                isLoading={false}
-                onClick={() => onSelect(texture)}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={4}
+                d="M5 13l4 4L19 7"
               />
-            ))}
+            </svg>
           </div>
         )}
-      </ScrollArea>
+      </button>
+      <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors truncate px-0.5">
+        {texture.name}
+      </span>
     </div>
   )
 }
@@ -284,9 +116,6 @@ function ExpandedCategoryView({
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
-
-// Categories that are expanded by default
-const DEFAULT_EXPANDED_CATEGORIES = new Set(["concrete", "metal"])
 
 export function TextureMaterialPanel({
   postProcessingEnabled,
@@ -298,73 +127,40 @@ export function TextureMaterialPanel({
   onRepeatChange,
 }: TextureMaterialPanelProps) {
   const { t } = useTranslation()
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [isLoading, setIsLoading] = useState(false)
+  const [textures, setTextures] = useState<TextureInfo[]>([])
   const [isLoadingTexture, setIsLoadingTexture] = useState(false)
-  const [texturesByCategory, setTexturesByCategory] = useState<Record<string, TextureInfo[]>>({})
-  const [loadingCategories, setLoadingCategories] = useState<Set<string>>(new Set())
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
-  const [initialLoadDone, setInitialLoadDone] = useState(false)
-  // Track which categories are open (not collapsed)
-  const [openCategories, setOpenCategories] = useState<Set<string>>(DEFAULT_EXPANDED_CATEGORIES)
 
-  // Toggle category open/closed state
-  const toggleCategory = useCallback((category: string) => {
-    setOpenCategories((prev) => {
-      const next = new Set(prev)
-      if (next.has(category)) {
-        next.delete(category)
+  // Load textures based on category
+  const loadTextures = useCallback(async (category: string) => {
+    setIsLoading(true)
+    try {
+      if (category === "all") {
+        // Fetch 2 textures from each category to get a diverse mix
+        // Use a limit of 2 for each category fetch
+        const results = await Promise.all(
+          TEXTURE_CATEGORIES.map((cat) => fetchPolyHavenTextures(cat, 2))
+        )
+        // Flatten and shuffle
+        setTextures(results.flat().sort(() => Math.random() - 0.5))
       } else {
-        next.add(category)
+        const results = await fetchPolyHavenTextures(category, 24)
+        setTextures(results)
       }
-      return next
-    })
+    } catch (error) {
+      console.error("Failed to load textures:", error)
+      setTextures([])
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
-  // Load textures for a category
-  const loadCategoryTextures = useCallback(
-    async (category: string) => {
-      if (texturesByCategory[category] || loadingCategories.has(category)) {
-        return
-      }
-
-      setLoadingCategories((prev) => new Set(prev).add(category))
-      try {
-        const textures = await fetchPolyHavenTextures(category, 20)
-        setTexturesByCategory((prev) => ({ ...prev, [category]: textures }))
-      } catch (error) {
-        console.error(`Failed to load ${category} textures:`, error)
-        setTexturesByCategory((prev) => ({ ...prev, [category]: [] }))
-      } finally {
-        setLoadingCategories((prev) => {
-          const next = new Set(prev)
-          next.delete(category)
-          return next
-        })
-      }
-    },
-    [texturesByCategory, loadingCategories]
-  )
-
-  // Load initial categories on mount
   useEffect(() => {
-    if (!postProcessingEnabled || initialLoadDone) return
+    if (!postProcessingEnabled) return
+    loadTextures(selectedCategory)
+  }, [postProcessingEnabled, selectedCategory, loadTextures])
 
-    // Load first 4 categories initially
-    const initialCategories = TEXTURE_CATEGORIES.slice(0, 4)
-    for (const category of initialCategories) {
-      loadCategoryTextures(category)
-    }
-    setInitialLoadDone(true)
-  }, [postProcessingEnabled, initialLoadDone, loadCategoryTextures])
-
-  // Load remaining categories when user scrolls or interacts
-  const loadRemainingCategories = useCallback(() => {
-    const remainingCategories = TEXTURE_CATEGORIES.slice(4)
-    for (const category of remainingCategories) {
-      loadCategoryTextures(category)
-    }
-  }, [loadCategoryTextures])
-
-  // Load and apply a texture
   const applyTexture = useCallback(
     async (texture: TextureInfo) => {
       setIsLoadingTexture(true)
@@ -380,16 +176,6 @@ export function TextureMaterialPanel({
     [onTexturesChange]
   )
 
-  // Handle "See all" click
-  const handleSeeAll = useCallback(
-    (category: string) => {
-      setExpandedCategory(category)
-      loadCategoryTextures(category)
-    },
-    [loadCategoryTextures]
-  )
-
-  // Don't show if post-processing is disabled
   if (!postProcessingEnabled) {
     return (
       <div className="p-4 space-y-3">
@@ -410,91 +196,90 @@ export function TextureMaterialPanel({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="px-4 pt-4 flex items-center gap-2">
-        <HugeiconsIcon icon={PaintBrush01Icon} className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">
-          {t("modeller.properties.textures.title", "PBR Textures")}
-        </span>
+    <div className="flex flex-col h-full bg-background/50">
+      <div className="px-3 pt-3 pb-2 space-y-3">
+        <div className="flex items-center gap-2">
+          <HugeiconsIcon icon={PaintBrush01Icon} className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+            {t("modeller.properties.textures.title", "PBR Textures")}
+          </span>
+        </div>
+
+        <Select value={selectedCategory} onValueChange={(val) => val && setSelectedCategory(val)}>
+          <SelectTrigger className="w-full h-8 text-xs bg-muted/30 border-zinc-500/20">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent side="bottom" align="center">
+            <SelectItem value="all">
+              {t("modeller.properties.textures.allMaterials", "All materials")}
+            </SelectItem>
+            {TEXTURE_CATEGORIES.map((cat) => (
+              <SelectItem key={cat} value={cat} className="capitalize">
+                {t(`modeller.properties.textures.categories.${cat}`, cat)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Expanded Category View */}
-      {expandedCategory ? (
-        <div className="px-4">
-          <ExpandedCategoryView
-            category={expandedCategory}
-            textures={texturesByCategory[expandedCategory] || []}
-            currentTextureId={currentTextureId}
-            isLoading={loadingCategories.has(expandedCategory)}
-            onSelect={applyTexture}
-            onClose={() => setExpandedCategory(null)}
-          />
-        </div>
-      ) : (
-        /* Category Carousels */
-        <ScrollArea className="h-[280px]" onScrollCapture={loadRemainingCategories}>
-          <div className="px-4 space-y-3">
-            {TEXTURE_CATEGORIES.map((category) => (
-              <CategoryCarousel
-                key={category}
-                category={category}
-                textures={texturesByCategory[category] || []}
-                currentTextureId={currentTextureId}
-                isLoading={loadingCategories.has(category)}
-                isOpen={openCategories.has(category)}
-                onToggle={() => toggleCategory(category)}
-                onSelect={applyTexture}
-                onSeeAll={() => handleSeeAll(category)}
+      <ScrollArea className="flex-1 px-3">
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-3 py-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="flex flex-col gap-1.5 animate-pulse">
+                <div className="aspect-[16/9] w-full rounded-md bg-muted" />
+                <div className="h-2.5 w-1/2 rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        ) : textures.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 py-2">
+            {textures.map((texture) => (
+              <TexturePreview
+                key={texture.id}
+                texture={texture}
+                isSelected={currentTextureId === texture.id}
+                isLoading={isLoadingTexture}
+                onClick={() => applyTexture(texture)}
               />
             ))}
           </div>
-        </ScrollArea>
-      )}
+        ) : (
+          <div className="flex flex-col items-center justify-center min-h-[100px] text-center text-muted-foreground">
+            <p className="text-xs">
+              {t("modeller.properties.textures.noTextures", "No textures found")}
+            </p>
+          </div>
+        )}
+      </ScrollArea>
 
-      <Separator />
+      <Separator className="my-2 bg-border/40" />
 
-      {/* Current Texture & UV Controls */}
-      <div className="px-4 pb-4 space-y-4">
-        {/* Current Texture Preview */}
+      <div className="px-3 pb-3 space-y-4">
         {currentTextureId && (
-          <div className="space-y-2">
-            <Label className="text-xs">
-              {t("modeller.properties.textures.appliedTexture", "Applied Texture")}
-            </Label>
+          <div className="bg-muted/30 rounded-lg p-2 border border-zinc-500/10">
             <div className="flex items-center gap-3">
-              <div className="relative w-16 h-16 rounded-lg overflow-hidden shadow-md">
+              <div className="relative w-12 h-12 rounded-md overflow-hidden shadow-inner bg-zinc-900 border border-white/5 shrink-0">
                 <img
                   src={`https://cdn.polyhaven.com/asset_img/primary/${currentTextureId}.png?height=128`}
                   alt={currentTextureId}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none"
-                  }}
                 />
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-medium truncate">{currentTextureId}</p>
-                {/* Map indicators */}
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-medium text-zinc-300 truncate">{currentTextureId}</p>
                 {textureMaps && (
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {textureMaps.albedo && (
-                      <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                        <span>Albedo</span>
-                      </div>
-                    )}
-                    {textureMaps.normal && (
-                      <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                        <span>Normal</span>
-                      </div>
-                    )}
-                    {textureMaps.roughness && (
-                      <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        <span>Rough</span>
-                      </div>
+                  <div className="flex gap-1.5 mt-1 flex-wrap">
+                    {["albedo", "normal", "roughness", "ao"].map(
+                      (map) =>
+                        textureMaps[map as keyof PBRTextureMaps] && (
+                          <span
+                            key={map}
+                            className="text-[8px] px-1 rounded bg-zinc-800 text-zinc-500 uppercase font-bold border border-white/5"
+                          >
+                            {map.slice(0, 3)}
+                          </span>
+                        )
                     )}
                   </div>
                 )}
@@ -503,13 +288,16 @@ export function TextureMaterialPanel({
           </div>
         )}
 
-        {/* UV Tiling */}
         <div className="space-y-2">
-          <Label className="text-xs">
-            {t("modeller.properties.textures.uvTiling", "UV Tiling")}
-          </Label>
-          <div className="flex items-center gap-2">
-            <Label className="text-[10px] w-12 text-muted-foreground">Scale:</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-tight">
+              {t("modeller.properties.textures.uvTiling", "UV Tiling")}
+            </Label>
+            <span className="text-[10px] font-mono text-zinc-400">
+              {((repeatX + repeatY) / 2).toFixed(1)}x
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
             <Slider
               value={[(repeatX + repeatY) / 2]}
               onValueChange={([scale]) => onRepeatChange?.(scale, scale)}
@@ -523,39 +311,24 @@ export function TextureMaterialPanel({
               value={((repeatX + repeatY) / 2).toFixed(1)}
               onChange={(e) => {
                 const value = e.target.value
-                if (value === "" || value === "." || value === "-" || value.endsWith(".")) return
                 const num = Number.parseFloat(value)
                 if (!Number.isNaN(num) && num >= 0.1 && num <= 10) {
                   onRepeatChange?.(num, num)
                 }
               }}
-              onBlur={(e) => {
-                const value = e.target.value
-                if (value === "" || value === "." || value === "-") {
-                  onRepeatChange?.(1, 1)
-                  return
-                }
-                const num = Number.parseFloat(value)
-                if (Number.isNaN(num) || num < 0.1) {
-                  onRepeatChange?.(1, 1)
-                } else if (num > 10) {
-                  onRepeatChange?.(10, 10)
-                }
-              }}
-              className="w-14 h-6 text-xs"
+              className="w-12 h-6 text-[10px] text-center bg-zinc-900"
             />
           </div>
         </div>
 
-        {/* Clear Textures Button */}
-        {textureMaps && Object.keys(textureMaps).length > 0 && (
+        {currentTextureId && (
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onTexturesChange?.({}, "")}
-            className="w-full h-7 text-xs"
+            className="w-full h-7 text-[10px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-zinc-500/10"
           >
-            {t("modeller.properties.textures.clear", "Clear Textures")}
+            {t("modeller.properties.textures.clear", "Clear selection")}
           </Button>
         )}
       </div>

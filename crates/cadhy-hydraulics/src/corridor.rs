@@ -11,6 +11,14 @@
 //! - Losa de fondo sólida
 //! - Tapas en los extremos
 
+// TODO: Refactorizar funciones con muchos argumentos en un PR futuro
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::derivable_impls)]
+#![allow(clippy::manual_clamp)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::manual_range_contains)]
+#![allow(clippy::redundant_closure)]
+
 use crate::alignment::Alignment;
 use crate::sections::StationSection;
 use crate::transitions::Transition;

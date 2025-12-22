@@ -11,7 +11,7 @@ import type {
   RectangularSection,
   TrapezoidalSection,
   TriangularSection,
-} from "@/stores/modeller-store"
+} from "@/stores/modeller"
 
 // ============================================================================
 // TYPES

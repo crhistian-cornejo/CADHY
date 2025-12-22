@@ -46,7 +46,7 @@ import {
   useTransformMode,
   useViewportSettings,
   useVisibleObjects,
-} from "@/stores/modeller-store"
+} from "@/stores/modeller"
 import { getCameraAtTime } from "@/utils/camera-interpolation"
 import { SceneObjectMesh } from "./meshes"
 import { PostProcessing, type QualityPreset } from "./PostProcessing"
@@ -60,7 +60,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
   const selectedIds = useSelectedIds()
   const selectedObjects = useSelectedObjects()
   const transformMode = useTransformMode()
-  const cameraView = useCameraView()
+  const _cameraView = useCameraView()
   const viewportSettings = useViewportSettings()
   const gridSettings = useGridSettings()
   const snapMode = useSnapMode()
@@ -70,6 +70,13 @@ export function SceneContent({ showStats }: SceneContentProps) {
   const focusObjectId = useFocusObjectId()
   const clearFocus = useModellerStore((s) => s.clearFocus)
   const getObjectById = useModellerStore((s) => s.getObjectById)
+
+  // Temporary and helper objects from new slices
+  const temporaryObjects = useModellerStore((s) => s.temporaryObjects)
+  const _helperObjects = useModellerStore((s) => s.helperObjects)
+
+  // Get invalidate function for render-on-demand
+  const { invalidate } = useThree()
 
   // Camera position and target from store
   const storeCameraPosition = useModellerStore((s) => s.cameraPosition)
@@ -89,6 +96,18 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
   const { select, setHovered } = useModellerStore()
 
+  // Invalidate frame when important things change (render-on-demand optimization)
+  useEffect(() => {
+    invalidate()
+  }, [invalidate])
+
+  // Invalidate during animation playback
+  useEffect(() => {
+    if (playbackState === "playing") {
+      invalidate()
+    }
+  }, [playbackState, invalidate])
+
   // Ref for the currently selected mesh (first selected)
   const selectedMeshRef = useRef<THREE.Mesh | THREE.Group>(null)
   const transformControlsRef = useRef<TransformControlsImpl>(null)
@@ -106,6 +125,16 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
   // Get camera, scene and renderer from Three.js context
   const { camera, scene, gl } = useThree()
+
+  // Disable autoUpdate for performance - we'll update manually when needed
+  useEffect(() => {
+    scene.autoUpdate = false
+    scene.matrixAutoUpdate = false
+    return () => {
+      scene.autoUpdate = true
+      scene.matrixAutoUpdate = true
+    }
+  }, [scene])
 
   // Register camera, scene and renderer for external access (e.g., selection box, debug stats)
   useEffect(() => {
@@ -210,7 +239,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
   }, [focusObjectId, camera, getObjectById, clearFocus])
 
   // Animate camera focus and playback
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     // Handle focus animation first (higher priority)
     if (focusAnimationRef.current?.active && orbitControlsRef.current) {
       const anim = focusAnimationRef.current
@@ -231,6 +260,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
       }
 
       orbitControlsRef.current.update()
+      state.invalidate() // Invalidate for next frame during animation
       return // Don't process animation playback during focus animation
     }
 
@@ -241,6 +271,9 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
       // CRITICAL: Disable orbit controls during playback
       orbitControlsRef.current.enabled = false
+
+      // Invalidate for continuous rendering during playback
+      state.invalidate()
 
       // Increment playback time
       const newTime = playbackTime + delta
@@ -307,12 +340,17 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
       orbitControlsRef.current.update()
     } else if (orbitControlsRef.current) {
-      // Re-enable orbit controls when not playing
-      orbitControlsRef.current.enabled = true
+      // Re-enable orbit controls when not playing, but NOT if we're dragging transform gizmo
+      if (!isDraggingRef.current) {
+        orbitControlsRef.current.enabled = true
+      }
     }
 
     // Update LOD (Level of Detail) system for performance optimization
     lodManager.updateLOD(camera, scene)
+
+    // Manual matrix updates (since autoUpdate is disabled for performance)
+    scene.updateMatrixWorld()
   })
 
   // Sync camera with store when cameraPosition or cameraTarget changes
@@ -358,8 +396,11 @@ export function SceneContent({ showStats }: SceneContentProps) {
     useModellerStore.getState().deselectAll()
   }, [])
 
-  // Camera settings based on view
-  const isOrtho = cameraView !== "perspective"
+  // Camera projection type - use cameraType from viewport settings (independent of camera view position)
+  // This allows combinations like "top view with perspective projection" or "free camera with orthographic"
+  // Fallback for backwards compatibility with persisted states that don't have cameraType
+  const cameraType = viewportSettings.cameraType ?? "perspective"
+  const isOrtho = cameraType === "orthographic"
 
   // Track if we're currently dragging and store the object name at drag start
   const isDraggingRef = useRef(false)
@@ -410,6 +451,13 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
       const handleDraggingChanged = (event: { value: boolean }) => {
         logger.log("[Transform] dragging-changed event:", event.value)
+
+        // CRITICAL: Disable/enable OrbitControls based on transform gizmo drag state
+        // This prevents camera movement while dragging the transform gizmo
+        if (orbitControlsRef.current) {
+          orbitControlsRef.current.enabled = !event.value
+        }
+
         if (event.value) {
           handleTransformStart()
         } else {
@@ -522,11 +570,11 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
   return (
     <>
-      {/* Camera */}
+      {/* Camera - key prop forces re-mount when switching projection type */}
       {isOrtho ? (
-        <OrthographicCamera makeDefault position={cameraPos} zoom={50} />
+        <OrthographicCamera key="ortho" makeDefault position={cameraPos} zoom={50} />
       ) : (
-        <PerspectiveCamera makeDefault position={cameraPos} fov={50} />
+        <PerspectiveCamera key="persp" makeDefault position={cameraPos} fov={50} />
       )}
 
       {/* Controls */}
@@ -539,32 +587,35 @@ export function SceneContent({ showStats }: SceneContentProps) {
         minDistance={1}
         maxDistance={100}
         enableRotate={!isOrtho}
+        onChange={() => invalidate()} // Invalidate on camera movement
       />
 
-      {/* Environment & Lighting - Optimized */}
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 15, 10]} intensity={0.8} />
-      <directionalLight position={[-5, 5, -5]} intensity={0.3} />
+      {/* Environment & Lighting - Using HDRI-based lighting (PBR) */}
+      {/* Environment provides both scene lighting and reflections from HDRI */}
+      {/* All lighting is controlled via viewportSettings (preset + intensity) */}
+      {viewportSettings.environmentEnabled && (
+        <Environment
+          preset={viewportSettings.environmentPreset ?? "apartment"}
+          background={viewportSettings.environmentBackground ?? false}
+          backgroundBlurriness={viewportSettings.backgroundBlurriness ?? 0.5}
+          environmentIntensity={viewportSettings.environmentIntensity ?? 1}
+        />
+      )}
 
-      {/* Environment map for reflections - using preset from settings */}
-      <Environment
-        preset={viewportSettings.environmentPreset ?? "apartment"}
-        background={viewportSettings.environmentBackground ?? false}
-        backgroundBlurriness={viewportSettings.backgroundBlurriness ?? 0.5}
-        environmentIntensity={viewportSettings.environmentIntensity ?? 1}
-      />
+      {/* Fallback ambient light when environment is disabled */}
+      {!viewportSettings.environmentEnabled && <ambientLight intensity={0.4} />}
 
-      {/* Grid */}
+      {/* Grid - Uses grid settings from store */}
       {viewportSettings.showGrid && (
         <Grid
           args={[gridSettings.size, gridSettings.size]}
-          cellSize={1}
+          cellSize={gridSettings.snapSize ?? 1}
           cellThickness={0.5}
           cellColor="#404040"
-          sectionSize={5}
+          sectionSize={gridSettings.snapSize ? gridSettings.snapSize * 10 : 10}
           sectionThickness={1}
           sectionColor="#606060"
-          fadeDistance={50}
+          fadeDistance={gridSettings.size / 2}
           fadeStrength={1}
           infiniteGrid
           position={[0, 0, 0]}
@@ -598,25 +649,54 @@ export function SceneContent({ showStats }: SceneContentProps) {
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
-      {/* Scene Objects */}
-      {visibleObjects.map((object) => {
-        const isSelected = selectedIds.includes(object.id)
-        const isFirstSelected = firstSelectedObject?.id === object.id
+      {/* Main Scene - Permanent Objects (Layer 0, RenderOrder 0) */}
+      <group name="main-scene" renderOrder={0}>
+        {visibleObjects.map((object) => {
+          const isSelected = selectedIds.includes(object.id)
+          const isFirstSelected = firstSelectedObject?.id === object.id
 
-        return (
-          <SceneObjectMesh
-            key={object.id}
-            object={object}
-            isSelected={isSelected}
-            isHovered={hoveredId === object.id}
-            viewMode={viewportSettings.viewMode}
-            onSelect={handleSelect}
-            onHover={handleHover}
-            meshRef={isFirstSelected ? selectedMeshRef : undefined}
-            onMeshReady={isFirstSelected ? handleMeshReady : undefined}
-          />
-        )
-      })}
+          return (
+            <SceneObjectMesh
+              key={object.id}
+              object={object}
+              isSelected={isSelected}
+              isHovered={hoveredId === object.id}
+              viewMode={viewportSettings.viewMode}
+              onSelect={handleSelect}
+              onHover={handleHover}
+              meshRef={isFirstSelected ? selectedMeshRef : undefined}
+              onMeshReady={isFirstSelected ? handleMeshReady : undefined}
+            />
+          )
+        })}
+      </group>
+
+      {/* Temporary Scene - Preview Objects (Layer 1, RenderOrder 1) */}
+      {/* These objects are used for operation previews (boolean ops, transforms, etc.) */}
+      <group name="temporary-scene" renderOrder={1}>
+        {Array.from(temporaryObjects.values()).map((tempObj) => {
+          if (!tempObj.object.visible) return null
+
+          return (
+            <SceneObjectMesh
+              key={tempObj.id}
+              object={tempObj.object}
+              isSelected={false}
+              isHovered={false}
+              viewMode={viewportSettings.viewMode}
+              onSelect={() => {}} // Temporary objects aren't selectable
+              onHover={() => {}}
+            />
+          )
+        })}
+      </group>
+
+      {/* Helpers Scene - Visual Aids (Layer 2, RenderOrder 2) */}
+      {/* Grid, Axes, Gizmos, Measurements are rendered with higher priority */}
+      <group name="helpers-scene" renderOrder={2}>
+        {/* Helper objects will be rendered here in future implementations */}
+        {/* For now, grid and axes are rendered separately below */}
+      </group>
 
       {/* Transform Gizmo - attached to selected mesh */}
       {transformMode !== "none" && firstSelectedObject && meshReady && selectedMeshRef.current && (
@@ -626,17 +706,28 @@ export function SceneContent({ showStats }: SceneContentProps) {
           mode={transformMode}
           space="world"
           size={0.75}
-          translationSnap={snapMode === "grid" ? gridSettings.snapSize : null}
-          rotationSnap={snapMode === "grid" ? THREE.MathUtils.degToRad(15) : null}
-          scaleSnap={snapMode === "grid" ? 0.1 : null}
+          translationSnap={
+            snapMode === "grid" || gridSettings.snapEnabled ? gridSettings.snapSize : null
+          }
+          rotationSnap={
+            snapMode === "grid" || gridSettings.snapEnabled ? THREE.MathUtils.degToRad(15) : null
+          }
+          scaleSnap={snapMode === "grid" || gridSettings.snapEnabled ? 0.1 : null}
           onObjectChange={handleTransformChange}
         />
       )}
 
       {/* Navigation Gizmo */}
-      <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
-        <GizmoViewport axisColors={["#ef4444", "#22c55e", "#3b82f6"]} labelColor="white" />
-      </GizmoHelper>
+      {(viewportSettings.showGizmo ?? true) && (
+        <GizmoHelper alignment="bottom-right" margin={[60, 60]} renderPriority={2}>
+          <GizmoViewport
+            axisColors={["#ef4444", "#22c55e", "#3b82f6"]}
+            labelColor="white"
+            font="500 14px Inter, system-ui, sans-serif"
+            axisHeadScale={1}
+          />
+        </GizmoHelper>
+      )}
 
       {/* Performance Stats */}
       {showStats && <Stats />}

@@ -8,7 +8,7 @@ import { Badge, NumberInput } from "@cadhy/ui"
 import { CubeIcon } from "@hugeicons/core-free-icons"
 import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import type { ShapeObject } from "@/stores/modeller-store"
+import type { ShapeObject } from "@/stores/modeller"
 import { PropertyRow } from "../shared/PropertyRow"
 import { PropertySection } from "../shared/PropertySection"
 

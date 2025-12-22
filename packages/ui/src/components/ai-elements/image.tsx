@@ -116,7 +116,7 @@ export interface AIImageProps extends Omit<ComponentProps<"div">, "children"> {
 
 export function AIImage({ data, children, className, ...props }: AIImageProps) {
   const [status, setStatus] = useState<AIImageStatus>("loading")
-  const [retryCount, setRetryCount] = useState(0)
+  const [_retryCount, setRetryCount] = useState(0)
 
   const mediaType = data.mediaType || "image/png"
   const alt = data.alt || "AI generated image"
@@ -134,7 +134,7 @@ export function AIImage({ data, children, className, ...props }: AIImageProps) {
       return getDataUrl(base64, mediaType)
     }
     return null
-  }, [data.url, data.base64, data.uint8Array, mediaType, retryCount])
+  }, [data.url, data.base64, data.uint8Array, mediaType])
 
   // Handle loading/error states
   useEffect(() => {

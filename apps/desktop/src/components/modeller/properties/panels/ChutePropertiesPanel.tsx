@@ -27,7 +27,7 @@ import {
   type StillingBasinConfig,
   type StillingBasinType,
   useModellerStore,
-} from "@/stores/modeller-store"
+} from "@/stores/modeller"
 import { ChuteSectionPreview } from "../previews/ChuteSectionPreview"
 import { PropertyRow } from "../shared/PropertyRow"
 import { PropertySection } from "../shared/PropertySection"

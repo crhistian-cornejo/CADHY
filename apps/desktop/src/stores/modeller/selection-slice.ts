@@ -61,8 +61,15 @@ export const createSelectionSlice: StateCreator<ModellerStore, [], [], Selection
           : [...state.selectedIds, id]
         : [id]
 
+      // Auto-enable translate mode when selecting an object so gizmo appears
+      const newTransformMode =
+        newSelectedIds.length > 0 && state.transformMode === "none"
+          ? "translate"
+          : state.transformMode
+
       return {
         selectedIds: newSelectedIds,
+        transformMode: newTransformMode,
         objects: state.objects.map((obj) => ({
           ...obj,
           selected: newSelectedIds.includes(obj.id),

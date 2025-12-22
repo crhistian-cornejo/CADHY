@@ -345,12 +345,12 @@ import { useEffect, useMemo } from "react"
 
 export function usePooledMaterial<T extends THREE.Material>(config: MaterialConfig): T {
   // Memoize the config key to avoid unnecessary re-acquisitions
-  const configKey = useMemo(() => generateMaterialKey(config), [config])
+  const _configKey = useMemo(() => generateMaterialKey(config), [config])
 
   const material = useMemo(() => {
     return materialPool.getMaterial<T>(config)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [configKey])
+  }, [config])
 
   // Release on unmount or config change
   useEffect(() => {
@@ -358,7 +358,7 @@ export function usePooledMaterial<T extends THREE.Material>(config: MaterialConf
       materialPool.releaseMaterial(config)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [configKey])
+  }, [config])
 
   return material
 }
