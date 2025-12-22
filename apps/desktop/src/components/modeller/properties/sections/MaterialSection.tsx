@@ -5,7 +5,7 @@
  * for shape objects.
  */
 
-import { cn, Slider } from "@cadhy/ui"
+import { Slider } from "@cadhy/ui"
 import { PaintBrush01Icon } from "@hugeicons/core-free-icons"
 import { useCallback } from "react"
 import { useTranslation } from "react-i18next"
@@ -21,23 +21,6 @@ export interface MaterialSectionProps {
   object: ShapeObject
   onUpdate: (updates: Partial<ShapeObject>) => void
 }
-
-// ============================================================================
-// PRESET COLORS
-// ============================================================================
-
-const PRESET_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#14b8a6",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
-  "#6b7280",
-  "#1f2937",
-]
 
 // ============================================================================
 // COMPONENT
@@ -86,26 +69,23 @@ export function MaterialSection({ object, onUpdate }: MaterialSectionProps) {
     <PropertySection title={t("properties.material")} icon={PaintBrush01Icon}>
       <PropertyRow label={t("properties.color")}>
         <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={object.material.color}
-            onChange={(e) => handleColorChange(e.target.value)}
-            className="h-6 w-10 cursor-pointer rounded border bg-transparent"
-          />
-          <div className="flex gap-0.5">
-            {PRESET_COLORS.slice(0, 6).map((color) => (
-              <button
-                type="button"
-                key={color}
-                onClick={() => handleColorChange(color)}
-                className={cn(
-                  "size-4 rounded-sm border transition-transform hover:scale-110",
-                  object.material.color === color && "ring-1 ring-primary ring-offset-1"
-                )}
-                style={{ backgroundColor: color }}
-              />
-            ))}
-          </div>
+          {/* Color swatch with hidden color picker */}
+          <label className="relative cursor-pointer group">
+            <div
+              className="size-7 rounded-full border-2 border-border/50 shadow-sm transition-all group-hover:scale-105 group-hover:shadow-md"
+              style={{ backgroundColor: object.material.color }}
+            />
+            <input
+              type="color"
+              value={object.material.color}
+              onChange={(e) => handleColorChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </label>
+          {/* Hex value display */}
+          <span className="text-[10px] text-muted-foreground font-mono uppercase">
+            {object.material.color}
+          </span>
         </div>
       </PropertyRow>
       <PropertyRow label={t("properties.opacity")}>
