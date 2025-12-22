@@ -42,10 +42,28 @@ export function useCADOperations() {
       }
 
       const selectedObject = selectedObjects[0]
-      const backendId = shapeIdMap.get(selectedObject.id)
+      console.log("[CAD Operations] Selected object:", selectedObject)
+      console.log("[CAD Operations] shapeIdMap contents:", Array.from(shapeIdMap.entries()))
+
+      // Try to get backend ID from shapeIdMap first, then from metadata as fallback
+      let backendId = shapeIdMap.get(selectedObject.id)
+      console.log("[CAD Operations] Looking for backend ID for scene object:", selectedObject.id)
+      console.log("[CAD Operations] Found backend ID in map:", backendId)
+
+      // Fallback: try to get from metadata
+      if (!backendId && selectedObject.metadata?.backendShapeId) {
+        backendId = selectedObject.metadata.backendShapeId
+        console.log("[CAD Operations] Using backend ID from metadata:", backendId)
+        // Register it in the map for future use
+        shapeIdMap.set(selectedObject.id, backendId)
+      }
 
       if (!backendId) {
-        toast.error("Shape not found in backend")
+        console.error(
+          "[CAD Operations] Shape not found in backend. Object metadata:",
+          selectedObject.metadata
+        )
+        toast.error(`Shape not found in backend. Object ID: ${selectedObject.id}`)
         return false
       }
 
@@ -99,7 +117,13 @@ export function useCADOperations() {
       }
 
       const selectedObject = selectedObjects[0]
-      const backendId = shapeIdMap.get(selectedObject.id)
+
+      // Try to get backend ID from shapeIdMap first, then from metadata as fallback
+      let backendId = shapeIdMap.get(selectedObject.id)
+      if (!backendId && selectedObject.metadata?.backendShapeId) {
+        backendId = selectedObject.metadata.backendShapeId
+        shapeIdMap.set(selectedObject.id, backendId)
+      }
 
       if (!backendId) {
         toast.error("Shape not found in backend")
@@ -156,7 +180,13 @@ export function useCADOperations() {
       }
 
       const selectedObject = selectedObjects[0]
-      const backendId = shapeIdMap.get(selectedObject.id)
+
+      // Try to get backend ID from shapeIdMap first, then from metadata as fallback
+      let backendId = shapeIdMap.get(selectedObject.id)
+      if (!backendId && selectedObject.metadata?.backendShapeId) {
+        backendId = selectedObject.metadata.backendShapeId
+        shapeIdMap.set(selectedObject.id, backendId)
+      }
 
       if (!backendId) {
         toast.error("Shape not found in backend")
