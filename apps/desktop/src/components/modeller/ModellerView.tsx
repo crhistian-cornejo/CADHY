@@ -30,6 +30,7 @@ import { useLayoutActions, useShowModellerLeft, useShowModellerRight } from "@/s
 import { useModellerStore, useObjects, useSelectedIds } from "@/stores/modeller"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
 import { BoxLoader, ChuteCreator, TransitionCreator } from "./creators"
+import { CADOperationsProvider } from "./dialogs"
 import { CameraAnimationPanel } from "./panels"
 import { PropertiesPanel } from "./properties"
 import { ScenePanel } from "./scene"
@@ -331,125 +332,133 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
   }
 
   return (
-    <div className={cn("flex h-full flex-row bg-background", className)}>
-      {/* Main Content Area - Plasticity layout: Left sidebar + Full Viewport */}
-      <ResizablePanelGroup
-        direction="horizontal"
-        className="flex-1"
-        autoSaveId="cadhy-modeller-layout-v5"
-      >
-        {/* Left Panel - OUTLINER + ASSETS (Scene + Props) */}
-        {showLeftPanel && (
-          <>
-            <ResizablePanel id="left-panel" order={1} defaultSize={15} minSize={9} maxSize={30}>
-              <div className="flex h-full flex-col bg-background">
-                {/* Tab Header */}
-                <Tabs
-                  value={activeTab}
-                  onValueChange={(v) => setActiveTab(v as LeftPanelTab)}
-                  className="flex flex-col h-full"
-                >
-                  <div className="flex items-center bg-background">
-                    <TabsList className="flex-1 h-11 p-1.5 bg-muted/20 rounded-full border-0 grid grid-cols-2 gap-1.5">
-                      <TabsTrigger
+    <CADOperationsProvider>
+      <div className={cn("flex h-full flex-row bg-background", className)}>
+        {/* Main Content Area - Plasticity layout: Left sidebar + Full Viewport */}
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="flex-1"
+          autoSaveId="cadhy-modeller-layout-v5"
+        >
+          {/* Left Panel - OUTLINER + ASSETS (Scene + Props) */}
+          {showLeftPanel && (
+            <>
+              <ResizablePanel id="left-panel" order={1} defaultSize={15} minSize={9} maxSize={30}>
+                <div className="flex h-full flex-col bg-background">
+                  {/* Tab Header */}
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={(v) => setActiveTab(v as LeftPanelTab)}
+                    className="flex flex-col h-full"
+                  >
+                    <div className="flex items-center bg-background">
+                      <TabsList className="flex-1 h-11 p-1.5 bg-muted/20 rounded-full border-0 grid grid-cols-2 gap-1.5">
+                        <TabsTrigger
+                          value="scene"
+                          className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                          title={t("modeller.tabs.sceneTooltip")}
+                        >
+                          {t("modeller.tabs.scene", "Scene")}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="props"
+                          className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                          title={t("modeller.tabs.propsTooltip")}
+                        >
+                          {t("modeller.tabs.props", "Properties")}
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
+
+                    {/* Tab Contents */}
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <TabsContent
                         value="scene"
-                        className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
-                        title={t("modeller.tabs.sceneTooltip")}
+                        className="h-full m-0 data-[state=inactive]:hidden"
                       >
-                        {t("modeller.tabs.scene", "Scene")}
-                      </TabsTrigger>
-                      <TabsTrigger
+                        <PanelErrorBoundary context="Scene Panel">
+                          <ScenePanel />
+                        </PanelErrorBoundary>
+                      </TabsContent>
+                      <TabsContent
                         value="props"
-                        className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
-                        title={t("modeller.tabs.propsTooltip")}
+                        className="h-full m-0 data-[state=inactive]:hidden"
                       >
-                        {t("modeller.tabs.props", "Properties")}
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
+                        <PanelErrorBoundary context="Properties Panel">
+                          <PropertiesPanel />
+                        </PanelErrorBoundary>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </div>
+              </ResizablePanel>
 
-                  {/* Tab Contents */}
-                  <div className="flex-1 min-h-0 overflow-hidden">
-                    <TabsContent value="scene" className="h-full m-0 data-[state=inactive]:hidden">
-                      <PanelErrorBoundary context="Scene Panel">
-                        <ScenePanel />
-                      </PanelErrorBoundary>
-                    </TabsContent>
-                    <TabsContent value="props" className="h-full m-0 data-[state=inactive]:hidden">
-                      <PanelErrorBoundary context="Properties Panel">
-                        <PropertiesPanel />
-                      </PanelErrorBoundary>
-                    </TabsContent>
-                  </div>
-                </Tabs>
-              </div>
-            </ResizablePanel>
+              <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
+            </>
+          )}
 
-            <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
-          </>
-        )}
+          {/* Center - Full Viewport (all toolbars are floating overlays inside) */}
+          <ResizablePanel id="viewport" order={2} defaultSize={64} minSize={40}>
+            <ViewerErrorBoundary>
+              <Viewport3D
+                showAnimationPanel={showAnimationPanel}
+                onToggleAnimationPanel={handleToggleAnimationPanel}
+              />
+            </ViewerErrorBoundary>
+          </ResizablePanel>
 
-        {/* Center - Full Viewport (all toolbars are floating overlays inside) */}
-        <ResizablePanel id="viewport" order={2} defaultSize={64} minSize={40}>
-          <ViewerErrorBoundary>
-            <Viewport3D
-              showAnimationPanel={showAnimationPanel}
-              onToggleAnimationPanel={handleToggleAnimationPanel}
-            />
-          </ViewerErrorBoundary>
-        </ResizablePanel>
+          {/* Right Panel - Viewport Settings */}
+          {showRightPanel && (
+            <>
+              <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
+              <ResizablePanel id="right-panel" order={3} defaultSize={15} minSize={9} maxSize={25}>
+                <PanelErrorBoundary context="Viewport Settings Panel">
+                  <ViewportSettingsPanel />
+                </PanelErrorBoundary>
+              </ResizablePanel>
+            </>
+          )}
 
-        {/* Right Panel - Viewport Settings */}
-        {showRightPanel && (
-          <>
-            <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
-            <ResizablePanel id="right-panel" order={3} defaultSize={15} minSize={9} maxSize={25}>
-              <PanelErrorBoundary context="Viewport Settings Panel">
-                <ViewportSettingsPanel />
-              </PanelErrorBoundary>
-            </ResizablePanel>
-          </>
-        )}
+          {/* Animation Panel (optional, shown when needed) */}
+          {showAnimationPanel && (
+            <>
+              <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
+              <ResizablePanel
+                id="animation-panel"
+                order={4}
+                defaultSize={18}
+                minSize={15}
+                maxSize={30}
+              >
+                <PanelErrorBoundary context="Camera Animation Panel">
+                  <CameraAnimationPanel onClose={handleToggleAnimationPanel} />
+                </PanelErrorBoundary>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
 
-        {/* Animation Panel (optional, shown when needed) */}
-        {showAnimationPanel && (
-          <>
-            <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
-            <ResizablePanel
-              id="animation-panel"
-              order={4}
-              defaultSize={18}
-              minSize={15}
-              maxSize={30}
-            >
-              <PanelErrorBoundary context="Camera Animation Panel">
-                <CameraAnimationPanel onClose={handleToggleAnimationPanel} />
-              </PanelErrorBoundary>
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
-
-      {/* Hydraulic Creation Dialogs */}
-      {isChuteCreatorOpen && (
-        <div className="absolute inset-0 z-50 pointer-events-none">
-          <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
-            <ChuteCreator onClose={closeChuteCreator} onCreated={handleChuteCreated} />
+        {/* Hydraulic Creation Dialogs */}
+        {isChuteCreatorOpen && (
+          <div className="absolute inset-0 z-50 pointer-events-none">
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
+              <ChuteCreator onClose={closeChuteCreator} onCreated={handleChuteCreated} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {isTransitionCreatorOpen && (
-        <div className="absolute inset-0 z-50 pointer-events-none">
-          <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
-            <TransitionCreator
-              onClose={closeTransitionCreator}
-              onCreated={handleTransitionCreated}
-            />
+        {isTransitionCreatorOpen && (
+          <div className="absolute inset-0 z-50 pointer-events-none">
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
+              <TransitionCreator
+                onClose={closeTransitionCreator}
+                onCreated={handleTransitionCreated}
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </CADOperationsProvider>
   )
 }
 

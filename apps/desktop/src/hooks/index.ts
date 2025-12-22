@@ -20,6 +20,7 @@ export {
   useUnsavedChangesWarning,
 } from "./use-auto-save"
 export { shapeIdMap, useCAD } from "./use-cad"
+export { useCADOperationHotkeys } from "./use-cad-operation-hotkeys"
 export { type OperationDialogState, useCADOperations } from "./use-cad-operations"
 export { type ActiveOperationState, type CommandContext, useCommand } from "./use-command"
 export {
