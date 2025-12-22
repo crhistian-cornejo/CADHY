@@ -1,0 +1,76 @@
+[
+  {
+    "id": "hydraulics-index",
+    "title": "Hydraulic Analysis",
+    "section": "Hydraulics",
+    "sectionSlug": "hydraulics",
+    "url": "/docs/hydraulics",
+    "description": "Hydraulic calculation methods overview",
+    "content": "Hydraulic Analysis CADHY provides comprehensive tools for hydraulic analysis, from basic uniform flow calculations to complex gradually varied flow profiles. Calculation Methods Manning's Equation The foundation of open channel flow calculations: Where: Q = discharge (m³/s) n = Manning's roughness coefficient A = flow area (m²) R = hydraulic radius (m) S = bed slope Critical Flow For any channel section, there's a critical depth where specific energy is minimum: Where D is the hydraulic depth (A/T) and T is the top width. Analysis Types Type Description ------ ------------- Normal Depth Uniform flow depth for given Q and S Critical Depth Depth where Fr = 1 GVF Profiles Water surface profiles (M1, M2, S1, etc.) Channel Sections CADHY supports various channel cross-sections: Trapezoidal - Most common for constructed channels Rectangular - Special case (z = 0) Triangular - V-shaped ditches Circular - Pipes and culverts Parabolic - Natural channels Custom - User-defined geometry Froude Number Classification Froude Number Flow Regime Characteristics --------------- ------------- ----------------- Fr 1 Supercritical Rapid, controlled by upstream Next Steps Open Channel Design - Detailed channel analysis GVF Analysis - Water surface profiles Critical Flow - Critical conditions",
+    "headings": [
+      "Calculation Methods",
+      "Manning's Equation",
+      "Critical Flow",
+      "Analysis Types",
+      "Channel Sections",
+      "Froude Number Classification",
+      "Next Steps"
+    ]
+  },
+  {
+    "id": "getting-started-quick-start",
+    "title": "Quick Start",
+    "section": "Getting Started",
+    "sectionSlug": "getting-started",
+    "url": "/docs/getting-started/quick-start",
+    "description": "Create your first hydraulic analysis",
+    "content": "Quick Start Get started with CADHY in 5 minutes. This guide walks you through creating your first open channel analysis. Step 1: Create a New Project Launch CADHY Click New Project on the welcome screen Enter a project name (e.g., \"My First Channel\") Choose a save location Select the Open Channel template Click Create Step 2: Define the Channel Section In the modeller view, you'll see a default trapezoidal channel. Let's modify it: Click on the channel in the 3D view to select it In the Properties panel, set: - Bottom width (b): - Side slope (z): (2 horizontal to 1 vertical) - Manning's n: (concrete-lined) - Bed slope (S): (1 in 1000) Step 3: Set Flow Conditions Open the Analysis panel Set the discharge: Click Calculate Normal Depth Step 4: Review Results The results panel will show: Parameter Value ----------- ------- Normal Depth (yn) 1.24 m Flow Area (A) 6.50 m² Wetted Perimeter (P) 9.55 m Hydraulic Radius (R) 0.68 m Velocity (V) 0.77 m/s Froude Number (Fr) 0.22 The flow is subcritical (Fr \"What if I increase the discharge to 10 m³/s? Will the channel still work?\" The AI will analyze the new conditions and provide recommendations. Step 6: Save Your Project Press (macOS) or (Windows/Linux) to save. What's Next? Learn about different channel sections Explore GVF analysis for backwater curves Set up AI integration for enhanced assistance",
+    "headings": [
+      "Step 1: Create a New Project",
+      "Step 2: Define the Channel Section",
+      "Step 3: Set Flow Conditions",
+      "Step 4: Review Results",
+      "Step 5: Try the AI Assistant",
+      "Step 6: Save Your Project",
+      "What's Next?"
+    ]
+  },
+  {
+    "id": "getting-started-introduction",
+    "title": "Introduction",
+    "section": "Getting Started",
+    "sectionSlug": "getting-started",
+    "url": "/docs/getting-started/introduction",
+    "description": "What is CADHY and why use it?",
+    "content": "Introduction CADHY is an AI-powered hydraulic engineering software designed for civil engineers, students, and researchers. It combines traditional hydraulic calculations with modern AI assistance to streamline the design and analysis of water systems. What is CADHY? CADHY stands for Computer-Aided Design for HYdraulics. It's a desktop application built with modern technologies: Rust backend for fast, reliable calculations React frontend for a responsive user interface Three.js for 3D visualization AI integration for natural language interaction Key Features Open Channel Flow Analysis Design and analyze trapezoidal, rectangular, circular, and custom channel sections. Calculate normal depth, critical depth, and water surface profiles. Pipe Network Analysis Model pressurized pipe systems with the Hardy Cross method. Analyze demand scenarios and optimize network layouts. AI-Powered Assistance Describe your hydraulic problem in plain language, and CADHY's AI assistant will help you set up the analysis and interpret results. Who is CADHY for? Civil Engineers designing drainage systems, irrigation networks, and water supply systems Students learning hydraulic engineering concepts Researchers analyzing complex flow scenarios Consultants preparing hydraulic reports Getting Started Ready to start? Check out the Installation guide to set up CADHY on your system, or jump to the Quick Start to create your first analysis.",
+    "headings": [
+      "What is CADHY?",
+      "Key Features",
+      "Open Channel Flow Analysis",
+      "Pipe Network Analysis",
+      "AI-Powered Assistance",
+      "Who is CADHY for?",
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "getting-started-installation",
+    "title": "Installation",
+    "section": "Getting Started",
+    "sectionSlug": "getting-started",
+    "url": "/docs/getting-started/installation",
+    "description": "Install CADHY on your system",
+    "content": "Installation CADHY is available for Windows, macOS, and Linux. Follow the instructions below for your operating system. System Requirements OS: Windows 10+, macOS 10.15+, or Linux (Ubuntu 20.04+) RAM: 4 GB minimum, 8 GB recommended Storage: 500 MB free space Display: 1280x720 minimum resolution Windows Download the latest installer from the releases page Run the installer and follow the prompts CADHY will be available in your Start menu macOS Download the latest file from the releases page Open the DMG and drag CADHY to your Applications folder On first launch, you may need to right-click and select \"Open\" to bypass Gatekeeper Apple Silicon (M1/M2/M3) CADHY runs natively on Apple Silicon. No Rosetta 2 required. Linux Debian/Ubuntu AppImage (Universal) Verify Installation After installation, launch CADHY and check the version in Help → About. You should see: Version: 0.1.0 Rust Backend: Connected AI Services: Ready (requires API key configuration) Next Steps Quick Start Guide - Create your first analysis Configure AI - Set up AI assistance",
+    "headings": [
+      "System Requirements",
+      "Windows",
+      "macOS",
+      "Apple Silicon (M1/M2/M3)",
+      "Linux",
+      "Debian/Ubuntu",
+      "AppImage (Universal)",
+      "Verify Installation",
+      "Next Steps"
+    ]
+  }
+]

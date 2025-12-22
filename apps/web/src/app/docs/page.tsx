@@ -121,9 +121,9 @@ export default function DocsPage() {
       {/* SEO */}
       <DocsSEO pageTitle={title} />
 
-      {/* Breadcrumbs */}
+      {/* Breadcrumbs - hidden on mobile (shown in DocsBreadcrumb component) */}
       {breadcrumbs.length > 0 && (
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <nav className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
           {breadcrumbs.map((crumb, i) => (
             <span key={crumb.href} className="flex items-center gap-2">
               {i > 0 && <span>/</span>}

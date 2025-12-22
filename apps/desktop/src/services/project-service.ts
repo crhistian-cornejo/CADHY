@@ -15,7 +15,7 @@
 import { invoke } from "@tauri-apps/api/core"
 import { open, save } from "@tauri-apps/plugin-dialog"
 import { platform } from "@tauri-apps/plugin-os"
-import type { SceneData } from "@/stores/modeller-store"
+import type { SceneData } from "@/stores/modeller"
 
 // ============================================================================
 // TYPES (matching Rust structs)

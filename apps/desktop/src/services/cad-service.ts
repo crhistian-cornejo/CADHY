@@ -180,6 +180,66 @@ export async function createWedge(
   return invoke<ShapeResult>("cad_create_wedge", { dx, dy, dz, ltx })
 }
 
+/**
+ * Create a pyramid (square base tapering to a point)
+ * @param x, y, z - Base dimensions (width, depth, height)
+ * @param px, py, pz - Base center position
+ * @param dx, dy, dz - Normal direction (apex direction)
+ */
+export async function createPyramid(
+  x: number,
+  y: number,
+  z: number,
+  px: number,
+  py: number,
+  pz: number,
+  dx: number,
+  dy: number,
+  dz: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_pyramid", { x, y, z, px, py, pz, dx, dy, dz })
+}
+
+/**
+ * Create an ellipsoid (3D ellipse with different radii)
+ * @param cx, cy, cz - Center position
+ * @param rx, ry, rz - Radii along X, Y, Z axes
+ */
+export async function createEllipsoid(
+  cx: number,
+  cy: number,
+  cz: number,
+  rx: number,
+  ry: number,
+  rz: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_ellipsoid", { cx, cy, cz, rx, ry, rz })
+}
+
+/**
+ * Create a vertex (point)
+ * @param x, y, z - Point position
+ */
+export async function createVertex(x: number, y: number, z: number): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_vertex", { x, y, z })
+}
+
+/**
+ * Create a helix (spiral wire)
+ * @param radius - Helix radius
+ * @param pitch - Distance between turns
+ * @param height - Total height of helix
+ * @param clockwise - Direction of rotation
+ */
+export async function createHelix(
+  radius: number,
+  pitch: number,
+  height: number,
+  clockwise: boolean
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_helix", { radius, pitch, height, clockwise })
+}
+
 // ============================================================================
 // BOOLEAN OPERATIONS
 // ============================================================================
@@ -229,10 +289,46 @@ export async function fillet(shapeId: string, radius: number): Promise<ShapeResu
 }
 
 /**
+ * Apply fillet to specific edges (RECOMMENDED - more reliable than filleting all edges)
+ * @param shapeId - Shape to fillet
+ * @param edgeIndices - Array of edge indices to fillet (0-based)
+ * @param radii - Array of radii for each edge (must match edgeIndices length, or single value for all)
+ */
+export async function filletEdges(
+  shapeId: string,
+  edgeIndices: number[],
+  radii: number[]
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_fillet_edges", {
+    shape_id: shapeId,
+    edge_indices: edgeIndices,
+    radii,
+  })
+}
+
+/**
  * Apply chamfer (beveled edges) to all edges of a shape
  */
 export async function chamfer(shapeId: string, distance: number): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_chamfer", { shape_id: shapeId, distance })
+}
+
+/**
+ * Apply chamfer to specific edges
+ * @param shapeId - Shape to chamfer
+ * @param edgeIndices - Array of edge indices to chamfer (0-based)
+ * @param distances - Array of distances for each edge (must match edgeIndices length, or single value for all)
+ */
+export async function chamferEdges(
+  shapeId: string,
+  edgeIndices: number[],
+  distances: number[]
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_chamfer_edges", {
+    shape_id: shapeId,
+    edge_indices: edgeIndices,
+    distances,
+  })
 }
 
 /**
@@ -373,6 +469,319 @@ export async function revolve(
   })
 }
 
+/**
+ * Create a lofted solid/shell through multiple wire profiles
+ */
+export async function loft(
+  profileIds: string[],
+  solid: boolean,
+  ruled: boolean
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_loft", {
+    profile_ids: profileIds,
+    solid,
+    ruled,
+  })
+}
+
+/**
+ * Sweep a profile along a spine path (pipe operation)
+ */
+export async function pipe(profileId: string, spineId: string): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_pipe", {
+    profile_id: profileId,
+    spine_id: spineId,
+  })
+}
+
+/**
+ * Create a pipe shell (hollow pipe) along a spine path
+ */
+export async function pipeShell(
+  profileId: string,
+  spineId: string,
+  thickness: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_pipe_shell", {
+    profile_id: profileId,
+    spine_id: spineId,
+    thickness,
+  })
+}
+
+/**
+ * Offset a shape (expand or shrink)
+ */
+export async function offset(shapeId: string, offsetDistance: number): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_offset", {
+    shape_id: shapeId,
+    offset: offsetDistance,
+  })
+}
+
+// ============================================================================
+// CURVE CREATION
+// ============================================================================
+
+export interface Point2D {
+  x: number
+  y: number
+}
+
+export interface Point3D {
+  x: number
+  y: number
+  z: number
+}
+
+/**
+ * Create a line segment between two points
+ */
+export async function createLine(
+  x1: number,
+  y1: number,
+  z1: number,
+  x2: number,
+  y2: number,
+  z2: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_line", { x1, y1, z1, x2, y2, z2 })
+}
+
+/**
+ * Create a line from a point and direction
+ */
+export async function createLineDir(
+  x: number,
+  y: number,
+  z: number,
+  dx: number,
+  dy: number,
+  dz: number,
+  length: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_line_dir", { x, y, z, dx, dy, dz, length })
+}
+
+/**
+ * Create a full circle in 3D space
+ */
+export async function createCircle(
+  cx: number,
+  cy: number,
+  cz: number,
+  nx: number,
+  ny: number,
+  nz: number,
+  radius: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_circle", { cx, cy, cz, nx, ny, nz, radius })
+}
+
+/**
+ * Create a circle in the XY plane (Z = 0)
+ */
+export async function createCircleXY(cx: number, cy: number, radius: number): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_circle_xy", { cx, cy, radius })
+}
+
+/**
+ * Create a circular arc in 3D space
+ */
+export async function createArc(
+  cx: number,
+  cy: number,
+  cz: number,
+  nx: number,
+  ny: number,
+  nz: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_arc", {
+    cx,
+    cy,
+    cz,
+    nx,
+    ny,
+    nz,
+    radius,
+    start_angle: startAngle,
+    end_angle: endAngle,
+  })
+}
+
+/**
+ * Create an arc in the XY plane (Z = 0)
+ */
+export async function createArcXY(
+  cx: number,
+  cy: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_arc_xy", {
+    cx,
+    cy,
+    radius,
+    start_angle: startAngle,
+    end_angle: endAngle,
+  })
+}
+
+/**
+ * Create an arc through three points
+ */
+export async function createArc3Points(
+  x1: number,
+  y1: number,
+  z1: number,
+  x2: number,
+  y2: number,
+  z2: number,
+  x3: number,
+  y3: number,
+  z3: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_arc_3_points", { x1, y1, z1, x2, y2, z2, x3, y3, z3 })
+}
+
+/**
+ * Create a rectangle wire in the XY plane
+ */
+export async function createRectangle(
+  x: number,
+  y: number,
+  width: number,
+  height: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_rectangle", { x, y, width, height })
+}
+
+/**
+ * Create a centered rectangle wire in the XY plane
+ */
+export async function createRectangleCentered(
+  cx: number,
+  cy: number,
+  width: number,
+  height: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_rectangle_centered", { cx, cy, width, height })
+}
+
+/**
+ * Create a regular polygon (triangle, hexagon, etc.)
+ */
+export async function createRegularPolygon(
+  cx: number,
+  cy: number,
+  radius: number,
+  sides: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_regular_polygon", { cx, cy, radius, sides })
+}
+
+/**
+ * Create a closed polygon from 2D points
+ */
+export async function createPolygon2D(points: Point2D[]): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_polygon_2d", { points })
+}
+
+/**
+ * Create a closed polygon from 3D points
+ */
+export async function createPolygon3D(points: Point3D[]): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_polygon_3d", { points })
+}
+
+/**
+ * Create a polyline from 2D points (not closed)
+ */
+export async function createPolyline2D(points: Point2D[]): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_polyline_2d", { points })
+}
+
+/**
+ * Create a polyline from 3D points (not closed)
+ */
+export async function createPolyline3D(points: Point3D[]): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_polyline_3d", { points })
+}
+
+/**
+ * Create an ellipse in 3D space
+ */
+export async function createEllipse(
+  cx: number,
+  cy: number,
+  cz: number,
+  nx: number,
+  ny: number,
+  nz: number,
+  majorRadius: number,
+  minorRadius: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_ellipse", {
+    cx,
+    cy,
+    cz,
+    nx,
+    ny,
+    nz,
+    major_radius: majorRadius,
+    minor_radius: minorRadius,
+  })
+}
+
+/**
+ * Create an ellipse in the XY plane (Z = 0)
+ */
+export async function createEllipseXY(
+  cx: number,
+  cy: number,
+  majorRadius: number,
+  minorRadius: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_ellipse_xy", {
+    cx,
+    cy,
+    major_radius: majorRadius,
+    minor_radius: minorRadius,
+  })
+}
+
+/**
+ * Create a B-spline curve interpolating through points
+ */
+export async function createBSpline(points: Point3D[], closed: boolean): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_bspline", { points, closed })
+}
+
+/**
+ * Create a Bezier curve from control points
+ */
+export async function createBezier(controlPoints: Point3D[]): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_bezier", { control_points: controlPoints })
+}
+
+/**
+ * Create a wire from multiple edges
+ */
+export async function createWireFromEdges(edgeIds: string[]): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_wire_from_edges", { edge_ids: edgeIds })
+}
+
+/**
+ * Create a face from a closed wire
+ */
+export async function createFaceFromWire(wireId: string): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_create_face_from_wire", { wire_id: wireId })
+}
+
 // ============================================================================
 // TESSELLATION / MESH
 // ============================================================================
@@ -481,6 +890,34 @@ export async function getShapeCount(): Promise<number> {
   return invoke<number>("cad_shape_count")
 }
 
+/**
+ * Simplify a shape by unifying faces and edges
+ * CRITICAL: Use this after boolean operations to clean up geometry!
+ * @param shapeId - Shape to simplify
+ * @param unifyEdges - Whether to merge collinear edges (default: true)
+ * @param unifyFaces - Whether to merge coplanar faces (default: true)
+ */
+export async function simplify(
+  shapeId: string,
+  unifyEdges = true,
+  unifyFaces = true
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_simplify", {
+    shape_id: shapeId,
+    unify_edges: unifyEdges,
+    unify_faces: unifyFaces,
+  })
+}
+
+/**
+ * Combine multiple shapes into a compound (assembly)
+ * Creates a multi-part assembly without merging the shapes
+ * @param shapeIds - Array of shape IDs to combine
+ */
+export async function combine(shapeIds: string[]): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_combine", { shape_ids: shapeIds })
+}
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -539,6 +976,10 @@ export class CadService {
   createCone = createCone
   createTorus = createTorus
   createWedge = createWedge
+  createHelix = createHelix
+  createPyramid = createPyramid
+  createEllipsoid = createEllipsoid
+  createVertex = createVertex
 
   // Boolean
   booleanFuse = booleanFuse
@@ -547,7 +988,9 @@ export class CadService {
 
   // Modifications
   fillet = fillet
+  filletEdges = filletEdges
   chamfer = chamfer
+  chamferEdges = chamferEdges
   shell = shell
 
   // Transforms
@@ -559,6 +1002,32 @@ export class CadService {
   // Advanced
   extrude = extrude
   revolve = revolve
+  loft = loft
+  pipe = pipe
+  pipeShell = pipeShell
+  offset = offset
+
+  // Curves
+  createLine = createLine
+  createLineDir = createLineDir
+  createCircle = createCircle
+  createCircleXY = createCircleXY
+  createArc = createArc
+  createArcXY = createArcXY
+  createArc3Points = createArc3Points
+  createRectangle = createRectangle
+  createRectangleCentered = createRectangleCentered
+  createRegularPolygon = createRegularPolygon
+  createPolygon2D = createPolygon2D
+  createPolygon3D = createPolygon3D
+  createPolyline2D = createPolyline2D
+  createPolyline3D = createPolyline3D
+  createEllipse = createEllipse
+  createEllipseXY = createEllipseXY
+  createBSpline = createBSpline
+  createBezier = createBezier
+  createWireFromEdges = createWireFromEdges
+  createFaceFromWire = createFaceFromWire
 
   // Tessellation
   tessellate = tessellate
@@ -576,6 +1045,8 @@ export class CadService {
   deleteShape = deleteShape
   clearAll = clearAll
   getShapeCount = getShapeCount
+  simplify = simplify
+  combine = combine
 
   // Helpers
   degreesToRadians = degreesToRadians

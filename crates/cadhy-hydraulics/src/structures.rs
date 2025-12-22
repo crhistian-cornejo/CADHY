@@ -8,6 +8,9 @@
 //! - Dados Amortiguadores (Baffle Blocks): Dimensionados según USBR EM-25
 //! - Rápidas (Chutes): Con bloques de entrada y disipadores opcionales
 //!
+
+#![allow(clippy::manual_range_contains)]
+#![allow(clippy::derivable_impls)]
 //! Referencias técnicas:
 //! - USBR Engineering Monograph No. 25: "Hydraulic Design of Stilling Basins
 //!   and Energy Dissipators" (Peterka, 1984)

@@ -22,6 +22,11 @@
 ├── memories/                           # Session memories
 │   └── MEMORIES.md                     # Known issues and solutions
 └── plans/                              # Roadmaps and plans
+    ├── ROADMAP-2025.md                 # Annual roadmap
+    ├── PHASE-1-CODE-QUALITY.md         # Phase 1 details
+    ├── IMPLEMENTATION-STATUS.md        # Current status
+    ├── COMPLETED-WORK-SUMMARY.md       # Completed work
+    └── REFACTOR-OPENCODE-PATTERNS.md   # Major refactor plan (NEW)
 ```
 
 **Other AI config files:**
@@ -41,6 +46,7 @@
 | Version info | `context/VERSION.md` → `context/RELEASES.md` |
 | UI components | `standards/SHADCN-V2.md` |
 | Known issues | `memories/MEMORIES.md` |
+| **Major Refactor** | `plans/REFACTOR-OPENCODE-PATTERNS.md` |
 
 ---
 
@@ -81,6 +87,7 @@
 | `standards/BEST-PRACTICES.md` | Pre-commit checklist, patterns |
 | `standards/SHADCN-V2.md` | shadcn/ui v2 configuration |
 | `memories/MEMORIES.md` | Known bugs, workarounds, learnings |
+| `plans/REFACTOR-OPENCODE-PATTERNS.md` | OpenCode patterns adoption plan |
 
 ---
 
@@ -107,6 +114,7 @@
 | `BEST-PRACTICES.md` | 4 KB | 2 min | Important |
 | `RELEASES.md` | 4 KB | 2 min | Reference |
 | `SHADCN-V2.md` | 12 KB | 3 min | Task-specific |
+| `REFACTOR-OPENCODE-PATTERNS.md` | 25 KB | 10 min | Major Refactor |
 
 ---
 

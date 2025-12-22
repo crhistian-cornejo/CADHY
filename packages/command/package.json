@@ -1,0 +1,32 @@
+{
+  "name": "@cadhy/command",
+  "version": "0.1.3",
+  "type": "module",
+  "description": "Command infrastructure for CADHY - CancellablePromise, StateMachines, Executable pattern",
+  "exports": {
+    ".": "./src/index.ts",
+    "./cancellable-promise": "./src/cancellable-promise.ts",
+    "./state-machine": "./src/state-machine.ts",
+    "./executable": "./src/executable.ts",
+    "./disposable": "./src/disposable.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cadhy/config": "workspace:*",
+    "@types/bun": "^1.2.20",
+    "typescript": "~5.9.3"
+  },
+  "peerDependencies": {
+    "three": ">=0.170.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
+  }
+}

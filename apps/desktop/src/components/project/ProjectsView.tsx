@@ -661,7 +661,7 @@ export function ProjectsView({
 
               {/* Folders Section */}
               {hasFolders && (
-                <section>
+                <section className="relative z-10">
                   <div className="flex items-center gap-1.5 mb-3">
                     <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Folders
@@ -672,7 +672,7 @@ export function ProjectsView({
                   </div>
                   <div
                     ref={foldersScrollRef}
-                    className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
+                    className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide relative"
                     onMouseEnter={() => setIsPausedFolderScroll(true)}
                     onMouseLeave={() => setIsPausedFolderScroll(false)}
                     style={{

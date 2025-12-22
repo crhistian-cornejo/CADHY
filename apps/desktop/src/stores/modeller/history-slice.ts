@@ -7,11 +7,13 @@
  * - clearPendingHistory, clearHistory
  */
 
-import { logger } from "@cadhy/shared/logger"
+import { loggers } from "@cadhy/shared"
 import { nanoid } from "nanoid"
 import type { StateCreator } from "zustand"
 import type { ModellerStore } from "./store-types"
 import type { AnySceneObject, HistoryEntry } from "./types"
+
+const log = loggers.store
 
 // ============================================================================
 // SLICE STATE & ACTIONS
@@ -88,12 +90,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
 
     // Only save if we don't already have a pending state
     if (!pendingHistoryState) {
-      logger.log(
-        "[History] saveStateBeforeAction - historyIndex:",
-        historyIndex,
-        "historyLen:",
-        history.length
-      )
+      log.log("saveStateBeforeAction - historyIndex:", historyIndex, "historyLen:", history.length)
       set({
         pendingHistoryState: {
           objects: JSON.parse(JSON.stringify(objects)),
@@ -109,8 +106,8 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
   commitToHistory: (action) => {
     const { objects, selectedIds, history, historyIndex, pendingHistoryState } = get()
 
-    logger.log(
-      "[History] commitToHistory -",
+    log.log(
+      "commitToHistory -",
       action,
       "hasPending:",
       !!pendingHistoryState,
@@ -144,12 +141,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
       newHistory.shift()
     }
 
-    logger.log(
-      "[History] New historyIndex:",
-      newHistory.length - 1,
-      "historyLen:",
-      newHistory.length
-    )
+    log.log("New historyIndex:", newHistory.length - 1, "historyLen:", newHistory.length)
 
     set({
       history: newHistory,
@@ -165,14 +157,14 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
 
   undo: () => {
     const { history, historyIndex } = get()
-    logger.log("[History] undo - historyIndex:", historyIndex, "historyLen:", history.length)
+    log.log("undo - historyIndex:", historyIndex, "historyLen:", history.length)
     if (historyIndex <= 0) {
-      logger.log("[History] undo - cannot undo, at beginning")
+      log.log("undo - cannot undo, at beginning")
       return
     }
 
     const previousEntry = history[historyIndex - 1]
-    logger.log("[History] undo - restoring entry:", previousEntry.action)
+    log.log("undo - restoring entry:", previousEntry.action)
     set({
       objects: previousEntry.objects,
       selectedIds: previousEntry.selection,

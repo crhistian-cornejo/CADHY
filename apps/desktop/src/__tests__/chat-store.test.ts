@@ -9,7 +9,7 @@
  */
 
 import { beforeEach, describe, expect, mock, test } from "bun:test"
-import type { Message } from "@/hooks/useAIChat"
+import type { Message } from "@/hooks/use-ai-chat"
 import { useChatStore } from "../stores/chat-store"
 
 // Mock external services to isolate store tests

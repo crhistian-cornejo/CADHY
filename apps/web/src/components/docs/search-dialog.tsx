@@ -1,37 +1,15 @@
 /**
  * Search Dialog Component
  *
- * Full-text search across documentation with keyboard navigation.
+ * Full-text search across documentation using Orama.
+ * Supports fuzzy matching, keyboard navigation, and content highlighting.
  */
 
 import { ArrowRight01Icon, CommandIcon, File02Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { DOCS_SIDEBAR } from "@/lib/source"
-
-interface SearchResult {
-  title: string
-  section: string
-  url: string
-  description?: string
-}
-
-// Build search index from sidebar data
-function buildSearchIndex(): SearchResult[] {
-  const results: SearchResult[] = []
-  for (const section of DOCS_SIDEBAR) {
-    for (const item of section.items) {
-      results.push({
-        title: item.title,
-        section: section.title,
-        url: `/docs/${section.slug}/${item.slug}`,
-        description: item.description,
-      })
-    }
-  }
-  return results
-}
+import { initializeSearch, type SearchResult, searchDocs } from "@/lib/search-index"
 
 interface SearchDialogProps {
   open: boolean
@@ -42,9 +20,19 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SearchResult[]>([])
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
-  const searchIndex = useRef<SearchResult[]>(buildSearchIndex())
+
+  // Initialize search engine on first open
+  useEffect(() => {
+    if (open && !isInitialized) {
+      initializeSearch().then(() => {
+        setIsInitialized(true)
+      })
+    }
+  }, [open, isInitialized])
 
   // Focus input when dialog opens
   useEffect(() => {
@@ -56,23 +44,31 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     }
   }, [open])
 
-  // Search logic
-  const performSearch = useCallback((searchQuery: string) => {
+  // Debounced search
+  const performSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([])
       return
     }
 
-    const lowerQuery = searchQuery.toLowerCase()
-    const filtered = searchIndex.current.filter(
-      (item) =>
-        item.title.toLowerCase().includes(lowerQuery) ||
-        item.section.toLowerCase().includes(lowerQuery) ||
-        item.description?.toLowerCase().includes(lowerQuery)
-    )
-    setResults(filtered)
-    setSelectedIndex(0)
+    setIsLoading(true)
+    try {
+      const searchResults = await searchDocs(searchQuery, { limit: 8 })
+      setResults(searchResults)
+      setSelectedIndex(0)
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
+
+  // Handle input change with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      performSearch(query)
+    }, 150)
+
+    return () => clearTimeout(timer)
+  }, [query, performSearch])
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
@@ -117,13 +113,13 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
             type="text"
             placeholder="Search documentation..."
             value={query}
-            onChange={(e) => {
-              setQuery(e.target.value)
-              performSearch(e.target.value)
-            }}
+            onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 bg-transparent text-foreground placeholder-muted-foreground outline-none text-sm"
           />
+          {isLoading && (
+            <div className="w-4 h-4 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+          )}
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <kbd className="px-1.5 py-0.5 bg-muted text-muted-foreground font-mono rounded">
               esc
@@ -141,7 +137,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
         {/* Results */}
         <div className="max-h-[400px] overflow-y-auto">
-          {query && results.length === 0 && (
+          {query && !isLoading && results.length === 0 && (
             <div className="px-4 py-8 text-center text-muted-foreground text-sm">
               No results found for "{query}"
             </div>
@@ -150,7 +146,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           {results.length > 0 && (
             <ul className="py-2">
               {results.map((result, index) => (
-                <li key={result.url}>
+                <li key={result.id}>
                   <Link
                     to={result.url}
                     onClick={() => onOpenChange(false)}
@@ -175,12 +171,17 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                         />
                         <span className="font-medium text-foreground">{result.title}</span>
                       </div>
-                      {result.description && (
-                        <p className="text-xs text-muted-foreground mt-1 truncate">
-                          {result.description}
+                      {result.highlight && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {result.highlight}
                         </p>
                       )}
                     </div>
+                    {result.score > 0 && (
+                      <span className="text-[10px] text-muted-foreground/50 font-mono">
+                        {Math.round(result.score * 100)}%
+                      </span>
+                    )}
                   </Link>
                 </li>
               ))}
@@ -190,7 +191,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           {!query && (
             <div className="px-4 py-8 text-center">
               <p className="text-muted-foreground text-sm mb-4">
-                Start typing to search the documentation
+                Search for concepts like "Manning equation", "Froude number", or "installation"
               </p>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <span>Quick navigation:</span>
@@ -214,7 +215,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
               to select
             </span>
           </div>
-          <span>{results.length} results</span>
+          <div className="flex items-center gap-2">
+            <span>{results.length} results</span>
+            <span className="text-muted-foreground/50">• Powered by Orama</span>
+          </div>
         </div>
       </div>
     </div>

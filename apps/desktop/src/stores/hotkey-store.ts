@@ -20,6 +20,7 @@ export type HotkeyCategory =
   | "navigation"
   | "workspace"
   | "tools"
+  | "selection"
 
 export interface HotkeyDefinition {
   id: string

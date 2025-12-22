@@ -4,6 +4,7 @@
 
 pub mod cad;
 pub mod chat;
+pub mod curves;
 pub mod geometry;
 pub mod hydraulics;
 pub mod project;

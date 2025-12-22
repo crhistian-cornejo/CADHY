@@ -6,7 +6,42 @@
  */
 
 import { invoke } from "@tauri-apps/api/core"
-import type { Message } from "@/hooks/useAIChat"
+import type { Message } from "@/hooks/use-ai-chat"
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Convert Uint8Array to base64 string for JSON storage
+ */
+function uint8ArrayToBase64(uint8Array: Uint8Array | undefined): string {
+  if (!uint8Array) return ""
+  let binary = ""
+  const len = uint8Array.byteLength
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(uint8Array[i])
+  }
+  return btoa(binary)
+}
+
+/**
+ * Convert base64 string back to Uint8Array
+ */
+function base64ToUint8Array(base64: string): Uint8Array | undefined {
+  if (!base64) return undefined
+  try {
+    const binary = atob(base64)
+    const len = binary.length
+    const bytes = new Uint8Array(len)
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binary.charCodeAt(i)
+    }
+    return bytes
+  } catch {
+    return undefined
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -23,6 +58,14 @@ export interface ChatSessionMeta {
   modelId: string
 }
 
+/** Stored image format (base64 for JSON serialization) */
+export interface StoredMessageImage {
+  /** Base64 encoded image data */
+  base64: string
+  /** MIME type of the image */
+  mediaType: string
+}
+
 /** Message format for storage */
 export interface StoredChatMessage {
   id: string
@@ -36,6 +79,8 @@ export interface StoredChatMessage {
     status: string
     result?: string
   }[]
+  /** Generated images (stored as base64 for JSON compatibility) */
+  images?: StoredMessageImage[]
 }
 
 /** Full chat session (stored in JSON) */
@@ -93,6 +138,11 @@ export class ChatPersistenceService {
         status: tc.status,
         result: tc.result,
       })),
+      // Serialize images: convert Uint8Array to base64 for JSON storage
+      images: msg.images?.map((img) => ({
+        base64: img.base64 ?? uint8ArrayToBase64(img.uint8Array),
+        mediaType: img.mediaType,
+      })),
     }))
 
     // Determine title from first user message or use provided
@@ -136,6 +186,12 @@ export class ChatPersistenceService {
         name: tc.name,
         status: tc.status as "pending" | "running" | "completed" | "failed",
         result: tc.result,
+      })),
+      // Deserialize images: base64 back to both formats for flexibility
+      images: msg.images?.map((img) => ({
+        base64: img.base64,
+        uint8Array: base64ToUint8Array(img.base64),
+        mediaType: img.mediaType,
       })),
     }))
   }

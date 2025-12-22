@@ -13,6 +13,7 @@ import type { ModellerStore } from "./store-types"
 import type { AnySceneObject, HistoryEntry, SceneData, TransitionObject } from "./types"
 import {
   calculateSceneBoundingBox,
+  DEFAULT_AREA,
   DEFAULT_GRID_SETTINGS,
   DEFAULT_LAYER,
   DEFAULT_VIEWPORT_SETTINGS,
@@ -116,6 +117,7 @@ export const createSceneSlice: StateCreator<ModellerStore, [], [], SceneSlice> =
     set({
       objects: migratedObjects,
       layers: scene.layers?.length ? scene.layers : [DEFAULT_LAYER],
+      areas: scene.areas?.length ? scene.areas : [DEFAULT_AREA],
       viewportSettings: scene.viewportSettings ?? DEFAULT_VIEWPORT_SETTINGS,
       gridSettings: scene.gridSettings ?? DEFAULT_GRID_SETTINGS,
       cameraPosition,
@@ -134,6 +136,7 @@ export const createSceneSlice: StateCreator<ModellerStore, [], [], SceneSlice> =
     return {
       objects: state.objects,
       layers: state.layers,
+      areas: state.areas,
       viewportSettings: state.viewportSettings,
       gridSettings: state.gridSettings,
       cameraPosition: state.cameraPosition,
@@ -164,6 +167,7 @@ export const createSceneSlice: StateCreator<ModellerStore, [], [], SceneSlice> =
     set({
       objects: [],
       layers: [DEFAULT_LAYER],
+      areas: [DEFAULT_AREA],
       isDirty: false,
       lastSavedAt: null,
       selectedIds: [],

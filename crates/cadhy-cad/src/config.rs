@@ -394,7 +394,7 @@ impl Default for ExportDefaults {
 /// Master configuration structure containing all sub-configurations.
 ///
 /// This can be used to configure the entire cadhy-cad library at once.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct CadhyCadConfig {
     pub tessellation: TessellationConfig,
     pub tolerances: ToleranceConfig,
@@ -403,20 +403,6 @@ pub struct CadhyCadConfig {
     pub view_labels: ViewLabels,
     pub hatch: HatchDefaults,
     pub export: ExportDefaults,
-}
-
-impl Default for CadhyCadConfig {
-    fn default() -> Self {
-        Self {
-            tessellation: TessellationConfig::default(),
-            tolerances: ToleranceConfig::default(),
-            dimension_style: DimensionStyleConfig::default(),
-            line_style: LineStyleConfig::default(),
-            view_labels: ViewLabels::default(),
-            hatch: HatchDefaults::default(),
-            export: ExportDefaults::default(),
-        }
-    }
 }
 
 impl CadhyCadConfig {
@@ -462,8 +448,8 @@ pub fn get_config() -> &'static CadhyCadConfig {
 
 /// Set the global configuration. Can only be called once.
 /// Returns Err if already initialized.
-pub fn set_config(config: CadhyCadConfig) -> Result<(), CadhyCadConfig> {
-    GLOBAL_CONFIG.set(config)
+pub fn set_config(config: CadhyCadConfig) -> Result<(), Box<CadhyCadConfig>> {
+    GLOBAL_CONFIG.set(config).map_err(Box::new)
 }
 
 // =============================================================================

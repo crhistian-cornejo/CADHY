@@ -2,9 +2,15 @@
  * Modeller Components Exports
  */
 
-export { CreatePanel } from "./CreatePanel"
-export { LayersPanel } from "./LayersPanel"
+// Creators
+export { CreatePanel } from "./creators"
+// Main view
 export { ModellerView } from "./ModellerView"
-export { PropertiesPanel } from "./PropertiesPanel"
-export { Viewport3D } from "./Viewport3D"
-export { ViewportToolbar } from "./ViewportToolbar"
+// Panels
+export { LayersPanel } from "./panels"
+// Properties
+export { PropertiesPanel } from "./properties"
+// Toolbars
+export { VerticalToolbar, ViewportBottomToolbar, ViewportToolbar } from "./toolbars"
+// Viewport
+export { Viewport3D, ViewportSettingsPanel } from "./viewport"

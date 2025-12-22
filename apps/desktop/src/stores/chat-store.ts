@@ -5,10 +5,10 @@
  * Coordinates with project-store for project-scoped chat history.
  */
 
-import { logger } from "@cadhy/shared/logger"
+import { loggers } from "@cadhy/shared"
 import { create } from "zustand"
 import { subscribeWithSelector } from "zustand/middleware"
-import type { Message } from "@/hooks/useAIChat"
+import type { Message } from "@/hooks/use-ai-chat"
 import { getDefaultModelId } from "@/services/ai-service"
 import {
   ChatPersistenceService,
@@ -16,6 +16,8 @@ import {
   generateSessionId,
 } from "@/services/chat-persistence"
 import { useProjectStore } from "./project-store"
+
+const log = loggers.store
 
 // ============================================================================
 // TYPES
@@ -104,7 +106,7 @@ type ChatStore = ChatStoreState & ChatStoreActions
 
 function getPersistenceService(): ChatPersistenceService | null {
   const project = useProjectStore.getState().currentProject
-  logger.log("[ChatStore] getPersistenceService - project:", project?.name, "path:", project?.path)
+  log.log("getPersistenceService - project:", project?.name, "path:", project?.path)
   if (!project?.path) return null
   return new ChatPersistenceService(project.path)
 }
@@ -135,12 +137,10 @@ export const useChatStore = create<ChatStore>()(
 
     // Actions
     loadSessions: async () => {
-      logger.log("[ChatStore] loadSessions called")
+      log.log("loadSessions called")
       const persistence = getPersistenceService()
       if (!persistence) {
-        logger.log(
-          "[ChatStore] No persistence service (no project open) - creating in-memory session"
-        )
+        log.log("No persistence service (no project open) - creating in-memory session")
         // No project open - create in-memory session
         if (get().sessions.length === 0) {
           await get().createSession()
@@ -151,11 +151,11 @@ export const useChatStore = create<ChatStore>()(
       set({ isLoadingSessions: true })
 
       try {
-        logger.log("[ChatStore] Initializing persistence...")
+        log.log("Initializing persistence...")
         await persistence.init()
-        logger.log("[ChatStore] Listing sessions...")
+        log.log("Listing sessions...")
         const sessions = await persistence.listSessions()
-        logger.log("[ChatStore] Found sessions:", sessions.length, sessions)
+        log.log("Found sessions:", sessions.length, sessions)
 
         set({
           sessions,
@@ -164,15 +164,15 @@ export const useChatStore = create<ChatStore>()(
 
         // If we have sessions but none selected, select the most recent
         if (sessions.length > 0 && !get().currentSessionId) {
-          logger.log("[ChatStore] Switching to most recent session:", sessions[0].id)
+          log.log("Switching to most recent session:", sessions[0].id)
           await get().switchSession(sessions[0].id)
         } else if (sessions.length === 0) {
           // No sessions exist, create one
-          logger.log("[ChatStore] No sessions, creating new one")
+          log.log("No sessions, creating new one")
           await get().createSession()
         }
       } catch (error) {
-        console.error("[ChatStore] Failed to load sessions:", error)
+        log.error("Failed to load sessions:", error)
         set({ isLoadingSessions: false })
         // Create in-memory session as fallback
         await get().createSession()
@@ -184,7 +184,7 @@ export const useChatStore = create<ChatStore>()(
       const { selectedModelId, _messageCache } = get()
       const now = Date.now()
 
-      logger.log("[ChatStore] createSession - newId:", newId)
+      log.log("createSession - newId:", newId)
 
       const newSession: ChatSessionMeta = {
         id: newId,
@@ -209,14 +209,14 @@ export const useChatStore = create<ChatStore>()(
       const persistence = getPersistenceService()
       if (persistence) {
         try {
-          logger.log("[ChatStore] Persisting new session to disk...")
+          log.log("Persisting new session to disk...")
           await persistence.saveSession(newId, [], selectedModelId, "New Chat", now)
-          logger.log("[ChatStore] New session persisted successfully")
+          log.log("New session persisted successfully")
         } catch (error) {
-          console.error("[ChatStore] Failed to persist new session:", error)
+          log.error("Failed to persist new session:", error)
         }
       } else {
-        logger.log("[ChatStore] No persistence service - session is in-memory only")
+        log.log("No persistence service - session is in-memory only")
       }
 
       return newId
@@ -249,7 +249,7 @@ export const useChatStore = create<ChatStore>()(
             isLoadingMessages: false,
           })
         } catch (error) {
-          console.error("[ChatStore] Failed to load session:", error)
+          log.error("Failed to load session:", error)
           // Try cache as fallback
           const cachedMessages = get()._messageCache.get(sessionId) ?? []
           set({ currentMessages: cachedMessages, isLoadingMessages: false })
@@ -270,7 +270,7 @@ export const useChatStore = create<ChatStore>()(
         try {
           await persistence.deleteSession(sessionId)
         } catch (error) {
-          console.error("[ChatStore] Failed to delete session:", error)
+          log.error("Failed to delete session:", error)
         }
       }
 
@@ -326,34 +326,34 @@ export const useChatStore = create<ChatStore>()(
 
     saveCurrentSession: async () => {
       const { currentSessionId, currentMessages, selectedModelId, sessions } = get()
-      logger.log(
-        "[ChatStore] saveCurrentSession called - sessionId:",
+      log.log(
+        "saveCurrentSession - sessionId:",
         currentSessionId,
         "messages:",
         currentMessages.length
       )
 
       if (!currentSessionId || get().isSaving) {
-        logger.log("[ChatStore] Skip save - no session or already saving")
+        log.log("Skip save - no session or already saving")
         return
       }
 
       const persistence = getPersistenceService()
       if (!persistence) {
-        logger.log("[ChatStore] Skip save - no persistence service")
+        log.log("Skip save - no persistence service")
         return
       }
 
       const session = sessions.find((s) => s.id === currentSessionId)
       if (!session) {
-        logger.log("[ChatStore] Skip save - session not found in sessions list")
+        log.log("Skip save - session not found in sessions list")
         return
       }
 
       set({ isSaving: true })
 
       try {
-        logger.log("[ChatStore] Saving session to disk...")
+        log.log("Saving session to disk...")
         await persistence.saveSession(
           currentSessionId,
           currentMessages,
@@ -361,9 +361,9 @@ export const useChatStore = create<ChatStore>()(
           session.title,
           session.createdAt
         )
-        logger.log("[ChatStore] Session saved successfully")
+        log.log("Session saved successfully")
       } catch (error) {
-        console.error("[ChatStore] Failed to save session:", error)
+        log.error("Failed to save session:", error)
       } finally {
         set({ isSaving: false })
       }
@@ -445,7 +445,7 @@ export async function handleProjectChange(
 ): Promise<void> {
   // Prevent concurrent loading
   if (isLoadingInProgress) {
-    logger.log("[ChatStore] Skipping - load already in progress")
+    log.log("Skipping - load already in progress")
     return
   }
 
@@ -453,39 +453,35 @@ export async function handleProjectChange(
 
   // Skip if project hasn't actually changed
   if (newProjectId === previousProjectId) {
-    logger.log("[ChatStore] Skipping - same project ID")
+    log.log("Skipping - same project ID")
     return
   }
 
   isLoadingInProgress = true
   lastKnownProjectId = newProjectId
 
-  logger.log("[ChatStore] Project changed:", {
-    from: previousProjectId,
-    to: newProjectId,
-    path: newProjectPath,
-  })
+  log.log("Project changed:", { from: previousProjectId, to: newProjectId, path: newProjectPath })
 
   const store = useChatStore.getState()
 
   try {
     // 1. Save current session before switching (if we had a project)
     if (previousProjectId && store.currentSessionId) {
-      logger.log("[ChatStore] Saving session before switching...")
+      log.log("Saving session before switching...")
       await store.saveCurrentSession()
     }
 
     // 2. Always clear sessions when project changes
-    logger.log("[ChatStore] Clearing sessions...")
+    log.log("Clearing sessions...")
     store.clearSessions()
 
     // 3. If new project opened, load its sessions
     if (newProjectId && newProjectPath) {
-      logger.log("[ChatStore] Loading sessions for new project...")
+      log.log("Loading sessions for new project...")
       await store.loadSessions()
     }
   } catch (error) {
-    console.error("[ChatStore] Error handling project change:", error)
+    log.error("Error handling project change:", error)
     // Ensure we still create an in-memory session on error
     if (store.sessions.length === 0) {
       await store.createSession()

@@ -46,6 +46,7 @@
 
 pub mod analysis;
 pub mod config;
+pub mod curves;
 pub mod dimensions;
 mod error;
 pub mod export;
@@ -65,6 +66,7 @@ pub use config::{
     ExportDefaults, HatchDefaults, LineStyleConfig, TessellationConfig, ToleranceConfig,
     ViewLabels,
 };
+pub use curves::Curves;
 pub use dimensions::{
     ArrowStyle, AutoDimensioner, Dimension, DimensionConfig, DimensionLine, DimensionSet,
     DimensionType, ExtensionLine,

@@ -11,6 +11,7 @@
 import { Bloom, EffectComposer, SMAA, SSAO, ToneMapping } from "@react-three/postprocessing"
 import { BlendFunction, ToneMappingMode } from "postprocessing"
 import { memo } from "react"
+import * as THREE from "three"
 
 // ============================================================================
 // TYPES
@@ -33,46 +34,66 @@ export interface PostProcessingProps {
 // QUALITY CONFIGURATIONS
 // ============================================================================
 
+/**
+ * Quality configurations for post-processing effects.
+ *
+ * The main tradeoffs are:
+ * - Low: Minimal effects, best for slow hardware or complex scenes
+ * - Medium: Balanced quality and performance (recommended)
+ * - High: Enhanced effects, noticeable ambient occlusion
+ * - Ultra: Maximum quality with strong SSAO and high-res bloom
+ *
+ * Note: On modern GPUs, all presets typically maintain 60fps.
+ * The visual difference is most apparent with complex geometry.
+ */
 const QUALITY_CONFIG = {
   low: {
     multisampling: 0,
-    ssaoSamples: 16, // Más samples = menos ruido
-    ssaoRadius: 0.2, // Radio reducido
-    ssaoIntensity: 1.5, // MUCHO más bajo para reducir ruido
-    ssoaBias: 0.025,
-    bloomLuminanceSmoothing: 0.7,
+    ssaoSamples: 8,
+    ssaoRadius: 0.1,
+    ssaoIntensity: 0.8,
+    ssoaBias: 0.05,
+    bloomIntensity: 0.1,
+    bloomLuminanceThreshold: 1.0, // Almost no bloom
+    bloomLuminanceSmoothing: 0.1,
     bloomResolution: 128,
-    ssaoResolutionScale: 1, // Full res para menos ruido
+    ssaoResolutionScale: 0.5,
   },
   medium: {
     multisampling: 2,
-    ssaoSamples: 32, // Más samples
-    ssaoRadius: 0.25,
-    ssaoIntensity: 2.0, // Reducido drásticamente
-    ssoaBias: 0.02,
-    bloomLuminanceSmoothing: 0.9,
+    ssaoSamples: 21,
+    ssaoRadius: 0.2,
+    ssaoIntensity: 2.0,
+    ssoaBias: 0.03,
+    bloomIntensity: 0.3,
+    bloomLuminanceThreshold: 0.9,
+    bloomLuminanceSmoothing: 0.5,
     bloomResolution: 256,
-    ssaoResolutionScale: 1,
+    ssaoResolutionScale: 0.5,
   },
   high: {
     multisampling: 4,
-    ssaoSamples: 64, // Muchos más samples
-    ssaoRadius: 0.3,
-    ssaoIntensity: 2.5, // Reducido
+    ssaoSamples: 48,
+    ssaoRadius: 0.4,
+    ssaoIntensity: 4.0, // Much stronger AO
     ssoaBias: 0.015,
-    bloomLuminanceSmoothing: 0.95,
+    bloomIntensity: 0.8, // More visible bloom
+    bloomLuminanceThreshold: 0.85,
+    bloomLuminanceSmoothing: 0.7,
     bloomResolution: 512,
-    ssaoResolutionScale: 1,
+    ssaoResolutionScale: 1.0,
   },
   ultra: {
     multisampling: 8,
-    ssaoSamples: 128, // Máximos samples para calidad
-    ssaoRadius: 0.35,
-    ssaoIntensity: 3.0, // Aún bajo
+    ssaoSamples: 64,
+    ssaoRadius: 0.6,
+    ssaoIntensity: 7.0, // Very dramatic contact shadows
     ssoaBias: 0.01,
-    bloomLuminanceSmoothing: 0.99,
+    bloomIntensity: 1.2, // Cinematic bloom
+    bloomLuminanceThreshold: 0.8,
+    bloomLuminanceSmoothing: 0.9,
     bloomResolution: 1024,
-    ssaoResolutionScale: 1,
+    ssaoResolutionScale: 1.0,
   },
 } as const
 
@@ -99,33 +120,38 @@ export const PostProcessing = memo(function PostProcessing({
 }: PostProcessingProps) {
   const config = QUALITY_CONFIG[quality]
 
+  // Optimize multisampling based on effects enabled
+  const effectiveMultisampling = enableSSAO || enableBloom ? config.multisampling : 0
+
   return (
-    <EffectComposer multisampling={config.multisampling} enableNormalPass={enableSSAO}>
+    <EffectComposer multisampling={effectiveMultisampling} enableNormalPass={enableSSAO}>
       {/* SSAO - Ambient Occlusion for depth and realism - Optimizado para menos ruido */}
+      {/* Only render if enabled for performance */}
       {enableSSAO && (
         <SSAO
           blendFunction={BlendFunction.MULTIPLY}
           samples={config.ssaoSamples}
           radius={config.ssaoRadius}
           intensity={config.ssaoIntensity}
-          bias={config.ssoaBias} // Bias ajustable por calidad
-          luminanceInfluence={0.7} // Mayor influencia de luminancia
-          color="black"
-          distanceThreshold={1.2} // Mayor threshold para menos ruido
-          distanceFalloff={0.1} // Falloff más suave
-          rangeThreshold={0.0005} // Reducido
-          rangeFalloff={0.0001} // Reducido
-          minRadiusScale={0.5} // Mayor escala mínima
+          bias={config.ssoaBias}
+          luminanceInfluence={0.7}
+          color={new THREE.Color("black")}
+          distanceThreshold={1.2}
+          distanceFalloff={0.1}
+          rangeThreshold={0.0005}
+          rangeFalloff={0.0001}
+          minRadiusScale={0.5}
           depthAwareUpsampling={true}
           resolutionScale={config.ssaoResolutionScale}
         />
       )}
 
       {/* Bloom - Glow effect for bright areas and metals */}
+      {/* Only render if enabled for performance */}
       {enableBloom && (
         <Bloom
-          intensity={0.4}
-          luminanceThreshold={0.85}
+          intensity={config.bloomIntensity}
+          luminanceThreshold={config.bloomLuminanceThreshold}
           luminanceSmoothing={config.bloomLuminanceSmoothing}
           radius={0.5}
           mipmapBlur
@@ -133,6 +159,7 @@ export const PostProcessing = memo(function PostProcessing({
       )}
 
       {/* Tone Mapping - ACES Filmic for cinematic look */}
+      {/* Always enabled for consistent color grading */}
       <ToneMapping
         mode={ToneMappingMode.ACES_FILMIC}
         adaptive={true}
@@ -144,6 +171,7 @@ export const PostProcessing = memo(function PostProcessing({
       />
 
       {/* Anti-aliasing - SMAA for clean edges */}
+      {/* Only render if enabled for performance */}
       {enableAA && <SMAA />}
     </EffectComposer>
   )
