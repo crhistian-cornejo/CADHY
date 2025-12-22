@@ -63,3 +63,5 @@ athas/
 .vercel
 .env*.local
 opencode/
+chili3d/
+plasticity/
