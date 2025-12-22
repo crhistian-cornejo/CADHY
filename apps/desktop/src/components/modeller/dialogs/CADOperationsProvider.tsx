@@ -7,7 +7,7 @@
 
 import { createContext, type ReactNode, useContext } from "react"
 import { type OperationDialogState, useCADOperations } from "@/hooks"
-import { CADOperationDialog } from "./CADOperationDialog"
+import { FloatingCADOperationsPanel } from "./FloatingCADOperationsPanel"
 
 // ============================================================================
 // CONTEXT
@@ -62,11 +62,16 @@ export function CADOperationsProvider({ children }: CADOperationsProviderProps) 
       }}
     >
       {children}
-      <CADOperationDialog
-        state={dialogState}
-        onClose={closeDialog}
-        onApply={applyOperation}
+      <FloatingCADOperationsPanel
+        open={dialogState.open}
+        operation={dialogState.operation}
+        title={dialogState.title}
+        description={dialogState.description}
+        label={dialogState.label}
+        value={dialogState.value}
         onValueChange={setDialogValue}
+        onApply={applyOperation}
+        onCancel={closeDialog}
       />
     </CADOperationsContext.Provider>
   )
