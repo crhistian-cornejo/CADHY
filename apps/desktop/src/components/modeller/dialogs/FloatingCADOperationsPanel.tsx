@@ -10,11 +10,11 @@ import {
   ArrowDown01Icon,
   ArrowRight01Icon,
   InformationCircleIcon,
+  Settings01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useState } from "react"
-import { FilletIcon } from "../viewport/CadIcons"
 
 interface FloatingCADOperationsPanelProps {
   open: boolean
@@ -130,7 +130,7 @@ export function FloatingCADOperationsPanel({
             }}
           >
             <div className="flex items-center gap-1.5">
-              <HugeiconsIcon icon={FilletIcon} className="size-3 text-primary/80" />
+              <HugeiconsIcon icon={Settings01Icon} className="size-3 text-primary/80" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
                 {title}
               </span>
