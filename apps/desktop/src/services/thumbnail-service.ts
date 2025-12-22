@@ -108,14 +108,14 @@ function waitForFrames(frameCount: number): Promise<void> {
  * Captures thumbnail after ensuring render is complete.
  * Uses requestAnimationFrame for reliable timing with Three.js/R3F.
  *
- * @param frameCount - Number of frames to wait (default: 3 for textures to load)
+ * @param frameCount - Number of frames to wait (default: 5 for textures to load)
  */
-export async function captureViewportThumbnailDelayed(frameCount = 3): Promise<string | null> {
+export async function captureViewportThumbnailDelayed(frameCount = 5): Promise<string | null> {
   // Wait for frames to ensure textures and effects are rendered
   await waitForFrames(frameCount)
 
-  // Small additional delay for any async texture loading
-  await new Promise((resolve) => setTimeout(resolve, 50))
+  // Longer delay for PBR texture loading and post-processing
+  await new Promise((resolve) => setTimeout(resolve, 200))
 
   return captureViewportThumbnail()
 }

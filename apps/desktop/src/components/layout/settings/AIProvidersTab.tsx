@@ -20,7 +20,7 @@ import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useAIProvider } from "@/hooks/use-ai-provider"
 import { useSettingsStore } from "@/stores/settings-store"
-import { SetupInstructionsDialog, type SetupType } from "../SetupInstructionsDialog"
+import { SetupInstructionsDialog, type SetupType } from "../dialogs/SetupInstructionsDialog"
 
 export function AIProvidersTab() {
   const { t } = useTranslation()

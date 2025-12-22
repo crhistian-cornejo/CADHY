@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import * as THREE from "three"
 import { getCamera } from "@/services/viewport-registry"
-import { useModellerStore, useObjects } from "@/stores/modeller-store"
+import { useModellerStore, useObjects } from "@/stores/modeller"
 
 export function SimpleSelectionBox() {
   const [isSelecting, setIsSelecting] = useState(false)

@@ -103,7 +103,7 @@ impl ExportMesh {
         if self.indices.is_empty() {
             return Err(ExportError::InvalidMesh("No indices".into()));
         }
-        if self.indices.len() % 3 != 0 {
+        if !self.indices.len().is_multiple_of(3) {
             return Err(ExportError::InvalidMesh(
                 "Indices not divisible by 3".into(),
             ));

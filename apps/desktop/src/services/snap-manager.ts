@@ -43,7 +43,6 @@ export const DEFAULT_SNAP_CONFIG: SnapConfig = {
 
 export class SnapManager {
   private config: SnapConfig
-  private raycaster = new THREE.Raycaster()
   private snapIndicator: THREE.Mesh | null = null
 
   constructor(config: SnapConfig = DEFAULT_SNAP_CONFIG) {
@@ -57,7 +56,7 @@ export class SnapManager {
   findSnapPoint(
     position: THREE.Vector3,
     scene: THREE.Scene,
-    camera: THREE.Camera,
+    _camera: THREE.Camera,
     excludeObjects: THREE.Object3D[] = []
   ): SnapPoint | null {
     if (!this.config.enabled) return null

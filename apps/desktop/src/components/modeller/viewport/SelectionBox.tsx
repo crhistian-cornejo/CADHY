@@ -8,7 +8,7 @@
 import { useThree } from "@react-three/fiber"
 import { useCallback, useEffect, useRef, useState } from "react"
 import * as THREE from "three"
-import { useModellerStore } from "@/stores/modeller-store"
+import { useModellerStore } from "@/stores/modeller"
 
 export function SelectionBox() {
   const [isSelecting, setIsSelecting] = useState(false)
@@ -135,7 +135,7 @@ export function SelectionBox() {
       isDraggingRef.current = false
       startPosRef.current = { x: 0, y: 0 }
     },
-    [selectionStart, selectionEnd, objects, camera, isPointInSelection, selectedIds, setSelectedIds]
+    [selectionStart, selectionEnd, objects, isPointInSelection, selectedIds, setSelectedIds]
   )
 
   // Attach event listeners

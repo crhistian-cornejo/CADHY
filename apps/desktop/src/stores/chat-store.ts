@@ -8,7 +8,7 @@
 import { loggers } from "@cadhy/shared"
 import { create } from "zustand"
 import { subscribeWithSelector } from "zustand/middleware"
-import type { Message } from "@/hooks/useAIChat"
+import type { Message } from "@/hooks/use-ai-chat"
 import { getDefaultModelId } from "@/services/ai-service"
 import {
   ChatPersistenceService,

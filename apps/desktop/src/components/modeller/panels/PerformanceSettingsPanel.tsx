@@ -11,9 +11,9 @@ import { type LODConfig, lodManager } from "@/services/lod-manager"
 import { type TextureCacheConfig, textureCache } from "@/services/texture-cache"
 
 export function PerformanceSettingsPanel() {
-  const [lodConfig, setLodConfig] = useState<LODConfig>(lodManager["config"])
+  const [lodConfig, setLodConfig] = useState<LODConfig>(lodManager.config)
   const [textureCacheConfig, setTextureCacheConfig] = useState<TextureCacheConfig>(
-    textureCache["config"]
+    textureCache.config
   )
   const [stats, setStats] = useState({
     lod: lodManager.getStats(),

@@ -5,7 +5,7 @@
  */
 
 import React from "react"
-import type { ChuteType } from "@/stores/modeller-store"
+import type { ChuteType } from "@/stores/modeller"
 
 // ============================================================================
 // TYPES

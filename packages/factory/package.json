@@ -1,0 +1,34 @@
+{
+  "name": "@cadhy/factory",
+  "version": "0.1.3",
+  "type": "module",
+  "description": "Geometry factory pattern for CADHY - preview/commit lifecycle for CAD operations",
+  "exports": {
+    ".": "./src/index.ts",
+    "./geometry-factory": "./src/geometry-factory.ts",
+    "./multi-factory": "./src/multi-factory.ts",
+    "./primitive-factories": "./src/primitive-factories.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cadhy/command": "workspace:*",
+    "@cadhy/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.20",
+    "typescript": "~5.9.3"
+  },
+  "peerDependencies": {
+    "@tauri-apps/api": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tauri-apps/api": {
+      "optional": true
+    }
+  }
+}

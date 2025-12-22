@@ -22,8 +22,6 @@ export class SectionTool {
   private helpers: Map<string, THREE.PlaneHelper> = new Map()
   private scene: THREE.Scene | null = null
 
-  constructor() {}
-
   /**
    * Initialize with scene reference
    */

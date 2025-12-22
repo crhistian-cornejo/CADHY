@@ -8,7 +8,7 @@
 
 import { logger } from "@cadhy/shared/logger"
 import { save } from "@tauri-apps/plugin-dialog"
-import { shapeIdMap } from "@/hooks/useCAD"
+import { shapeIdMap } from "@/hooks/use-cad"
 import type {
   AnySceneObject,
   ChannelObject,
@@ -16,7 +16,7 @@ import type {
   ShapeObject,
   TransitionObject,
   TransitionSection,
-} from "@/stores/modeller-store"
+} from "@/stores/modeller"
 import * as cadService from "./cad-service"
 import {
   type ChannelSectionType,
@@ -241,7 +241,7 @@ export async function generateMeshForObject(object: AnySceneObject): Promise<Mes
       const shape = object as ShapeObject
 
       // First, try to get mesh from the object itself
-      if (shape.mesh && shape.mesh.vertices && shape.mesh.vertices.length > 0) {
+      if (shape.mesh?.vertices && shape.mesh.vertices.length > 0) {
         logger.log("[export-service] Using mesh from shape object:", {
           id: object.id,
           vertexCount: shape.mesh.vertices.length / 3,

@@ -114,7 +114,9 @@
     "exportOnlyDesktop": "Export is only available in the desktop app",
     "noObjectsSelected": "No objects selected for export",
     "exportedTo": "Exported to {{path}}",
-    "exportFailed": "Export failed"
+    "exportFailed": "Export failed",
+    "orthographicProjection": "Orthographic Projection",
+    "perspectiveProjection": "Perspective Projection"
   },
   "menu": {
     "file": "File",

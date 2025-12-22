@@ -10,7 +10,6 @@ import { PauseIcon, PlayIcon, StopIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback } from "react"
 import {
-  type CameraAnimation,
   useCameraAnimations,
   useCurrentAnimation,
   useModellerStore,
@@ -38,11 +37,7 @@ export function PlaybackControls({ className }: PlaybackControlsProps) {
 
   const { play, pause, stop, setPlaybackTime } = useModellerStore()
 
-  const currentAnimation = animations.find((a) => a.id === currentAnimationId)
-
-  // Don't render if there's no active animation
-  if (!currentAnimation) return null
-
+  // All hooks must be called before any early returns
   const handleSeek = useCallback(
     (value: number[]) => {
       setPlaybackTime(value[0])
@@ -64,13 +59,19 @@ export function PlaybackControls({ className }: PlaybackControlsProps) {
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
+  const currentAnimation = animations.find((a) => a.id === currentAnimationId)
+
+  // Don't render if there's no active animation (after all hooks)
+  if (!currentAnimation) return null
+
   return (
     <div
       className={cn(
-        "absolute bottom-4 left-1/2 -translate-x-1/2 z-10",
+        "absolute top-4 left-1/2 -translate-x-1/2 z-10",
         "flex items-center gap-3 px-4 py-2.5",
-        "bg-background/80 backdrop-blur-md border border-border rounded-lg shadow-lg",
+        "bg-background/80 backdrop-blur-md border border-border rounded-xl shadow-lg",
         "min-w-[400px]",
+        "animate-in fade-in slide-in-from-top-2 duration-300",
         className
       )}
     >

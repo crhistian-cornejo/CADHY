@@ -397,7 +397,10 @@ pub async fn ai_gateway_enhance_viewport(
 
     eprintln!("[CADHY] ai_gateway_enhance_viewport called");
     eprintln!("[CADHY] prompt length: {}", request.prompt.len());
-    eprintln!("[CADHY] image_base64 length: {}", request.image_base64.len());
+    eprintln!(
+        "[CADHY] image_base64 length: {}",
+        request.image_base64.len()
+    );
 
     // Extract raw base64 if it has data: prefix
     let image_data = if request.image_base64.starts_with("data:") {
@@ -468,7 +471,10 @@ pub async fn ai_gateway_enhance_viewport(
 
     eprintln!("[CADHY] Response length: {} chars", response_text.len());
     // Log first 500 chars for debugging
-    eprintln!("[CADHY] Response preview: {}", &response_text.chars().take(1000).collect::<String>());
+    eprintln!(
+        "[CADHY] Response preview: {}",
+        &response_text.chars().take(1000).collect::<String>()
+    );
 
     if !status.is_success() {
         return Ok(EnhanceViewportResponse {
@@ -564,13 +570,20 @@ pub async fn ai_gateway_enhance_viewport(
 
     // Check before moving images
     let has_images = !images.is_empty();
-    eprintln!("[CADHY] Extracted {} images, text: {:?}", images.len(), text.as_ref().map(|t| t.len()));
+    eprintln!(
+        "[CADHY] Extracted {} images, text: {:?}",
+        images.len(),
+        text.as_ref().map(|t| t.len())
+    );
 
     // If no images, include response preview in error for debugging
     let error_msg = if !has_images {
         // Truncate response for error message
         let preview: String = response_text.chars().take(500).collect();
-        Some(format!("No images generated. Response preview: {}", preview))
+        Some(format!(
+            "No images generated. Response preview: {}",
+            preview
+        ))
     } else {
         None
     };

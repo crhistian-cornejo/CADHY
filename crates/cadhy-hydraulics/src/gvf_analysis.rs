@@ -8,6 +8,8 @@
 //! - Manejo de transiciones entre secciones
 //! - Deteccion automatica de regimen de flujo
 //! - Soporte para estructuras (caidas, vertederos)
+
+#![allow(clippy::manual_range_contains)]
 //! - Interpolacion de secciones prismaticas y no-prismaticas
 //!
 //! # Referencia:

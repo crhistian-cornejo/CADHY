@@ -8,7 +8,7 @@ import { Badge } from "@cadhy/ui"
 import { InformationCircleIcon } from "@hugeicons/core-free-icons"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import type { AnySceneObject, ShapeObject } from "@/stores/modeller-store"
+import type { AnySceneObject, ShapeObject } from "@/stores/modeller"
 import { PropertyRow } from "../shared/PropertyRow"
 import { PropertySection } from "../shared/PropertySection"
 

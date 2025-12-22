@@ -19,7 +19,7 @@ import {
   isTauriAvailable,
 } from "@/services/hydraulics-service"
 import type { PBRTextureMaps } from "@/services/texture-service"
-import { type ChannelObject, useViewportSettings } from "@/stores/modeller-store"
+import { type ChannelObject, useViewportSettings } from "@/stores/modeller"
 import {
   createChannelFallbackGeometry,
   getSectionParams,
@@ -84,7 +84,7 @@ export const ChannelMesh = React.memo(function ChannelMesh({
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pbrTextures])
+  }, [pbrTextures, uvRepeat.x, uvRepeat.y])
 
   // Update UV repeat on slider change (without re-rendering geometry)
   useEffect(() => {
@@ -204,7 +204,7 @@ export const ChannelMesh = React.memo(function ChannelMesh({
         ;(externalMeshRef as React.MutableRefObject<THREE.Mesh | null>).current = null
       }
     }
-  }, [externalMeshRef, onMeshReady, geometry])
+  }, [externalMeshRef, onMeshReady])
 
   // Show loading placeholder at correct world position
   if (isLoading || !geometry) {

@@ -13,13 +13,10 @@ import * as THREE from "three"
 
 // Note: @cadhy/shared is mocked globally in setup.ts
 import {
-  type BasicMaterialConfig,
   getBasicMaterial,
   getLineMaterial,
   getStandardMaterial,
-  type LineMaterialConfig,
   materialPool,
-  type StandardMaterialConfig,
 } from "../services/material-pool"
 
 describe("Material Pool", () => {

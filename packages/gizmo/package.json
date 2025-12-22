@@ -1,0 +1,39 @@
+{
+  "name": "@cadhy/gizmo",
+  "version": "0.1.3",
+  "type": "module",
+  "description": "Interactive 3D gizmos for CADHY - drag handles, angle controls, distance manipulators",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./primitives": "./src/primitives/index.ts",
+    "./helpers": "./src/helpers/index.ts",
+    "./composites": "./src/composites/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cadhy/command": "workspace:*",
+    "@cadhy/types": "workspace:*",
+    "@react-three/drei": "^10.0.0",
+    "@react-three/fiber": "^9.0.0",
+    "three": "^0.182.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@cadhy/config": "workspace:*",
+    "@types/bun": "^1.2.20",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.182.0",
+    "typescript": "~5.9.3"
+  }
+}

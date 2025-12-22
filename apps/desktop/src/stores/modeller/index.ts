@@ -18,6 +18,7 @@ import { persist } from "zustand/middleware"
 import { useShallow } from "zustand/shallow"
 import { createAreasSlice } from "./areas-slice"
 import { createCameraSlice } from "./camera-slice"
+import { createHelpersSlice } from "./helpers-slice"
 import { createHistorySlice } from "./history-slice"
 import { createHydraulicsSlice } from "./hydraulics-slice"
 import { createLayersSlice } from "./layers-slice"
@@ -35,6 +36,7 @@ import { createSelectionSlice } from "./selection-slice"
 import { createSettingsSlice } from "./settings-slice"
 // Types
 import type { ModellerStore } from "./store-types"
+import { createTemporarySlice } from "./temporary-slice"
 import { createTransformSlice } from "./transform-slice"
 
 // ============================================================================
@@ -76,15 +78,18 @@ export type {
   GridSettings,
   HistoryEntry,
   Layer,
+  MaterialProperties,
   NotificationAction,
   NotificationCategory,
   // Notifications types
   NotificationSeverity,
   NotificationSummary,
   ObjectType,
+  PBRTextureConfig,
   SceneArea,
   SceneData,
   SceneObject,
+  SelectionMode,
   ShapeObject,
   SnapMode,
   StillingBasinConfig,
@@ -127,6 +132,8 @@ export const useModellerStore = create<ModellerStore>()(
       ...createSceneSlice(...args),
       ...createHydraulicsSlice(...args),
       ...createNotificationsSlice(...args),
+      ...createTemporarySlice(...args),
+      ...createHelpersSlice(...args),
     }),
     {
       name: "cadhy-modeller",
@@ -192,6 +199,7 @@ export const useTransformMode = () => useModellerStore((s) => s.transformMode)
 export const useTransformSpace = () => useModellerStore((s) => s.transformSpace)
 export const useSnapMode = () => useModellerStore((s) => s.snapMode)
 export const useBoxSelectMode = () => useModellerStore((s) => s.isBoxSelectMode)
+export const useSelectionMode = () => useModellerStore((s) => s.selectionMode)
 export const useCameraView = () => useModellerStore((s) => s.cameraView)
 export const useFocusObjectId = () => useModellerStore((s) => s.focusObjectId)
 export const useGridSettings = () => useModellerStore((s) => s.gridSettings)

@@ -7,7 +7,7 @@
 import { Move01Icon } from "@hugeicons/core-free-icons"
 import { useCallback } from "react"
 import { useTranslation } from "react-i18next"
-import type { AnySceneObject } from "@/stores/modeller-store"
+import type { AnySceneObject } from "@/stores/modeller"
 import { PropertyRow } from "../shared/PropertyRow"
 import { PropertySection } from "../shared/PropertySection"
 import { type Vector3, VectorInput } from "../shared/VectorInput"

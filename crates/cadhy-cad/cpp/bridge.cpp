@@ -256,6 +256,187 @@ std::unique_ptr<OcctShape> make_helix_at(
     }
 }
 
+std::unique_ptr<OcctShape> make_pyramid(
+    double x,
+    double y,
+    double z,
+    double px,
+    double py,
+    double pz,
+    double dx,
+    double dy,
+    double dz
+) {
+    try {
+        // Create pyramid base in XY plane, then transform
+        gp_Pnt origin(px, py, pz);
+        gp_Dir normal(dx, dy, dz);
+        gp_Ax2 axis(origin, normal);
+
+        // Create base rectangle
+        gp_Vec xvec = gp_Vec(axis.XDirection()).Multiplied(x);
+        gp_Vec yvec = gp_Vec(axis.YDirection()).Multiplied(y);
+        gp_Vec zvec = gp_Vec(axis.Direction()).Multiplied(z);
+
+        gp_Pnt p1 = origin;
+        gp_Pnt p2 = origin.Translated(xvec);
+        gp_Pnt p3 = origin.Translated(xvec + yvec);
+        gp_Pnt p4 = origin.Translated(yvec);
+        gp_Pnt apex = origin.Translated((xvec + yvec) * 0.5 + zvec);
+
+        // Create base face
+        BRepBuilderAPI_MakePolygon base_poly;
+        base_poly.Add(p1);
+        base_poly.Add(p2);
+        base_poly.Add(p3);
+        base_poly.Add(p4);
+        base_poly.Close();
+        if (!base_poly.IsDone()) return nullptr;
+
+        TopoDS_Wire base_wire = base_poly.Wire();
+        BRepBuilderAPI_MakeFace base_face(base_wire);
+        if (!base_face.IsDone()) return nullptr;
+
+        // Create 4 triangular side faces
+        BRepBuilderAPI_MakePolygon side1_poly;
+        side1_poly.Add(p1);
+        side1_poly.Add(p2);
+        side1_poly.Add(apex);
+        side1_poly.Close();
+        BRepBuilderAPI_MakeFace side1(side1_poly.Wire());
+
+        BRepBuilderAPI_MakePolygon side2_poly;
+        side2_poly.Add(p2);
+        side2_poly.Add(p3);
+        side2_poly.Add(apex);
+        side2_poly.Close();
+        BRepBuilderAPI_MakeFace side2(side2_poly.Wire());
+
+        BRepBuilderAPI_MakePolygon side3_poly;
+        side3_poly.Add(p3);
+        side3_poly.Add(p4);
+        side3_poly.Add(apex);
+        side3_poly.Close();
+        BRepBuilderAPI_MakeFace side3(side3_poly.Wire());
+
+        BRepBuilderAPI_MakePolygon side4_poly;
+        side4_poly.Add(p4);
+        side4_poly.Add(p1);
+        side4_poly.Add(apex);
+        side4_poly.Close();
+        BRepBuilderAPI_MakeFace side4(side4_poly.Wire());
+
+        // Build shell from faces
+        TopoDS_Shell shell;
+        BRep_Builder builder;
+        builder.MakeShell(shell);
+        builder.Add(shell, base_face.Face());
+        builder.Add(shell, side1.Face());
+        builder.Add(shell, side2.Face());
+        builder.Add(shell, side3.Face());
+        builder.Add(shell, side4.Face());
+
+        // Make solid
+        BRepBuilderAPI_MakeSolid solid_maker(shell);
+        if (!solid_maker.IsDone()) return nullptr;
+
+        return std::make_unique<OcctShape>(solid_maker.Solid());
+    } catch (const Standard_Failure& e) {
+        std::cerr << "make_pyramid exception: " << e.GetMessageString() << std::endl;
+        return nullptr;
+    } catch (...) {
+        std::cerr << "make_pyramid: unknown exception" << std::endl;
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> make_ellipsoid(
+    double cx,
+    double cy,
+    double cz,
+    double rx,
+    double ry,
+    double rz
+) {
+    try {
+        // Create unit sphere
+        TopoDS_Solid sphere = BRepPrimAPI_MakeSphere(1.0).Solid();
+
+        // Apply non-uniform scaling + translation
+        gp_GTrsf transform;
+        transform.SetValue(1, 1, rx);
+        transform.SetValue(2, 2, ry);
+        transform.SetValue(3, 3, rz);
+        transform.SetTranslationPart(gp_XYZ(cx, cy, cz));
+
+        BRepBuilderAPI_GTransform builder(sphere, transform);
+        if (!builder.IsDone()) return nullptr;
+
+        return std::make_unique<OcctShape>(builder.Shape());
+    } catch (const Standard_Failure& e) {
+        std::cerr << "make_ellipsoid exception: " << e.GetMessageString() << std::endl;
+        return nullptr;
+    } catch (...) {
+        std::cerr << "make_ellipsoid: unknown exception" << std::endl;
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> make_vertex(double x, double y, double z) {
+    try {
+        gp_Pnt point(x, y, z);
+        TopoDS_Vertex vertex = BRepBuilderAPI_MakeVertex(point).Vertex();
+        return std::make_unique<OcctShape>(vertex);
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+// ============================================================
+// SHAPE OPERATIONS
+// ============================================================
+
+std::unique_ptr<OcctShape> simplify_shape(const OcctShape& shape, bool unify_edges, bool unify_faces) {
+    try {
+        if (!unify_edges && !unify_faces) {
+            return std::make_unique<OcctShape>(shape.get());
+        }
+
+        ShapeUpgrade_UnifySameDomain unifier(shape.get(), unify_edges, unify_faces, Standard_True);
+        unifier.Build();
+
+        return std::make_unique<OcctShape>(unifier.Shape());
+    } catch (const Standard_Failure& e) {
+        std::cerr << "simplify_shape exception: " << e.GetMessageString() << std::endl;
+        return nullptr;
+    } catch (...) {
+        std::cerr << "simplify_shape: unknown exception" << std::endl;
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> combine_shapes(rust::Slice<const OcctShape* const> shapes) {
+    try {
+        TopoDS_Compound compound;
+        BRep_Builder builder;
+        builder.MakeCompound(compound);
+
+        for (const auto& shape_ptr : shapes) {
+            if (shape_ptr) {
+                builder.Add(compound, shape_ptr->get());
+            }
+        }
+
+        return std::make_unique<OcctShape>(compound);
+    } catch (const Standard_Failure& e) {
+        std::cerr << "combine_shapes exception: " << e.GetMessageString() << std::endl;
+        return nullptr;
+    } catch (...) {
+        std::cerr << "combine_shapes: unknown exception" << std::endl;
+        return nullptr;
+    }
+}
+
 // ============================================================
 // BOOLEAN OPERATIONS
 // ============================================================
@@ -1110,6 +1291,97 @@ std::unique_ptr<OcctShape> make_polygon_wire_3d(rust::Slice<const Vertex> points
         wireBuilder.Build();
         if (!wireBuilder.IsDone()) return nullptr;
         return std::make_unique<OcctShape>(wireBuilder.Wire());
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> make_ellipse(
+    double cx, double cy, double cz,
+    double nx, double ny, double nz,
+    double major_radius, double minor_radius,
+    double rotation
+) {
+    try {
+        gp_Pnt center(cx, cy, cz);
+        gp_Dir normal(nx, ny, nz);
+        gp_Ax2 axis(center, normal);
+        
+        if (std::abs(rotation) > 1e-10) {
+            axis.Rotate(gp_Ax1(center, normal), rotation);
+        }
+        
+        gp_Elips ellipse(axis, major_radius, minor_radius);
+        BRepBuilderAPI_MakeEdge maker(ellipse);
+        if (!maker.IsDone()) return nullptr;
+        return std::make_unique<OcctShape>(maker.Edge());
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> make_arc_3_points(
+    double x1, double y1, double z1,
+    double x2, double y2, double z2,
+    double x3, double y3, double z3
+) {
+    try {
+        gp_Pnt p1(x1, y1, z1);
+        gp_Pnt p2(x2, y2, z2);
+        gp_Pnt p3(x3, y3, z3);
+        
+        GC_MakeArcOfCircle maker(p1, p2, p3);
+        if (!maker.IsDone()) return nullptr;
+        
+        BRepBuilderAPI_MakeEdge edgeMaker(maker.Value());
+        if (!edgeMaker.IsDone()) return nullptr;
+        return std::make_unique<OcctShape>(edgeMaker.Edge());
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> make_bspline_interpolate(
+    rust::Slice<const Vertex> points,
+    bool closed
+) {
+    try {
+        if (points.size() < 2) return nullptr;
+        
+        Handle(TColgp_HArray1OfPnt) pntArray = new TColgp_HArray1OfPnt(1, static_cast<int>(points.size()));
+        for (size_t i = 0; i < points.size(); ++i) {
+            pntArray->SetValue(static_cast<int>(i + 1), gp_Pnt(points[i].x, points[i].y, points[i].z));
+        }
+        
+        GeomAPI_Interpolate interpolator(pntArray, closed, 1e-6);
+        interpolator.Perform();
+        if (!interpolator.IsDone()) return nullptr;
+        
+        Handle(Geom_BSplineCurve) curve = interpolator.Curve();
+        BRepBuilderAPI_MakeEdge edgeMaker(curve);
+        if (!edgeMaker.IsDone()) return nullptr;
+        return std::make_unique<OcctShape>(edgeMaker.Edge());
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> make_bezier(
+    rust::Slice<const Vertex> control_points
+) {
+    try {
+        if (control_points.size() < 2) return nullptr;
+        
+        TColgp_Array1OfPnt poles(1, static_cast<int>(control_points.size()));
+        for (size_t i = 0; i < control_points.size(); ++i) {
+            poles.SetValue(static_cast<int>(i + 1), 
+                gp_Pnt(control_points[i].x, control_points[i].y, control_points[i].z));
+        }
+        
+        Handle(Geom_BezierCurve) curve = new Geom_BezierCurve(poles);
+        BRepBuilderAPI_MakeEdge edgeMaker(curve);
+        if (!edgeMaker.IsDone()) return nullptr;
+        return std::make_unique<OcctShape>(edgeMaker.Edge());
     } catch (...) {
         return nullptr;
     }

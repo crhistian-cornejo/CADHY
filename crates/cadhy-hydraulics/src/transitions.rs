@@ -6,8 +6,10 @@
 //! - Warped: Alabeado para mejor hidraulica
 //! - Cylindrical: Paredes cilindricas
 //! - Inlet: Entrada (expansion)
-//! - Outlet: Salida (contraccion)
+//! - Salida (contraccion)
 //!
+
+#![allow(clippy::redundant_closure)]
 //! Las transiciones pueden incluir disipadores de energía opcionales cuando
 //! hay cambio significativo de elevación (pendiente > umbral).
 

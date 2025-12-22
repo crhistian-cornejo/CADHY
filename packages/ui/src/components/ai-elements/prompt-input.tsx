@@ -350,12 +350,12 @@ export const PromptInputTextarea = forwardRef<HTMLTextAreaElement, PromptInputTe
       if (!textarea) return
 
       textarea.style.height = "auto"
-      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 24
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight, 10) || 24
       const minHeight = lineHeight * minRows
       const maxHeight = lineHeight * maxRows
       const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight)
       textarea.style.height = `${newHeight}px`
-    }, [controller.textInput.value, maxRows, minRows])
+    }, [maxRows, minRows])
 
     const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
       if (e.key === "Enter") {

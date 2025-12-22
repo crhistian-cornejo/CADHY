@@ -16,7 +16,7 @@ import * as THREE from "three"
 // Note: @cadhy/shared is mocked globally in setup.ts
 // Note: material-pool uses the real implementation (loggers are mocked)
 
-import { DEFAULT_SNAP_CONFIG, type SnapConfig, SnapManager } from "../services/snap-manager"
+import { DEFAULT_SNAP_CONFIG, SnapManager } from "../services/snap-manager"
 
 describe("Snap Manager", () => {
   let snapManager: SnapManager
@@ -284,7 +284,7 @@ describe("Snap Manager", () => {
 
       expect(result).not.toBeNull()
       // Should return the closest snap point
-      expect(result!.distance).toBeLessThan(2.0)
+      expect(result?.distance).toBeLessThan(2.0)
     })
   })
 

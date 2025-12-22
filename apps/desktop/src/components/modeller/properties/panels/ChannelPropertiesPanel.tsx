@@ -23,7 +23,7 @@ import type {
   RectangularSection,
   TrapezoidalSection,
   TriangularSection,
-} from "@/stores/modeller-store"
+} from "@/stores/modeller"
 import { ChannelSectionPreview } from "../previews/ChannelSectionPreview"
 import { PropertyRow } from "../shared/PropertyRow"
 import { PropertySection } from "../shared/PropertySection"
