@@ -5,6 +5,7 @@
  * Uses the hotkey registry system for consistent, customizable shortcuts.
  */
 
+import { toast } from "@cadhy/ui"
 import { useCallback } from "react"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useLayoutStore } from "@/stores/layout-store"
@@ -567,6 +568,148 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       keys: ["Ctrl+Shift+R"],
     },
     useCallback(() => useNavigationStore.getState().setView("results"), [])
+  )
+
+  // ========== CAD OPERATIONS HOTKEYS ==========
+
+  useHotkey(
+    {
+      id: "operations.fillet",
+      name: "Fillet",
+      description: "Round edges of selected object",
+      category: "operations",
+      keys: ["F"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      const selectedObjects = useModellerStore.getState().selectedObjects
+      if (selectedObjects.length === 0) {
+        toast.error("No objects selected. Select an object first.")
+        return
+      }
+      toast.info("Fillet operation - Coming soon!")
+      // TODO: Implement fillet operation
+    }, [])
+  )
+
+  useHotkey(
+    {
+      id: "operations.chamfer",
+      name: "Chamfer",
+      description: "Bevel edges of selected object",
+      category: "operations",
+      keys: ["C"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      const selectedObjects = useModellerStore.getState().selectedObjects
+      if (selectedObjects.length === 0) {
+        toast.error("No objects selected. Select an object first.")
+        return
+      }
+      toast.info("Chamfer operation - Coming soon!")
+      // TODO: Implement chamfer operation
+    }, [])
+  )
+
+  useHotkey(
+    {
+      id: "operations.mirror",
+      name: "Mirror",
+      description: "Mirror selected object",
+      category: "operations",
+      keys: ["X"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      const selectedObjects = useModellerStore.getState().selectedObjects
+      if (selectedObjects.length === 0) {
+        toast.error("No objects selected. Select an object first.")
+        return
+      }
+      toast.info("Mirror operation - Coming soon!")
+      // TODO: Implement mirror operation
+    }, [])
+  )
+
+  useHotkey(
+    {
+      id: "operations.duplicate",
+      name: "Duplicate",
+      description: "Duplicate selected object",
+      category: "operations",
+      keys: ["D"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      const selectedObjects = useModellerStore.getState().selectedObjects
+      if (selectedObjects.length === 0) {
+        toast.error("No objects selected. Select an object first.")
+        return
+      }
+      toast.info("Duplicate operation - Coming soon!")
+      // TODO: Use modellerStore.duplicateSelected() when implemented
+    }, [])
+  )
+
+  useHotkey(
+    {
+      id: "operations.extrude",
+      name: "Extrude",
+      description: "Extrude a face or wire",
+      category: "operations",
+      keys: ["E"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      const selectedObjects = useModellerStore.getState().selectedObjects
+      if (selectedObjects.length === 0) {
+        toast.error("No objects selected. Select an object first.")
+        return
+      }
+      toast.info("Extrude operation - Coming soon!")
+      // TODO: Implement extrude operation
+    }, [])
+  )
+
+  useHotkey(
+    {
+      id: "operations.loft",
+      name: "Loft",
+      description: "Create a loft between profiles",
+      category: "operations",
+      keys: ["L"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      const selectedObjects = useModellerStore.getState().selectedObjects
+      if (selectedObjects.length < 2) {
+        toast.error("Select at least 2 objects to create a loft.")
+        return
+      }
+      toast.info("Loft operation - Coming soon!")
+      // TODO: Implement loft operation
+    }, [])
+  )
+
+  useHotkey(
+    {
+      id: "operations.offset",
+      name: "Offset",
+      description: "Offset a face or wire",
+      category: "operations",
+      keys: ["O"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      const selectedObjects = useModellerStore.getState().selectedObjects
+      if (selectedObjects.length === 0) {
+        toast.error("No objects selected. Select an object first.")
+        return
+      }
+      toast.info("Offset operation - Coming soon!")
+      // TODO: Implement offset operation
+    }, [])
   )
 
   // ========== THEME HOTKEYS ==========

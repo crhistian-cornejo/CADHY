@@ -16,6 +16,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  toast,
 } from "@cadhy/ui"
 import {
   Add01Icon,
@@ -352,11 +353,68 @@ function BottomToolbar() {
     setOperationsOpen(false)
   }
 
+  const handleOperation = useCallback(
+    (operationId: string) => {
+      setOperationsOpen(false)
+
+      if (selectedObjects.length === 0) {
+        toast.error("No objects selected. Select an object first.")
+        return
+      }
+
+      switch (operationId) {
+        case "mirror":
+          toast.info("Mirror operation - Coming soon!")
+          // TODO: Implement mirror operation
+          break
+        case "fillet":
+          toast.info("Fillet operation - Coming soon!")
+          // TODO: Implement fillet operation
+          break
+        case "duplicate":
+          toast.info("Duplicate operation - Coming soon!")
+          // TODO: Implement duplicate operation
+          break
+        case "pipe":
+          toast.info("Pipe operation - Coming soon!")
+          // TODO: Implement pipe operation
+          break
+        default:
+          toast.error(`Unknown operation: ${operationId}`)
+      }
+    },
+    [selectedObjects]
+  )
+
   const operations = [
-    { id: "mirror", icon: MirrorIcon, label: "Mirror", shortcut: "X" },
-    { id: "fillet", icon: FilletIcon, label: "Fillet", shortcut: "F" },
-    { id: "duplicate", icon: DuplicateIcon, label: "Duplicate", shortcut: "D" },
-    { id: "pipe", icon: PipeIcon, label: "Pipe", shortcut: "P" },
+    {
+      id: "mirror",
+      icon: MirrorIcon,
+      label: "Mirror",
+      shortcut: "X",
+      onClick: () => handleOperation("mirror"),
+    },
+    {
+      id: "fillet",
+      icon: FilletIcon,
+      label: "Fillet",
+      shortcut: "F",
+      onClick: () => handleOperation("fillet"),
+    },
+    {
+      id: "duplicate",
+      icon: DuplicateIcon,
+      label: "Duplicate",
+      shortcut: "D",
+      onClick: () => handleOperation("duplicate"),
+    },
+    {
+      id: "pipe",
+      icon: PipeIcon,
+      label: "Pipe",
+      shortcut: "P",
+      onClick: () => handleOperation("pipe"),
+    },
   ]
 
   return (
@@ -434,7 +492,7 @@ function BottomToolbar() {
               <button
                 type="button"
                 key={op.id}
-                onClick={() => setOperationsOpen(false)}
+                onClick={op.onClick}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-all text-left group"
               >
                 <SmartIcon
