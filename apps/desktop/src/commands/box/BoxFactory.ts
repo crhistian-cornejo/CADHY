@@ -12,7 +12,9 @@
  */
 
 import * as THREE from "three"
-import { createBox } from "@/services/cad-service"
+import { shapeIdMap } from "@/hooks/use-cad"
+import { createBox, tessellate } from "@/services/cad-service"
+import { type ShapeObject, useModellerStore } from "@/stores/modeller"
 
 // ============================================================================
 // TYPES
@@ -187,13 +189,74 @@ export class BoxFactory {
 
   /**
    * Create the final box shape
-   * Returns the shape ID from the backend
+   * Returns the scene object ID (not backend ID)
    */
   async commit(): Promise<string | null> {
     try {
+      console.log("[BoxFactory] Creating box:", {
+        width: this.width,
+        length: this.length,
+        height: this.height,
+      })
+
+      // Create shape in backend
       const result = await createBox(this.width, this.length, this.height)
+      console.log("[BoxFactory] Backend shape created:", result.id)
+
+      if (!result || !result.id) {
+        throw new Error("createBox returned invalid result - missing id")
+      }
+
+      // Tessellate for rendering
+      const meshData = await tessellate(result.id, 0.1)
+      console.log("[BoxFactory] Tessellation complete, vertices:", meshData.vertex_count)
+
+      // Create scene object
+      const shapeObject: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
+        type: "shape",
+        name: "Box",
+        layerId: "default",
+        visible: true,
+        locked: false,
+        selected: false,
+        shapeType: "box",
+        parameters: { width: this.width, depth: this.length, height: this.height },
+        mesh: {
+          vertices: meshData.vertices,
+          indices: meshData.indices,
+          normals: meshData.normals ?? undefined,
+          vertexCount: meshData.vertex_count,
+          triangleCount: meshData.triangle_count,
+        },
+        material: {
+          color: "#6366f1",
+          opacity: 1,
+          metalness: 0.1,
+          roughness: 0.6,
+        },
+        transform: {
+          position: { x: 0, y: this.height / 2, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+        },
+        metadata: {
+          backendShapeId: result.id,
+          analysis: result.analysis,
+        },
+      }
+
+      // Add to store
+      const sceneId = useModellerStore.getState().addObject(shapeObject)
+
+      // Register in shapeIdMap
+      shapeIdMap.set(sceneId, result.id)
+      console.log("[BoxFactory] Registered shape:", { sceneId, backendId: result.id })
+
+      // Select the new object
+      useModellerStore.getState().select(sceneId)
+
       this.hidePreview()
-      return result.id
+      return sceneId
     } catch (error) {
       console.error("[BoxFactory] Failed to create box:", error)
       throw error
