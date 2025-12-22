@@ -63,8 +63,8 @@ export function CommandProvider({ children }: CommandProviderProps) {
 
   return (
     <CommandContext.Provider value={{ executeBoxCommand, activeOperation }}>
-      <CommandContextBridge />
       {children}
+      <CommandContextBridge />
     </CommandContext.Provider>
   )
 }
