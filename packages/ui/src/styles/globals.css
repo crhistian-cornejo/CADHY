@@ -291,8 +291,8 @@ textarea,
    ============================================ */
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -302,7 +302,7 @@ textarea,
 ::-webkit-scrollbar-thumb {
   background: var(--muted);
   border-radius: 9999px;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
 }
 
 ::-webkit-scrollbar-thumb:hover {

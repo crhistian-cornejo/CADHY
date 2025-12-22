@@ -387,6 +387,106 @@ export const DEFAULT_HOTKEYS: DefaultHotkeyCategory[] = [
       },
     ],
   },
+  {
+    category: "operations",
+    label: "CAD Operations",
+    hotkeys: [
+      // Modify Operations
+      {
+        id: "operations.fillet",
+        name: "Fillet",
+        description: "Round edges of selected object",
+        keys: ["F"],
+        context: "modeller",
+      },
+      {
+        id: "operations.chamfer",
+        name: "Chamfer",
+        description: "Bevel edges of selected object",
+        keys: ["C"],
+        context: "modeller",
+      },
+      {
+        id: "operations.shell",
+        name: "Shell",
+        description: "Hollow out selected object",
+        keys: ["H"],
+        context: "modeller",
+      },
+      {
+        id: "operations.mirror",
+        name: "Mirror",
+        description: "Mirror selected object",
+        keys: ["X"],
+        context: "modeller",
+      },
+      {
+        id: "operations.duplicate",
+        name: "Duplicate",
+        description: "Duplicate selected object",
+        keys: ["D"],
+        context: "modeller",
+      },
+      // Advanced Operations
+      {
+        id: "operations.extrude",
+        name: "Extrude",
+        description: "Extrude a face or wire",
+        keys: ["E"],
+        context: "modeller",
+      },
+      {
+        id: "operations.revolve",
+        name: "Revolve",
+        description: "Revolve a profile around an axis",
+        keys: ["Shift+R"],
+        context: "modeller",
+      },
+      {
+        id: "operations.loft",
+        name: "Loft",
+        description: "Create a loft between profiles",
+        keys: ["L"],
+        context: "modeller",
+      },
+      {
+        id: "operations.pipe",
+        name: "Pipe",
+        description: "Create a pipe along a path",
+        keys: ["Shift+P"],
+        context: "modeller",
+      },
+      {
+        id: "operations.offset",
+        name: "Offset",
+        description: "Offset a face or wire",
+        keys: ["O"],
+        context: "modeller",
+      },
+      // Boolean Operations
+      {
+        id: "operations.union",
+        name: "Boolean Union",
+        description: "Fuse two objects together",
+        keys: ["U"],
+        context: "modeller",
+      },
+      {
+        id: "operations.subtract",
+        name: "Boolean Subtract",
+        description: "Subtract one object from another",
+        keys: ["Shift+S"],
+        context: "modeller",
+      },
+      {
+        id: "operations.intersect",
+        name: "Boolean Intersect",
+        description: "Intersect two objects",
+        keys: ["I"],
+        context: "modeller",
+      },
+    ],
+  },
 ]
 
 /**
