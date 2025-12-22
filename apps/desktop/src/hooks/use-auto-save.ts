@@ -7,7 +7,7 @@
 
 import { logger } from "@cadhy/shared/logger"
 import { useCallback, useEffect, useRef } from "react"
-import { useIsDirty } from "@/stores/modeller-store"
+import { useIsDirty } from "@/stores/modeller"
 import { useCurrentProject, useProjectSettings, useProjectStore } from "@/stores/project-store"
 
 interface UseAutoSaveOptions {

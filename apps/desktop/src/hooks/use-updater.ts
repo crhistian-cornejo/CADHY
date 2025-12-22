@@ -61,6 +61,8 @@ export interface UseUpdaterReturn {
   downloadAndInstall: () => Promise<void>
   /** Dismiss the update notification */
   dismiss: () => void
+  /** Resume update check from badge click (clears dismissed state first) */
+  resumeFromBadge: () => void
 }
 
 export function useUpdater(options?: {
@@ -298,6 +300,14 @@ export function useUpdater(options?: {
     setReadyToInstall(false)
   }, [updateInfo])
 
+  // Resume update from badge click - just re-check without dismissing
+  const resumeFromBadge = useCallback(() => {
+    // Clear dismissed state so dialog can show
+    setDismissed(false)
+    // Trigger a fresh check (manual mode will show errors)
+    checkForUpdates(true)
+  }, [checkForUpdates])
+
   // Check on mount - only once (automatic, no error popup)
   useEffect(() => {
     if (checkOnMount && !hasCheckedOnMount.current) {
@@ -331,6 +341,7 @@ export function useUpdater(options?: {
     installUpdate,
     downloadAndInstall,
     dismiss,
+    resumeFromBadge,
   }
 }
 

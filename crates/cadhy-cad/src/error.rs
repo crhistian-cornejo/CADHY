@@ -11,6 +11,9 @@ pub enum OcctError {
     #[error("Failed to create primitive: {0}")]
     PrimitiveCreationFailed(String),
 
+    #[error("Failed to create curve: {0}")]
+    CurveCreationFailed(String),
+
     #[error("Boolean operation failed: {0}")]
     BooleanOperationFailed(String),
 

@@ -8,7 +8,7 @@
 import { useCallback } from "react"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useLayoutStore } from "@/stores/layout-store"
-import { useModellerStore } from "@/stores/modeller-store"
+import { useModellerStore } from "@/stores/modeller"
 import { useNavigationStore } from "@/stores/navigation-store"
 import { useProjectStore } from "@/stores/project-store"
 import { useThemeStore } from "@/stores/theme-store"
@@ -134,6 +134,50 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
     }, [])
   )
 
+  // ========== VIEW MODE HOTKEYS ==========
+
+  useHotkey(
+    {
+      id: "view.solidMode",
+      name: "Solid View",
+      description: "Switch to solid view mode",
+      category: "view",
+      keys: ["Option+1"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      useModellerStore.getState().setViewportSettings({ viewMode: "solid" })
+    }, [])
+  )
+
+  useHotkey(
+    {
+      id: "view.wireframeMode",
+      name: "Wireframe View",
+      description: "Switch to wireframe view mode",
+      category: "view",
+      keys: ["Option+2"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      useModellerStore.getState().setViewportSettings({ viewMode: "wireframe" })
+    }, [])
+  )
+
+  useHotkey(
+    {
+      id: "view.xrayMode",
+      name: "X-Ray View",
+      description: "Switch to x-ray view mode",
+      category: "view",
+      keys: ["Option+3"],
+      context: "modeller",
+    },
+    useCallback(() => {
+      useModellerStore.getState().setViewportSettings({ viewMode: "xray" })
+    }, [])
+  )
+
   // ========== FILE HOTKEYS ==========
 
   useHotkey(
@@ -255,6 +299,56 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       context: "modeller",
     },
     useCallback(() => useModellerStore.getState().deselectAll(), [])
+  )
+
+  // ========== SELECTION MODE HOTKEYS (Plasticity-style) ==========
+
+  useHotkey(
+    {
+      id: "selection.vertex",
+      name: "Vertex Selection",
+      description: "Switch to vertex selection mode",
+      category: "selection",
+      keys: ["1"],
+      context: "modeller",
+    },
+    useCallback(() => useModellerStore.getState().setSelectionMode("vertex"), [])
+  )
+
+  useHotkey(
+    {
+      id: "selection.edge",
+      name: "Edge Selection",
+      description: "Switch to edge selection mode",
+      category: "selection",
+      keys: ["2"],
+      context: "modeller",
+    },
+    useCallback(() => useModellerStore.getState().setSelectionMode("edge"), [])
+  )
+
+  useHotkey(
+    {
+      id: "selection.face",
+      name: "Face Selection",
+      description: "Switch to face selection mode",
+      category: "selection",
+      keys: ["3"],
+      context: "modeller",
+    },
+    useCallback(() => useModellerStore.getState().setSelectionMode("face"), [])
+  )
+
+  useHotkey(
+    {
+      id: "selection.body",
+      name: "Body Selection",
+      description: "Switch to body selection mode",
+      category: "selection",
+      keys: ["4"],
+      context: "modeller",
+    },
+    useCallback(() => useModellerStore.getState().setSelectionMode("body"), [])
   )
 
   useHotkey(

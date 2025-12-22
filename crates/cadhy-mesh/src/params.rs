@@ -134,11 +134,12 @@ impl MeshParamsBuilder {
 }
 
 /// Quality preset levels for mesh generation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum QualityPreset {
     /// Fast visualization (lowest quality)
     Visualization,
     /// Standard quality (default)
+    #[default]
     Standard,
     /// High quality
     High,
@@ -158,11 +159,5 @@ impl QualityPreset {
             QualityPreset::Export => MeshParams::export_quality(),
             QualityPreset::Printing => MeshParams::printing(),
         }
-    }
-}
-
-impl Default for QualityPreset {
-    fn default() -> Self {
-        QualityPreset::Standard
     }
 }

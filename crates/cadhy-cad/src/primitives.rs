@@ -266,6 +266,79 @@ impl Primitives {
         Shape::from_ptr(ptr)
     }
 
+    /// Create a pyramid (square base tapering to a point)
+    ///
+    /// # Arguments
+    /// * `x, y, z` - Base dimensions (width, depth, height)
+    /// * `px, py, pz` - Base center position
+    /// * `dx, dy, dz` - Normal direction (apex direction)
+    ///
+    /// # Example
+    /// ```no_run
+    /// let pyramid = cadhy_cad::Primitives::make_pyramid(
+    ///     10.0, 10.0, 15.0,  // base 10x10, height 15
+    ///     0.0, 0.0, 0.0,     // centered at origin
+    ///     0.0, 0.0, 1.0      // pointing up (Z-axis)
+    /// ).unwrap();
+    /// ```
+    pub fn make_pyramid(
+        x: f64,
+        y: f64,
+        z: f64,
+        px: f64,
+        py: f64,
+        pz: f64,
+        dx: f64,
+        dy: f64,
+        dz: f64,
+    ) -> OcctResult<Shape> {
+        let ptr = ffi::make_pyramid(x, y, z, px, py, pz, dx, dy, dz);
+        Shape::from_ptr(ptr)
+            .map_err(|_| OcctError::PrimitiveCreationFailed("Pyramid creation failed".to_string()))
+    }
+
+    /// Create an ellipsoid (3D ellipse with different radii)
+    ///
+    /// # Arguments
+    /// * `cx, cy, cz` - Center position
+    /// * `rx, ry, rz` - Radii along X, Y, Z axes
+    ///
+    /// # Example
+    /// ```no_run
+    /// let ellipsoid = cadhy_cad::Primitives::make_ellipsoid(
+    ///     0.0, 0.0, 0.0,     // centered at origin
+    ///     5.0, 3.0, 2.0      // wider in X, narrower in Z
+    /// ).unwrap();
+    /// ```
+    pub fn make_ellipsoid(
+        cx: f64,
+        cy: f64,
+        cz: f64,
+        rx: f64,
+        ry: f64,
+        rz: f64,
+    ) -> OcctResult<Shape> {
+        let ptr = ffi::make_ellipsoid(cx, cy, cz, rx, ry, rz);
+        Shape::from_ptr(ptr).map_err(|_| {
+            OcctError::PrimitiveCreationFailed("Ellipsoid creation failed".to_string())
+        })
+    }
+
+    /// Create a vertex (point)
+    ///
+    /// # Arguments
+    /// * `x, y, z` - Point position
+    ///
+    /// # Example
+    /// ```no_run
+    /// let vertex = cadhy_cad::Primitives::make_vertex(1.0, 2.0, 3.0).unwrap();
+    /// ```
+    pub fn make_vertex(x: f64, y: f64, z: f64) -> OcctResult<Shape> {
+        let ptr = ffi::make_vertex(x, y, z);
+        Shape::from_ptr(ptr)
+            .map_err(|_| OcctError::PrimitiveCreationFailed("Vertex creation failed".to_string()))
+    }
+
     /// Create a rectangle wire in the XY plane
     ///
     /// # Arguments

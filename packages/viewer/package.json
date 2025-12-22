@@ -18,7 +18,7 @@
     "@cadhy/types": "workspace:*",
     "@react-three/fiber": "^9.0.0",
     "@react-three/drei": "^10.0.0",
-    "three": "^0.181.0"
+    "three": "^0.182.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -27,7 +27,7 @@
   "devDependencies": {
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.181.0",
+    "@types/three": "^0.182.0",
     "typescript": "~5.9.3"
   }
 }

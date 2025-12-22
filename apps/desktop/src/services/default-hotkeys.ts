@@ -173,6 +173,27 @@ export const DEFAULT_HOTKEYS: DefaultHotkeyCategory[] = [
         description: "Toggle fullscreen mode",
         keys: ["F11"],
       },
+      {
+        id: "view.solidMode",
+        name: "Solid View",
+        description: "Switch to solid view mode",
+        keys: ["1"],
+        context: "modeller",
+      },
+      {
+        id: "view.wireframeMode",
+        name: "Wireframe View",
+        description: "Switch to wireframe view mode",
+        keys: ["2"],
+        context: "modeller",
+      },
+      {
+        id: "view.xrayMode",
+        name: "X-Ray View",
+        description: "Switch to x-ray view mode",
+        keys: ["3"],
+        context: "modeller",
+      },
     ],
   },
   {

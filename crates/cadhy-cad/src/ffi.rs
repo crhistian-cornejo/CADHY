@@ -540,6 +540,32 @@ pub mod ffi {
             clockwise: bool,
         ) -> UniquePtr<OcctShape>;
 
+        /// Create a pyramid (square base tapering to a point)
+        fn make_pyramid(
+            x: f64,
+            y: f64,
+            z: f64,
+            px: f64,
+            py: f64,
+            pz: f64,
+            dx: f64,
+            dy: f64,
+            dz: f64,
+        ) -> UniquePtr<OcctShape>;
+
+        /// Create an ellipsoid (3D ellipse with different radii)
+        fn make_ellipsoid(
+            cx: f64,
+            cy: f64,
+            cz: f64,
+            rx: f64,
+            ry: f64,
+            rz: f64,
+        ) -> UniquePtr<OcctShape>;
+
+        /// Create a vertex (point)
+        fn make_vertex(x: f64, y: f64, z: f64) -> UniquePtr<OcctShape>;
+
         // ============================================================
         // BOOLEAN OPERATIONS
         // ============================================================
@@ -606,6 +632,22 @@ pub mod ffi {
         /// thickness: thickness to add (positive = outward, negative = inward)
         /// both_sides: if true, add thickness to both sides
         fn thicken(shape: &OcctShape, thickness: f64, both_sides: bool) -> UniquePtr<OcctShape>;
+
+        // ============================================================
+        // SHAPE OPERATIONS
+        // ============================================================
+
+        /// Simplify a shape by unifying faces and edges
+        /// Critical for cleaning up boolean operation results
+        fn simplify_shape(
+            shape: &OcctShape,
+            unify_edges: bool,
+            unify_faces: bool,
+        ) -> UniquePtr<OcctShape>;
+
+        /// Combine multiple shapes into a compound
+        /// Note: Pass shape pointers, not IDs
+        fn combine_shapes(shapes: &[*const OcctShape]) -> UniquePtr<OcctShape>;
 
         // ============================================================
         // TRANSFORM OPERATIONS
@@ -754,6 +796,38 @@ pub mod ffi {
 
         /// Create a closed polygon wire from 3D points
         fn make_polygon_wire_3d(points: &[Vertex]) -> UniquePtr<OcctShape>;
+
+        /// Create an ellipse edge
+        fn make_ellipse(
+            cx: f64,
+            cy: f64,
+            cz: f64,
+            nx: f64,
+            ny: f64,
+            nz: f64,
+            major_radius: f64,
+            minor_radius: f64,
+            rotation: f64,
+        ) -> UniquePtr<OcctShape>;
+
+        /// Create an arc through 3 points
+        fn make_arc_3_points(
+            x1: f64,
+            y1: f64,
+            z1: f64,
+            x2: f64,
+            y2: f64,
+            z2: f64,
+            x3: f64,
+            y3: f64,
+            z3: f64,
+        ) -> UniquePtr<OcctShape>;
+
+        /// Create a B-spline curve interpolating through points
+        fn make_bspline_interpolate(points: &[Vertex], closed: bool) -> UniquePtr<OcctShape>;
+
+        /// Create a Bezier curve from control points
+        fn make_bezier(control_points: &[Vertex]) -> UniquePtr<OcctShape>;
 
         // ============================================================
         // TESSELLATION

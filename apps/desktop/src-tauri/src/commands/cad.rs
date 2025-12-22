@@ -57,6 +57,19 @@ fn remove_shape(id: &str) -> Result<(), String> {
         .ok_or_else(|| format!("Shape '{}' not found", id))
 }
 
+// Public helper functions for use by other command modules
+pub fn store_shape_with_id(id: String, shape: Shape) -> Result<(), String> {
+    let mut registry = get_registry()
+        .lock()
+        .map_err(|e| format!("Failed to acquire shape registry lock: {}", e))?;
+    registry.insert(id, shape);
+    Ok(())
+}
+
+pub fn get_shape_from_registry(id: &str) -> Result<Shape, String> {
+    get_shape(id)
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -369,6 +382,46 @@ pub fn cad_chamfer(shape_id: String, distance: f64) -> Result<ShapeResult, Strin
     })
 }
 
+/// Apply fillet to specific edges (RECOMMENDED - more reliable than filleting all edges)
+#[tauri::command]
+pub fn cad_fillet_edges(
+    shape_id: String,
+    edge_indices: Vec<i32>,
+    radii: Vec<f64>,
+) -> Result<ShapeResult, String> {
+    let shape = get_shape(&shape_id)?;
+
+    let result =
+        Operations::fillet_edges(&shape, &edge_indices, &radii).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Apply chamfer to specific edges
+#[tauri::command]
+pub fn cad_chamfer_edges(
+    shape_id: String,
+    edge_indices: Vec<i32>,
+    distances: Vec<f64>,
+) -> Result<ShapeResult, String> {
+    let shape = get_shape(&shape_id)?;
+
+    let result =
+        Operations::chamfer_edges(&shape, &edge_indices, &distances).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
 /// Create a shell (hollow solid) from a shape
 #[tauri::command]
 pub fn cad_shell(shape_id: String, thickness: f64) -> Result<ShapeResult, String> {
@@ -538,6 +591,78 @@ pub fn cad_revolve(
     })
 }
 
+/// Create a lofted solid/shell through multiple wire profiles
+#[tauri::command]
+pub fn cad_loft(profile_ids: Vec<String>, solid: bool, ruled: bool) -> Result<ShapeResult, String> {
+    // Get all profile shapes from registry
+    let profiles: Result<Vec<Shape>, String> = profile_ids.iter().map(|id| get_shape(id)).collect();
+
+    let profiles = profiles?;
+    let profile_refs: Vec<&Shape> = profiles.iter().collect();
+
+    let result = Operations::loft(&profile_refs, solid, ruled).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Sweep a profile along a spine path (pipe operation)
+#[tauri::command]
+pub fn cad_pipe(profile_id: String, spine_id: String) -> Result<ShapeResult, String> {
+    let profile = get_shape(&profile_id)?;
+    let spine = get_shape(&spine_id)?;
+
+    let result = Operations::pipe(&profile, &spine).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Sweep a profile along a spine with more control (advanced pipe)
+#[tauri::command]
+pub fn cad_pipe_shell(
+    profile_id: String,
+    spine_id: String,
+    with_contact: bool,
+    with_correction: bool,
+) -> Result<ShapeResult, String> {
+    let profile = get_shape(&profile_id)?;
+    let spine = get_shape(&spine_id)?;
+
+    let result = Operations::pipe_shell(&profile, &spine, with_contact, with_correction)
+        .map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Offset a solid shape
+#[tauri::command]
+pub fn cad_offset(shape_id: String, offset: f64) -> Result<ShapeResult, String> {
+    let shape = get_shape(&shape_id)?;
+
+    let result = Operations::offset(&shape, offset).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
 // =============================================================================
 // TESSELLATION / MESH
 // =============================================================================
@@ -690,4 +815,106 @@ pub fn cad_shape_count() -> Result<usize, String> {
         .lock()
         .map_err(|e| format!("Failed to acquire shape registry lock: {}", e))?;
     Ok(registry.len())
+}
+
+// =============================================================================
+// NEW PRIMITIVES (FROM CHILLI3D)
+// =============================================================================
+
+/// Create a pyramid (square base tapering to a point)
+#[tauri::command]
+pub fn cad_create_pyramid(
+    x: f64,
+    y: f64,
+    z: f64,
+    px: f64,
+    py: f64,
+    pz: f64,
+    dx: f64,
+    dy: f64,
+    dz: f64,
+) -> Result<ShapeResult, String> {
+    let shape =
+        Primitives::make_pyramid(x, y, z, px, py, pz, dx, dy, dz).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&shape);
+    let id = store_shape(shape)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Create an ellipsoid (3D ellipse with different radii)
+#[tauri::command]
+pub fn cad_create_ellipsoid(
+    cx: f64,
+    cy: f64,
+    cz: f64,
+    rx: f64,
+    ry: f64,
+    rz: f64,
+) -> Result<ShapeResult, String> {
+    let shape = Primitives::make_ellipsoid(cx, cy, cz, rx, ry, rz).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&shape);
+    let id = store_shape(shape)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Create a vertex (point)
+#[tauri::command]
+pub fn cad_create_vertex(x: f64, y: f64, z: f64) -> Result<ShapeResult, String> {
+    let shape = Primitives::make_vertex(x, y, z).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&shape);
+    let id = store_shape(shape)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+// =============================================================================
+// NEW OPERATIONS (FROM CHILLI3D)
+// =============================================================================
+
+/// Simplify a shape by unifying faces and edges
+/// CRITICAL: Use this after boolean operations to clean up geometry!
+#[tauri::command]
+pub fn cad_simplify(
+    shape_id: String,
+    unify_edges: bool,
+    unify_faces: bool,
+) -> Result<ShapeResult, String> {
+    let shape = get_shape(&shape_id)?;
+    let result =
+        Operations::simplify(&shape, unify_edges, unify_faces).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Combine multiple shapes into a compound (assembly)
+#[tauri::command]
+pub fn cad_combine(shape_ids: Vec<String>) -> Result<ShapeResult, String> {
+    let shapes: Result<Vec<Shape>, String> = shape_ids.iter().map(|id| get_shape(id)).collect();
+    let shapes = shapes?;
+    let shape_refs: Vec<&Shape> = shapes.iter().collect();
+
+    let result = Operations::combine(&shape_refs).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
 }

@@ -6,6 +6,13 @@
 //! NOTE: AI chat/streaming is handled in TypeScript via Vercel AI SDK.
 //! The Rust backend handles hydraulic computations and authentication.
 
+// TODO: Refactorizar para reducir complejidad en un PR futuro
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::derivable_impls)]
+#![allow(clippy::manual_map)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::unnecessary_map_or)]
+
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, RunEvent};
 
@@ -157,13 +164,18 @@ pub fn run() {
             commands::cad::cad_create_torus,
             commands::cad::cad_create_wedge,
             commands::cad::cad_create_helix,
+            commands::cad::cad_create_pyramid,
+            commands::cad::cad_create_ellipsoid,
+            commands::cad::cad_create_vertex,
             // CAD commands - Boolean operations
             commands::cad::cad_boolean_fuse,
             commands::cad::cad_boolean_cut,
             commands::cad::cad_boolean_common,
             // CAD commands - Modifications
             commands::cad::cad_fillet,
+            commands::cad::cad_fillet_edges,
             commands::cad::cad_chamfer,
+            commands::cad::cad_chamfer_edges,
             commands::cad::cad_shell,
             // CAD commands - Transforms
             commands::cad::cad_translate,
@@ -173,6 +185,38 @@ pub fn run() {
             // CAD commands - Advanced
             commands::cad::cad_extrude,
             commands::cad::cad_revolve,
+            commands::cad::cad_loft,
+            commands::cad::cad_pipe,
+            commands::cad::cad_pipe_shell,
+            commands::cad::cad_offset,
+            // CAD commands - Curve Creation (Lines)
+            commands::curves::cad_create_line,
+            commands::curves::cad_create_line_dir,
+            // CAD commands - Curve Creation (Circles & Arcs)
+            commands::curves::cad_create_circle,
+            commands::curves::cad_create_circle_xy,
+            commands::curves::cad_create_arc,
+            commands::curves::cad_create_arc_xy,
+            commands::curves::cad_create_arc_3_points,
+            // CAD commands - Curve Creation (Rectangles)
+            commands::curves::cad_create_rectangle,
+            commands::curves::cad_create_rectangle_centered,
+            // CAD commands - Curve Creation (Polygons)
+            commands::curves::cad_create_polygon_2d,
+            commands::curves::cad_create_polygon_3d,
+            commands::curves::cad_create_regular_polygon,
+            // CAD commands - Curve Creation (Polylines)
+            commands::curves::cad_create_polyline_2d,
+            commands::curves::cad_create_polyline_3d,
+            // CAD commands - Curve Creation (Ellipses)
+            commands::curves::cad_create_ellipse,
+            commands::curves::cad_create_ellipse_xy,
+            // CAD commands - Curve Creation (Splines)
+            commands::curves::cad_create_bspline,
+            commands::curves::cad_create_bezier,
+            // CAD commands - Wire Operations
+            commands::curves::cad_create_wire_from_edges,
+            commands::curves::cad_create_face_from_wire,
             // CAD commands - Tessellation
             commands::cad::cad_tessellate,
             // CAD commands - Import/Export
@@ -187,12 +231,16 @@ pub fn run() {
             commands::cad::cad_delete_shape,
             commands::cad::cad_clear_all,
             commands::cad::cad_shape_count,
+            commands::cad::cad_simplify,
+            commands::cad::cad_combine,
             // Chat persistence commands
             commands::chat::chat_init,
             commands::chat::chat_save_session,
             commands::chat::chat_load_session,
             commands::chat::chat_list_sessions,
             commands::chat::chat_delete_session,
+            // AI Gateway proxy (CORS bypass for image enhancement)
+            commands::chat::ai_gateway_enhance_viewport,
             // System info
             commands::system::get_system_info,
             commands::system::get_extended_system_info,
@@ -234,10 +282,7 @@ pub fn run() {
                 }
                 RunEvent::ExitRequested { api, code, .. } => {
                     // Could prompt for unsaved changes here in the future
-                    eprintln!(
-                        "[CADHY] Exit requested (code: {:?})",
-                        code
-                    );
+                    eprintln!("[CADHY] Exit requested (code: {:?})", code);
                     // Don't prevent exit for now
                     let _ = api;
                 }

@@ -154,7 +154,7 @@
           const hash = window.location.hash;
 
           let restoredUrl = redirectPath;
-          if (query) restoredUrl += '?' + query;
+          if (query) restoredUrl += `?${query}`;
           if (hash) restoredUrl += hash;
 
           window.history.replaceState(null, '', restoredUrl);

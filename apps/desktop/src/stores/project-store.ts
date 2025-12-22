@@ -8,6 +8,7 @@
  * This store only manages the current project state.
  */
 
+import { loggers } from "@cadhy/shared"
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import { useShallow } from "zustand/shallow"
@@ -24,9 +25,11 @@ import {
 } from "@/services/project-service"
 import { captureViewportThumbnailDelayed } from "@/services/thumbnail-service"
 import { useLayoutStore } from "./layout-store"
-import { useModellerStore } from "./modeller-store"
+import { useModellerStore } from "./modeller"
 import { useRecentProjectsStore } from "./recent-projects-store"
 import { useStatusNotificationStore } from "./status-notification-store"
+
+const log = loggers.project
 
 // Lazy import to avoid circular dependency
 let handleProjectChangeRef: ((id: string | null, path: string | null) => Promise<void>) | null =
@@ -128,7 +131,7 @@ export const useProjectStore = create<ProjectStore>()(
             const handleProjectChange = await getHandleProjectChange()
             await handleProjectChange(projectInfo.id, projectInfo.path)
           } catch (chatErr) {
-            console.error("[ProjectStore] Failed to initialize chat sessions:", chatErr)
+            log.error("Failed to initialize chat sessions:", chatErr)
           }
 
           return projectInfo
@@ -167,7 +170,7 @@ export const useProjectStore = create<ProjectStore>()(
             const handleProjectChange = await getHandleProjectChange()
             await handleProjectChange(projectData.info.id, projectData.info.path)
           } catch (chatErr) {
-            console.error("[ProjectStore] Failed to load chat sessions:", chatErr)
+            log.error("Failed to load chat sessions:", chatErr)
           }
 
           return projectData
@@ -197,7 +200,8 @@ export const useProjectStore = create<ProjectStore>()(
           })
 
           // Capture and save thumbnail (async, non-blocking)
-          captureViewportThumbnailDelayed(200).then((thumbnail) => {
+          // Uses requestAnimationFrame to ensure textures are rendered
+          captureViewportThumbnailDelayed().then((thumbnail) => {
             if (thumbnail) {
               useRecentProjectsStore.getState().setThumbnail(projectInfo.id, thumbnail)
             }
@@ -245,7 +249,8 @@ export const useProjectStore = create<ProjectStore>()(
           })
 
           // Capture and save thumbnail (async, non-blocking)
-          captureViewportThumbnailDelayed(200).then((thumbnail) => {
+          // Uses requestAnimationFrame to ensure textures are rendered
+          captureViewportThumbnailDelayed().then((thumbnail) => {
             if (thumbnail) {
               useRecentProjectsStore.getState().setThumbnail(projectInfo.id, thumbnail)
             }
@@ -274,7 +279,7 @@ export const useProjectStore = create<ProjectStore>()(
           const handleProjectChange = await getHandleProjectChange()
           await handleProjectChange(null, null)
         } catch (chatErr) {
-          console.error("[ProjectStore] Failed to clear chat sessions:", chatErr)
+          log.error("Failed to clear chat sessions:", chatErr)
         }
 
         // Clear project state
@@ -298,7 +303,7 @@ export const useProjectStore = create<ProjectStore>()(
           try {
             await updateProjectSettingsService(currentProject.path, newSettings)
           } catch (err) {
-            console.error("Failed to persist settings:", err)
+            log.error("Failed to persist settings:", err)
           }
         }
       },

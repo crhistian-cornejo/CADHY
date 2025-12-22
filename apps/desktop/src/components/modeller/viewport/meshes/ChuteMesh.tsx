@@ -9,17 +9,22 @@
  * solid geometry generation - same approach as ChannelMesh and TransitionMesh.
  */
 
+import { loggers } from "@cadhy/shared"
 import type { ThreeEvent } from "@react-three/fiber"
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import * as THREE from "three"
+
 import {
   type ChuteGeometryInput,
   generateChuteMesh,
   isTauriAvailable,
   type StillingBasinDef,
 } from "@/services/hydraulics-service"
-import type { ChuteObject } from "@/stores/modeller-store"
+import type { PBRTextureMaps } from "@/services/texture-service"
+import { type ChuteObject, useViewportSettings } from "@/stores/modeller"
 import { meshResultToBufferGeometry, safeNumber } from "../geometry-utils"
+
+const log = loggers.mesh
 
 export interface ChuteMeshProps {
   chute: ChuteObject
@@ -34,6 +39,8 @@ export interface ChuteMeshProps {
   onPointerOut: () => void
   meshRef?: React.RefObject<THREE.Mesh | THREE.Group | null>
   onMeshReady?: () => void
+  pbrTextures?: PBRTextureMaps | null
+  uvRepeat?: { x: number; y: number }
 }
 
 /**
@@ -82,7 +89,7 @@ function convertStillingBasin(basin: ChuteObject["stillingBasin"]): StillingBasi
 /**
  * ChuteMesh - Renders a hydraulic chute with Rust-generated geometry
  */
-export function ChuteMesh({
+export const ChuteMesh = React.memo(function ChuteMesh({
   chute,
   color,
   opacity,
@@ -95,11 +102,44 @@ export function ChuteMesh({
   onPointerOut,
   meshRef: externalMeshRef,
   onMeshReady,
+  pbrTextures,
+  uvRepeat = { x: 1, y: 1 },
 }: ChuteMeshProps) {
   const internalMeshRef = useRef<THREE.Mesh>(null)
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const viewportSettings = useViewportSettings()
+
+  // Store texture reference to update UV repeat without re-render
+  const texturesRef = useRef<PBRTextureMaps | null>(null)
+  texturesRef.current = pbrTextures
+
+  // Apply UV repeat to textures when they first load
+  useEffect(() => {
+    if (pbrTextures) {
+      Object.values(pbrTextures).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+          texture.wrapS = THREE.RepeatWrapping
+          texture.wrapT = THREE.RepeatWrapping
+          texture.needsUpdate = true
+        }
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pbrTextures, uvRepeat.x, uvRepeat.y])
+
+  // Update UV repeat on slider change (without re-rendering geometry)
+  useEffect(() => {
+    if (texturesRef.current) {
+      Object.values(texturesRef.current).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+        }
+      })
+    }
+  }, [uvRepeat.x, uvRepeat.y])
 
   // Generate geometry from Rust backend
   useEffect(() => {
@@ -146,12 +186,12 @@ export function ChuteMesh({
         const meshResult = await generateChuteMesh(input)
 
         if (!cancelled && meshResult) {
-          const geo = meshResultToBufferGeometry(meshResult)
+          const geo = meshResultToBufferGeometry(meshResult, viewportSettings.textureScale)
           setGeometry(geo)
           setIsLoading(false)
         }
       } catch (err) {
-        console.error("Failed to generate chute mesh:", err)
+        log.error("Failed to generate chute mesh:", err)
         if (!cancelled) {
           setError(String(err))
           // Use fallback geometry
@@ -193,6 +233,7 @@ export function ChuteMesh({
     chute.stillingBasin?.endSill,
     chute.stillingBasin?.wingwallAngle,
     chute.stillingBasin,
+    viewportSettings.textureScale, // Regenerate UVs when global texture scale changes
   ])
 
   // Clean up geometry on unmount
@@ -203,6 +244,7 @@ export function ChuteMesh({
   }, [geometry])
 
   // Forward mesh ref
+  // Must depend on geometry so it triggers when mesh becomes available after loading
   useEffect(() => {
     if (externalMeshRef && internalMeshRef.current) {
       ;(externalMeshRef as React.MutableRefObject<THREE.Mesh | null>).current =
@@ -242,22 +284,21 @@ export function ChuteMesh({
       onPointerOut={onPointerOut}
     >
       <meshStandardMaterial
-        color={error ? "#ef4444" : color}
+        color={error ? "#ef4444" : pbrTextures?.albedo ? "#ffffff" : color}
         wireframe={wireframe}
         transparent={opacity < 1}
         opacity={opacity}
         side={THREE.DoubleSide}
         metalness={metalness}
         roughness={roughness}
+        {...(pbrTextures?.albedo && { map: pbrTextures.albedo })}
+        {...(pbrTextures?.normal && { normalMap: pbrTextures.normal })}
+        {...(pbrTextures?.roughness && { roughnessMap: pbrTextures.roughness })}
+        {...(pbrTextures?.metalness && { metalnessMap: pbrTextures.metalness })}
+        {...(pbrTextures?.ao && { aoMap: pbrTextures.ao, aoMapIntensity: 1 })}
       />
-      {isSelected && (
-        <lineSegments>
-          <edgesGeometry args={[geometry]} />
-          <lineBasicMaterial color="#f59e0b" linewidth={2} />
-        </lineSegments>
-      )}
     </mesh>
   )
-}
+})
 
 export default ChuteMesh

@@ -5,58 +5,52 @@
  * Adapted from GraphCAD design patterns.
  */
 
-import { Button, cn, Tooltip, TooltipContent, TooltipTrigger } from "@cadhy/ui"
+import { Button, cn, Kbd, Tooltip, TooltipContent, TooltipTrigger } from "@cadhy/ui"
 import {
   CheckmarkCircle02Icon,
   CpuIcon,
   CubeIcon,
-  Link01Icon,
+  GridIcon,
+  Loading01Icon,
+  MagnetIcon,
+  Message01Icon,
+  PackageIcon,
   Target01Icon,
+  ViewIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { usePlatform } from "@/hooks/use-platform"
 import { useUnits } from "@/hooks/use-units"
+import {
+  useActiveTool,
+  useCameraView,
+  useGridSettings,
+  useIsDirty,
+  useObjects,
+  useSelectedObjects,
+  useSelectionMode,
+  useTransformMode,
+} from "@/stores/modeller"
+import { useIsProjectLoading } from "@/stores/project-store"
 import { useStatusNotification } from "@/stores/status-notification-store"
 
 // ============================================================================
-// TYPES
+// PERFORMANCE METRICS HOOK
 // ============================================================================
 
 interface PerformanceMetrics {
   fps: number
-  memory: number // MB
+  memory: string
   gpu: string
 }
 
-// UnitSystem type is now imported from useUnits hook
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function getFpsColor(fps: number): string {
-  if (fps >= 55) return "text-emerald-500"
-  if (fps >= 30) return "text-yellow-500"
-  return "text-red-500"
-}
-
-function getMemoryColor(memory: number): string {
-  if (memory < 500) return "text-emerald-500"
-  if (memory < 1000) return "text-yellow-500"
-  return "text-red-500"
-}
-
-// ============================================================================
-// HOOKS
-// ============================================================================
-
 function usePerformanceMetrics(): PerformanceMetrics {
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
-    fps: 60,
-    memory: 0,
-    gpu: "Unknown",
+    fps: 0,
+    memory: "0 MB",
+    gpu: "...",
   })
 
   useEffect(() => {
@@ -64,70 +58,36 @@ function usePerformanceMetrics(): PerformanceMetrics {
     let lastTime = performance.now()
     let animationId: number
 
-    const measureFps = () => {
+    const update = () => {
       frameCount++
       const currentTime = performance.now()
 
       if (currentTime - lastTime >= 1000) {
         const fps = Math.round((frameCount * 1000) / (currentTime - lastTime))
 
-        // Get memory if available
-        const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory
-          ?.usedJSHeapSize
-          ? Math.round(
-              (performance as unknown as { memory: { usedJSHeapSize: number } }).memory
-                .usedJSHeapSize /
-                1024 /
-                1024
-            )
-          : 0
+        // Get memory usage if available
+        const memory = (performance as any).memory
+          ? `${Math.round((performance as any).memory.usedJSHeapSize / 1048576)} MB`
+          : "N/A"
 
-        setMetrics((prev) => ({ ...prev, fps, memory }))
+        // GPU info (simplified)
+        const gpu = "Discrete GPU"
 
+        setMetrics({ fps, memory, gpu })
         frameCount = 0
         lastTime = currentTime
       }
 
-      animationId = requestAnimationFrame(measureFps)
+      animationId = requestAnimationFrame(update)
     }
 
-    // Try to get GPU info - create context, read info, then destroy it
-    const canvas = document.createElement("canvas")
-    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
-    if (gl) {
-      const debugInfo = (gl as WebGLRenderingContext).getExtension("WEBGL_debug_renderer_info")
-      if (debugInfo) {
-        const renderer = (gl as WebGLRenderingContext).getParameter(
-          debugInfo.UNMASKED_RENDERER_WEBGL
-        )
-        // Shorten GPU name
-        const shortGpu = renderer
-          .replace(/ANGLE \(|\)/g, "")
-          .replace(/Direct3D11 vs_5_0 ps_5_0, /g, "")
-          .replace(/,.*$/, "")
-          .trim()
-          .slice(0, 25)
-        setMetrics((prev) => ({ ...prev, gpu: shortGpu }))
-      }
-      // Destroy WebGL context immediately after reading GPU info
-      const loseContext = (gl as WebGLRenderingContext).getExtension("WEBGL_lose_context")
-      if (loseContext) {
-        loseContext.loseContext()
-      }
-    }
-    // Remove canvas from memory
-    canvas.width = 0
-    canvas.height = 0
-
-    animationId = requestAnimationFrame(measureFps)
+    animationId = requestAnimationFrame(update)
 
     return () => cancelAnimationFrame(animationId)
   }, [])
 
   return metrics
 }
-
-// useUnitSystem is now replaced by the global useUnits hook from project-store
 
 // ============================================================================
 // COMPONENT
@@ -139,73 +99,106 @@ export function StatusBar() {
   const metrics = usePerformanceMetrics()
   const { unitSystem, toggleUnitSystem, lengthLabel } = useUnits()
   const notification = useStatusNotification()
+  const isLoadingProject = useIsProjectLoading()
+
+  // Modeller Store Hooks
+  const objects = useObjects()
+  const selectedObjects = useSelectedObjects()
+  const selectionMode = useSelectionMode()
+  const transformMode = useTransformMode()
+  const activeTool = useActiveTool()
+  const gridSettings = useGridSettings()
+  const cameraView = useCameraView()
+  const isDirty = useIsDirty()
+
+  // Dynamic Selection Summary
+  const selectionSummary = useMemo(() => {
+    if (selectedObjects.length === 0) {
+      if (objects.length === 0) return t("statusBar.emptyScene", "Empty Scene")
+      return `${objects.length} ${t("statusBar.objects", "Objects")}`
+    }
+    if (selectedObjects.length === 1) {
+      const obj = selectedObjects[0]
+      return `${t("statusBar.selected", "Selected")}: ${obj.name}`
+    }
+    return t("statusBar.multipleSelected", { count: selectedObjects.length })
+  }, [selectedObjects, objects.length, t])
+
+  // Dynamic Hints based on context
+  const hints = useMemo(() => {
+    const list = []
+
+    if (activeTool) {
+      list.push({ kbd: "Esc", label: t("common.cancel", "Cancel") })
+    } else if (selectedObjects.length > 0) {
+      if (transformMode === "none") {
+        list.push({ kbd: "G", label: t("toolbar.move", "Move") })
+        list.push({ kbd: "R", label: t("toolbar.rotate", "Rotate") })
+        list.push({ kbd: "S", label: t("toolbar.scale", "Scale") })
+        list.push({ kbd: "4", label: t("statusBar.selBody", "Body Mode") })
+      } else {
+        list.push({ kbd: "Esc", label: t("common.cancel", "Cancel") })
+        list.push({ kbd: "Enter", label: t("common.apply", "Apply") })
+      }
+    } else {
+      list.push({ kbd: "1-4", label: t("statusBar.selMode", "Selection Mode") })
+      list.push({ kbd: "Shift+C", label: t("tools.createChannel.label", "Channel") })
+    }
+
+    return list
+  }, [selectedObjects, transformMode, activeTool, t])
 
   // Get app version from injected runtime state (or fallback)
   const version = window.__CADHY__?.version ? `v${window.__CADHY__.version}` : "v0.1.0"
 
-  // Mock data - replace with actual store values
-  const nodeCount = 0
-  const edgeCount = 0
-  const isDirty = false
-  const isExecuting = false
-
-  // Mock coordinates
+  // Cursor coordinates tracking - simplified placeholder
   const coordinates = { x: 0.0, y: 0.0, z: 0.0 }
 
   return (
     <footer
       className={cn(
-        "flex h-6 shrink-0 items-center border-t px-2 text-[10px] text-muted-foreground select-none",
-        isMacOS
-          ? "border-border/30 bg-background/80 backdrop-blur-sm"
-          : "border-border/50 bg-card/50"
+        "flex h-7 shrink-0 items-center px-3 text-[10px] text-muted-foreground select-none transition-all duration-300",
+        isMacOS ? "bg-background/60 backdrop-blur-md" : "bg-card/80 backdrop-blur-sm"
       )}
       role="status"
       aria-label="Application status bar"
-      aria-live="polite"
     >
       {/* Left Section - Status & Node Info */}
-      <div className="flex items-center gap-2" role="group" aria-label="Project status">
+      <div className="flex items-center gap-2 overflow-hidden mr-4">
         {/* Status Indicator */}
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <div className="flex items-center gap-1.5 cursor-default">
-                <div
-                  className={cn(
-                    "size-1.5 rounded-full",
-                    isExecuting
-                      ? "bg-yellow-500 animate-pulse"
-                      : isDirty
-                        ? "bg-orange-500"
-                        : "bg-emerald-500"
-                  )}
-                />
-                <span className="text-foreground/70 font-medium">
-                  {isExecuting
-                    ? t("statusBar.processing")
-                    : isDirty
-                      ? t("statusBar.unsaved")
-                      : t("statusBar.ready")}
-                </span>
-              </div>
-            }
-          />
-          <TooltipContent side="top">
-            {isExecuting
-              ? t("statusBar.processing")
-              : isDirty
-                ? t("statusBar.unsaved")
-                : t("statusBar.ready")}
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-2">
+          {isLoadingProject ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-500">
+              <HugeiconsIcon icon={Loading01Icon} className="size-3 animate-spin" />
+              <span className="font-medium">{t("common.loading", "Loading...")}</span>
+            </div>
+          ) : isDirty ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-500">
+                    <div className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="font-medium">{t("statusBar.modified", "Modified")}</span>
+                  </div>
+                }
+              />
+              <TooltipContent side="top">
+                {t("statusBar.unsavedChanges", "Unsaved changes")}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-500/80">
+              <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-3" />
+              <span className="font-medium">{t("statusBar.ready", "Ready")}</span>
+            </div>
+          )}
+        </div>
 
-        <span className="text-muted-foreground/50">│</span>
-
-        {/* Save Notification - Subtle inline indicator */}
         {notification && (
           <div
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 animate-in fade-in slide-in-from-left-2 duration-300"
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 animate-in fade-in slide-in-from-left-2 duration-300"
+            )}
             role="alert"
             aria-live="polite"
           >
@@ -216,64 +209,119 @@ export function StatusBar() {
           </div>
         )}
 
-        {notification && <span className="text-muted-foreground/50">│</span>}
+        <span className="text-muted-foreground/30">│</span>
 
-        {/* Node Count */}
+        {/* Selection Indicator & Info */}
+        <div className="flex items-center gap-2 px-1">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <div className="flex items-center gap-1.5 cursor-default text-foreground/80">
+                  <HugeiconsIcon
+                    icon={selectionMode === "body" ? PackageIcon : CubeIcon}
+                    className="size-3"
+                  />
+                  <span className="font-medium capitalize">{selectionMode}</span>
+                </div>
+              }
+            />
+            <TooltipContent side="top">
+              {t("statusBar.selectionMode", "Selection Mode")}: {selectionMode}
+              <div className="text-[9px] text-muted-foreground mt-1">Keys 1, 2, 3, 4 to switch</div>
+            </TooltipContent>
+          </Tooltip>
+
+          <span className="text-muted-foreground/30">│</span>
+          <span className="text-foreground/70">{selectionSummary}</span>
+        </div>
+
+        <span className="text-muted-foreground/50">│</span>
+
+        {/* Dynamic Hints Section */}
+        <div className="flex items-center gap-3 overflow-hidden">
+          {hints.map((hint) => (
+            <div
+              key={hint.kbd}
+              className="flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-200"
+            >
+              <Kbd className="bg-muted px-1 py-0.5 text-[9px] min-w-[16px] flex justify-center">
+                {hint.kbd}
+              </Kbd>
+              <span className="text-muted-foreground/80">{hint.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Help / active tool info */}
+        {activeTool && (
+          <>
+            <span className="text-muted-foreground/50">│</span>
+            <div className="flex items-center gap-1.5 text-primary animate-pulse">
+              <HugeiconsIcon icon={Message01Icon} className="size-3" />
+              <span className="font-medium">
+                {t(`tools.${activeTool}.hint`, `Using ${activeTool}`)}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Right Section - Metrics & Settings */}
+      <div className="ml-auto flex items-center gap-2 h-full">
+        {/* View/Projection Mode */}
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="flex items-center gap-1 cursor-default">
-                <HugeiconsIcon icon={CubeIcon} className="size-3" />
-                <span>{nodeCount}</span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-muted/50 transition-colors cursor-default rounded border border-transparent hover:border-border/30">
+                <HugeiconsIcon icon={ViewIcon} className="size-3 text-muted-foreground" />
+                <span className="font-medium uppercase tracking-wider text-[9px]">
+                  {cameraView}
+                </span>
               </div>
             }
           />
           <TooltipContent side="top">
-            {nodeCount} {t("statusBar.objects")}
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Edge Count */}
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <div className="flex items-center gap-1 cursor-default">
-                <HugeiconsIcon icon={Link01Icon} className="size-3" />
-                <span>{edgeCount}</span>
-              </div>
-            }
-          />
-          <TooltipContent side="top">
-            {edgeCount} {t("statusBar.connections")}
+            {t("modeller.view", "View")}: {cameraView}
           </TooltipContent>
         </Tooltip>
 
         <span className="text-muted-foreground/50">│</span>
 
-        {/* Keyboard Shortcuts Hint */}
-        <span className="text-muted-foreground/60 hidden md:inline">
-          <kbd className="px-1 py-0.5 rounded bg-muted text-[9px] font-mono">Space</kbd>{" "}
-          {t("toolbar.pan")}
-          <span className="mx-1">•</span>
-          <kbd className="px-1 py-0.5 rounded bg-muted text-[9px] font-mono">Del</kbd>{" "}
-          {t("toolbar.delete")}
-        </span>
-      </div>
+        {/* Grid Setting */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-muted/50 transition-colors cursor-default rounded border border-transparent hover:border-border/30">
+                <HugeiconsIcon icon={GridIcon} className="size-3 text-muted-foreground" />
+                <span className="tabular-nums">{gridSettings.size}m</span>
+                {gridSettings.snapEnabled && (
+                  <HugeiconsIcon icon={MagnetIcon} className="size-2.5 text-primary ml-0.5" />
+                )}
+              </div>
+            }
+          />
+          <TooltipContent side="top">
+            {t("statusBar.gridSize", "Grid Size")}: {gridSettings.size}m
+            {gridSettings.snapEnabled && (
+              <div className="text-primary text-[9px]">Snap active ({gridSettings.snapSize}m)</div>
+            )}
+          </TooltipContent>
+        </Tooltip>
 
-      {/* Right Section - Metrics & Settings */}
-      <div className="ml-auto flex items-center gap-2">
+        <span className="text-muted-foreground/50">│</span>
+
         {/* Coordinates Display */}
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50 cursor-default font-mono text-muted-foreground">
-                <HugeiconsIcon icon={Target01Icon} className="size-3 text-primary mr-1" />
-                <span className="text-foreground/80">X</span>
-                <span className="text-foreground">{coordinates.x.toFixed(2)}</span>
-                <span className="text-foreground/80 ml-1">Y</span>
-                <span className="text-foreground">{coordinates.y.toFixed(2)}</span>
-                <span className="text-foreground/80 ml-1">Z</span>
-                <span className="text-foreground">{coordinates.z.toFixed(2)}</span>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/40 cursor-default font-mono text-muted-foreground transition-all hover:bg-muted/60">
+                <HugeiconsIcon icon={Target01Icon} className="size-3 text-primary/70 mr-1" />
+                <span className="text-foreground/50">X</span>
+                <span className="text-foreground/90 tabular-nums">{coordinates.x.toFixed(2)}</span>
+                <span className="text-foreground/50 ml-1.5">Y</span>
+                <span className="text-foreground/90 tabular-nums">{coordinates.y.toFixed(2)}</span>
+                <span className="text-foreground/50 ml-1.5">Z</span>
+                <span className="text-foreground/90 tabular-nums">{coordinates.z.toFixed(2)}</span>
               </div>
             }
           />
@@ -282,107 +330,56 @@ export function StatusBar() {
 
         <span className="text-muted-foreground/50">│</span>
 
-        {/* Unit System Toggle */}
+        {/* Units Toggle */}
         <Tooltip>
           <TooltipTrigger
             render={
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 px-1.5 text-[10px] font-medium hover:bg-muted"
                 onClick={toggleUnitSystem}
+                className="h-5 px-1.5 text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground"
               >
-                {unitSystem === "metric" ? `SI (${lengthLabel})` : `IMP (${lengthLabel})`}
+                {unitSystem}
               </Button>
             }
           />
           <TooltipContent side="top">
-            {t("statusBar.switchUnits", {
-              units: unitSystem === "metric" ? t("statusBar.imperial") : t("statusBar.metric"),
-            })}
+            {t("statusBar.toggleUnits", "Switch Unit System")}
           </TooltipContent>
         </Tooltip>
 
-        <span className="text-muted-foreground/50">│</span>
+        <span className="text-muted-foreground/30 hidden md:inline">│</span>
 
-        {/* FPS Counter */}
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <div
-                className={cn(
-                  "flex items-center gap-1 cursor-default font-mono",
-                  getFpsColor(metrics.fps)
-                )}
-              >
-                <span>{metrics.fps}</span>
-                <span className="text-muted-foreground text-[9px]">{t("statusBar.fps")}</span>
-              </div>
-            }
-          />
-          <TooltipContent side="top">
-            {t("statusBar.framesPerSecond")}
-            <div className="text-muted-foreground">
-              {metrics.fps >= 55
-                ? `✓ ${t("statusBar.excellent")}`
-                : metrics.fps >= 30
-                  ? `⚠ ${t("statusBar.moderate")}`
-                  : `✗ ${t("statusBar.low")}`}
-            </div>
-          </TooltipContent>
-        </Tooltip>
+        {/* Metrics Section (Desktop only) */}
+        <div className="hidden lg:flex items-center gap-3 px-1 text-muted-foreground/70">
+          <div className="flex items-center gap-1">
+            <span className="tabular-nums font-mono">{metrics.fps}</span>
+            <span>FPS</span>
+          </div>
 
-        {/* Memory Usage */}
-        {metrics.memory > 0 && (
           <Tooltip>
             <TooltipTrigger
               render={
-                <div
-                  className={cn(
-                    "flex items-center gap-1 cursor-default font-mono",
-                    getMemoryColor(metrics.memory)
-                  )}
-                >
-                  <span>{metrics.memory}</span>
-                  <span className="text-muted-foreground text-[9px]">MB</span>
+                <div className="flex items-center gap-1">
+                  <HugeiconsIcon icon={CpuIcon} className="size-3" />
+                  <span className="tabular-nums font-mono">{metrics.memory}</span>
                 </div>
               }
             />
-            <TooltipContent side="top">
-              {t("statusBar.memoryUsage")}: {metrics.memory} MB
-              <div className="text-muted-foreground">
-                {metrics.memory < 500
-                  ? `✓ ${t("statusBar.low")}`
-                  : metrics.memory < 1000
-                    ? `⚠ ${t("statusBar.moderate")}`
-                    : `✗ High`}
-              </div>
-            </TooltipContent>
+            <TooltipContent side="top">{t("statusBar.memoryUsage")}</TooltipContent>
           </Tooltip>
-        )}
+        </div>
 
         <span className="text-muted-foreground/50">│</span>
 
-        {/* GPU Info */}
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <div className="flex items-center gap-1 cursor-default max-w-[120px] truncate">
-                <HugeiconsIcon icon={CpuIcon} className="size-3 shrink-0" />
-                <span className="truncate">{metrics.gpu}</span>
-              </div>
-            }
-          />
-          <TooltipContent side="top">
-            {t("statusBar.gpu")}: {metrics.gpu}
-          </TooltipContent>
-        </Tooltip>
-
-        <span className="text-muted-foreground/50">│</span>
-
-        {/* Version */}
-        <span className="text-muted-foreground/60">{version}</span>
+        {/* App Version */}
+        <div className="px-1 font-mono text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-default">
+          {version}
+        </div>
       </div>
     </footer>
   )
 }
+
+export default StatusBar

@@ -242,7 +242,7 @@ export default function ChangelogPage() {
         }, 100)
       }
     }
-  }, [location.hash, releases])
+  }, [location.hash])
 
   return (
     <>

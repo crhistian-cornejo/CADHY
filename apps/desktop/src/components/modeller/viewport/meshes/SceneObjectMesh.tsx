@@ -5,19 +5,27 @@
  * Handles selection, hover states, and view modes.
  */
 
+import { loggers } from "@cadhy/shared"
 import type { ThreeEvent } from "@react-three/fiber"
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import React, { useCallback, useEffect, useMemo, useRef } from "react"
 import * as THREE from "three"
+import { type PBRTextureMaps, usePBRTextures } from "@/hooks/use-pbr-textures"
+import { ensureBVH } from "@/lib/bvh-setup"
+import { meshCache } from "@/services/mesh-cache"
+
 import type {
   AnySceneObject,
   ChannelObject,
   ChuteObject,
   ShapeObject,
   TransitionObject,
-} from "@/stores/modeller-store"
+} from "@/stores/modeller"
+import { useViewportSettings } from "@/stores/modeller"
 import { ChannelMesh } from "./ChannelMesh"
 import { ChuteMesh } from "./ChuteMesh"
 import { TransitionMesh } from "./TransitionMesh"
+
+const log = loggers.mesh
 
 export interface SceneObjectMeshProps {
   object: AnySceneObject
@@ -30,7 +38,7 @@ export interface SceneObjectMeshProps {
   onMeshReady?: () => void
 }
 
-export function SceneObjectMesh({
+export const SceneObjectMesh = React.memo(function SceneObjectMesh({
   object,
   isSelected,
   isHovered,
@@ -94,6 +102,54 @@ export function SceneObjectMesh({
     return { metalness: 0.1, roughness: 0.6 }
   }, [object])
 
+  // Load PBR textures (only for shapes with post-processing enabled)
+  const viewportSettings = useViewportSettings()
+  const shapeMaterial = object.type === "shape" ? (object as ShapeObject).material : undefined
+  const pbrTextures = usePBRTextures(shapeMaterial, viewportSettings.enablePostProcessing ?? false)
+
+  // UV repeat from material
+  const uvRepeat = useMemo(() => {
+    if (object.type === "shape") {
+      const shape = object as ShapeObject
+      return {
+        x: shape.material?.pbr?.repeatX ?? 1,
+        y: shape.material?.pbr?.repeatY ?? 1,
+      }
+    }
+    return { x: 1, y: 1 }
+  }, [object])
+
+  // Store texture reference to update UV repeat without re-render
+  const texturesRef = useRef<PBRTextureMaps | null>(null)
+  texturesRef.current = pbrTextures
+
+  // Apply UV repeat to textures when they first load
+  useEffect(() => {
+    if (pbrTextures) {
+      log.log("Applying textures:", Object.keys(pbrTextures), "UV repeat:", uvRepeat)
+      Object.values(pbrTextures).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+          texture.wrapS = THREE.RepeatWrapping
+          texture.wrapT = THREE.RepeatWrapping
+          texture.needsUpdate = true
+        }
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pbrTextures, uvRepeat])
+
+  // Update UV repeat on slider change (without re-rendering geometry)
+  useEffect(() => {
+    if (texturesRef.current) {
+      Object.values(texturesRef.current).forEach((texture) => {
+        if (texture) {
+          texture.repeat.set(uvRepeat.x, uvRepeat.y)
+        }
+      })
+    }
+  }, [uvRepeat.x, uvRepeat.y])
+
   // Event handlers
   const handleClick = useCallback(
     (event: ThreeEvent<MouseEvent>) => {
@@ -117,6 +173,79 @@ export function SceneObjectMesh({
     document.body.style.cursor = "auto"
   }, [onHover])
 
+  // Cleanup geometry reference when component unmounts
+  useEffect(() => {
+    return () => {
+      // Release geometry from cache when shape is removed
+      if (object.type === "shape") {
+        const shapeObj = object as ShapeObject
+        const params = shapeObj.parameters
+        const segments = params.segments ?? 32
+
+        switch (shapeObj.shapeType) {
+          case "box":
+            meshCache.releaseGeometry("box", {
+              width: params.width ?? 1,
+              height: params.height ?? 1,
+              depth: params.depth ?? 1,
+              segments,
+            })
+            break
+          case "cylinder":
+            meshCache.releaseGeometry("cylinder", {
+              radius: params.radius ?? 0.5,
+              height: params.height ?? 1,
+              segments,
+            })
+            break
+          case "sphere":
+            meshCache.releaseGeometry("sphere", { radius: params.radius ?? 0.5, segments })
+            break
+          case "cone":
+            meshCache.releaseGeometry("cone", {
+              radius: params.bottomRadius ?? 0.5,
+              height: params.height ?? 1,
+              segments,
+            })
+            break
+          case "torus":
+            meshCache.releaseGeometry("torus", {
+              majorRadius: params.majorRadius ?? 1,
+              minorRadius: params.minorRadius ?? 0.3,
+              segments,
+            })
+            break
+          default:
+            meshCache.releaseGeometry("box", { width: 1, height: 1, depth: 1, segments: 1 })
+        }
+      }
+    }
+  }, [object])
+
+  // Load PBR textures for ALL object types (must be called unconditionally for React hooks rules)
+  // Get material from any object type
+  const objectMaterial = useMemo(() => {
+    if (object.type === "channel") return (object as ChannelObject).material
+    if (object.type === "transition") return (object as TransitionObject).material
+    if (object.type === "chute") return (object as ChuteObject).material
+    if (object.type === "shape") return (object as ShapeObject).material
+    return undefined
+  }, [object])
+
+  // This hook is ALWAYS called (React hooks rule: hooks must be called in same order every render)
+  const objectTextures = usePBRTextures(
+    objectMaterial,
+    viewportSettings.enablePostProcessing ?? false
+  )
+
+  // UV repeat from material (unconditional)
+  const objectUvRepeat = useMemo(() => {
+    return {
+      x: objectMaterial?.pbr?.repeatX ?? 1,
+      y: objectMaterial?.pbr?.repeatY ?? 1,
+    }
+  }, [objectMaterial])
+
   if (!object.visible) return null
 
   // Use ChannelMesh for channel objects
@@ -136,6 +265,8 @@ export function SceneObjectMesh({
         onPointerOut={handlePointerOut}
         meshRef={externalMeshRef}
         onMeshReady={onMeshReady}
+        pbrTextures={objectTextures}
+        uvRepeat={objectUvRepeat}
       />
     )
   }
@@ -157,6 +288,8 @@ export function SceneObjectMesh({
         onPointerOut={handlePointerOut}
         meshRef={externalMeshRef}
         onMeshReady={onMeshReady}
+        pbrTextures={objectTextures}
+        uvRepeat={objectUvRepeat}
       />
     )
   }
@@ -178,6 +311,8 @@ export function SceneObjectMesh({
         onPointerOut={handlePointerOut}
         meshRef={externalMeshRef}
         onMeshReady={onMeshReady}
+        pbrTextures={objectTextures}
+        uvRepeat={objectUvRepeat}
       />
     )
   }
@@ -192,13 +327,13 @@ export function SceneObjectMesh({
       ? ((object as ShapeObject).mesh?.vertices?.length ?? 0)
       : null
 
-  // Create geometry for shape objects
+  // Create geometry for shape objects with caching
   // Prioritize mesh data from backend (OpenCASCADE) if available
   const geometry = useMemo(() => {
     if (object.type === "shape") {
       const shapeObj = object as ShapeObject
 
-      // If we have mesh data from the CAD backend, use it
+      // If we have mesh data from the CAD backend, use it (can't cache custom meshes easily)
       if (shapeObj.mesh?.vertices && shapeObj.mesh.vertices.length > 0) {
         const geo = new THREE.BufferGeometry()
 
@@ -240,59 +375,104 @@ export function SceneObjectMesh({
         geo.computeBoundingBox()
         geo.computeBoundingSphere()
 
+        // Compute BVH for accelerated raycasting (10-100x faster selection)
+        ensureBVH(geo)
+
         return geo
       }
 
       // Fallback: create simple Three.js geometry based on shape type
+      // Use mesh cache to reuse identical geometries
       const params = shapeObj.parameters
-      // Get segments from params or use default (32 for smooth, 8 for low-poly)
       const segments = params.segments ?? 32
 
       switch (shapeObj.shapeType) {
         case "box":
-          return new THREE.BoxGeometry(
-            params.width ?? 1,
-            params.height ?? 1,
-            params.depth ?? 1,
-            segments, // widthSegments
-            segments, // heightSegments
-            segments // depthSegments
+          return meshCache.getGeometry(
+            "box",
+            {
+              width: params.width ?? 1,
+              height: params.height ?? 1,
+              depth: params.depth ?? 1,
+              segments,
+            },
+            () =>
+              new THREE.BoxGeometry(
+                params.width ?? 1,
+                params.height ?? 1,
+                params.depth ?? 1,
+                segments,
+                segments,
+                segments
+              )
           )
         case "cylinder":
-          return new THREE.CylinderGeometry(
-            params.radius ?? 0.5,
-            params.radius ?? 0.5,
-            params.height ?? 1,
-            segments, // radialSegments
-            Math.max(1, Math.floor(segments / 8)) // heightSegments
+          return meshCache.getGeometry(
+            "cylinder",
+            { radius: params.radius ?? 0.5, height: params.height ?? 1, segments },
+            () =>
+              new THREE.CylinderGeometry(
+                params.radius ?? 0.5,
+                params.radius ?? 0.5,
+                params.height ?? 1,
+                segments,
+                Math.max(1, Math.floor(segments / 8))
+              )
           )
         case "sphere":
-          return new THREE.SphereGeometry(
-            params.radius ?? 0.5,
-            segments, // widthSegments
-            Math.max(8, Math.floor(segments / 2)) // heightSegments
+          return meshCache.getGeometry(
+            "sphere",
+            { radius: params.radius ?? 0.5, segments },
+            () =>
+              new THREE.SphereGeometry(
+                params.radius ?? 0.5,
+                segments,
+                Math.max(8, Math.floor(segments / 2))
+              )
           )
         case "cone":
-          return new THREE.ConeGeometry(
-            params.bottomRadius ?? 0.5,
-            params.height ?? 1,
-            segments, // radialSegments
-            Math.max(1, Math.floor(segments / 8)) // heightSegments
+          return meshCache.getGeometry(
+            "cone",
+            { radius: params.bottomRadius ?? 0.5, height: params.height ?? 1, segments },
+            () =>
+              new THREE.ConeGeometry(
+                params.bottomRadius ?? 0.5,
+                params.height ?? 1,
+                segments,
+                Math.max(1, Math.floor(segments / 8))
+              )
           )
         case "torus":
-          return new THREE.TorusGeometry(
-            params.majorRadius ?? 1,
-            params.minorRadius ?? 0.3,
-            Math.max(8, Math.floor(segments / 2)), // tubularSegments (around the tube)
-            segments // radialSegments (around the torus)
+          return meshCache.getGeometry(
+            "torus",
+            {
+              majorRadius: params.majorRadius ?? 1,
+              minorRadius: params.minorRadius ?? 0.3,
+              segments,
+            },
+            () =>
+              new THREE.TorusGeometry(
+                params.majorRadius ?? 1,
+                params.minorRadius ?? 0.3,
+                Math.max(8, Math.floor(segments / 2)),
+                segments
+              )
           )
         default:
-          return new THREE.BoxGeometry(1, 1, 1)
+          return meshCache.getGeometry(
+            "box",
+            { width: 1, height: 1, depth: 1, segments: 1 },
+            () => new THREE.BoxGeometry(1, 1, 1)
+          )
       }
     }
 
-    // Default geometry for other types
-    return new THREE.BoxGeometry(1, 1, 1)
+    // Default geometry for other types (cached)
+    return meshCache.getGeometry(
+      "box",
+      { width: 1, height: 1, depth: 1, segments: 1 },
+      () => new THREE.BoxGeometry(1, 1, 1)
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [object.id, object.type, object])
 
@@ -316,23 +496,32 @@ export function SceneObjectMesh({
       onPointerOut={handlePointerOut}
     >
       <meshStandardMaterial
-        color={isHovered ? "#3b82f6" : color}
+        color={
+          isSelected
+            ? "#10b981" // Selected: green
+            : isHovered
+              ? "#3b82f6" // Hovered: blue
+              : pbrTextures?.albedo
+                ? "#ffffff"
+                : color
+        }
         wireframe={viewMode === "wireframe"}
         transparent={opacity < 1 || viewMode === "xray"}
         opacity={opacity}
         side={THREE.DoubleSide}
         metalness={materialProps.metalness}
         roughness={materialProps.roughness}
+        // Selection glow effect - emissive for selected objects
+        emissive={isSelected ? "#10b981" : isHovered ? "#3b82f6" : "#000000"}
+        emissiveIntensity={isSelected ? 0.3 : isHovered ? 0.15 : 0}
+        {...(pbrTextures?.albedo && { map: pbrTextures.albedo })}
+        {...(pbrTextures?.normal && { normalMap: pbrTextures.normal })}
+        {...(pbrTextures?.roughness && { roughnessMap: pbrTextures.roughness })}
+        {...(pbrTextures?.metalness && { metalnessMap: pbrTextures.metalness })}
+        {...(pbrTextures?.ao && { aoMap: pbrTextures.ao, aoMapIntensity: 1 })}
       />
-      {/* Selection outline */}
-      {isSelected && (
-        <lineSegments>
-          <edgesGeometry args={[geometry]} />
-          <lineBasicMaterial color="#22c55e" linewidth={2} />
-        </lineSegments>
-      )}
     </mesh>
   )
-}
+})
 
 export default SceneObjectMesh

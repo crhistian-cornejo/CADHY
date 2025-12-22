@@ -23,8 +23,8 @@
         } else {
           // GitHub Pages: /CADHY/docs/foo -> remainingPath = '/docs/foo'
           repoName = pathSegments[1] || '';
-          remainingPath = '/' + pathSegments.slice(2).filter(Boolean).join('/');
-          baseUrl = '/' + repoName + '/';
+          remainingPath = `/${pathSegments.slice(2).filter(Boolean).join('/')}`;
+          baseUrl = `/${repoName}/`;
         }
 
         // If there's no remaining path, just go to the root
@@ -36,7 +36,7 @@
         // Encode the path and redirect with ?p= query parameter
         var redirectUrl = baseUrl + '?p=' +
           encodeURIComponent(remainingPath) +
-          (window.location.search ? '&q=' + encodeURIComponent(window.location.search.slice(1)) : '') +
+          (window.location.search ? `&q=${encodeURIComponent(window.location.search.slice(1))}` : '') +
           (window.location.hash || '');
 
         window.location.replace(redirectUrl);

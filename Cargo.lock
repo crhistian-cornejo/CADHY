@@ -420,6 +420,7 @@ dependencies = [
 name = "cadhy-desktop"
 version = "0.1.3"
 dependencies = [
+ "base64 0.22.1",
  "cadhy-cad",
  "cadhy-core",
  "cadhy-hydraulics",

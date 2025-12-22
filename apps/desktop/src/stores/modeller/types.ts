@@ -18,7 +18,11 @@ export type TransformMode = "translate" | "rotate" | "scale" | "none"
 export type TransformSpace = "world" | "local"
 export type ViewMode = "solid" | "wireframe" | "xray" | "hidden-line"
 export type CameraView = "perspective" | "top" | "front" | "right" | "left" | "back" | "bottom"
+/** Camera projection type - orthographic or perspective */
+export type CameraType = "orthographic" | "perspective"
 export type SnapMode = "none" | "grid" | "vertex" | "edge" | "face" | "center"
+/** Selection mode for geometry sub-selection (Plasticity-style) */
+export type SelectionMode = "body" | "face" | "edge" | "vertex"
 export type ObjectType =
   | "shape"
   | "channel"
@@ -44,6 +48,23 @@ export interface Layer {
 }
 
 // ============================================================================
+// SCENE AREA (Hierarchical grouping above layers)
+// ============================================================================
+
+/**
+ * Scene Area - Groups objects for organization (like "Area (1)", "Area (2)")
+ * Areas are a higher-level grouping than layers, providing hierarchical
+ * organization in the scene panel.
+ */
+export interface SceneArea {
+  id: string
+  name: string
+  index: number
+  collapsed: boolean
+  color: string
+}
+
+// ============================================================================
 // SCENE OBJECTS
 // ============================================================================
 
@@ -53,14 +74,42 @@ export interface SceneObject {
   name: string
   type: ObjectType
   layerId: string
+  /** Optional area ID for hierarchical grouping */
+  areaId?: string
   transform: Transform
   visible: boolean
   locked: boolean
   selected: boolean
   bbox?: BBox
   metadata: Record<string, unknown>
+  material?: MaterialProperties
   createdAt: number
   updatedAt: number
+}
+
+/**
+ * Temporary Object - For operation previews
+ * These are rendered in a separate scene for performance
+ */
+export interface TemporaryObject {
+  id: string
+  object: SceneObject
+  /** Optional ancestor object that this is previewing */
+  ancestorId?: string
+  /** Timestamp when created */
+  createdAt: number
+}
+
+/**
+ * Helper Object - For gizmos, grids, axes, etc.
+ * Rendered in a separate helpers scene with different depth handling
+ */
+export interface HelperObject {
+  id: string
+  type: "gizmo" | "grid" | "axis" | "measurement" | "snap-indicator"
+  visible: boolean
+  /** THREE.Object3D stored as userData */
+  userData?: Record<string, unknown>
 }
 
 /** 3D Shape object */
@@ -396,6 +445,22 @@ export interface GridSettings {
   showAxes: boolean
 }
 
+/**
+ * Available environment presets from Drei/Three.js
+ * These load HDRIs from Poly Haven CDN for realistic lighting
+ */
+export type EnvironmentPreset =
+  | "apartment"
+  | "city"
+  | "dawn"
+  | "forest"
+  | "lobby"
+  | "night"
+  | "park"
+  | "studio"
+  | "sunset"
+  | "warehouse"
+
 export interface ViewportSettings {
   viewMode: ViewMode
   showGrid: boolean
@@ -407,6 +472,20 @@ export interface ViewportSettings {
   antialiasing: boolean
   postProcessingQuality: "low" | "medium" | "high" | "ultra"
   enablePostProcessing: boolean
+  /** Global UV texture scale for consistent texture density across all geometry (1.0 = 1m world = 1m texture) */
+  textureScale: number
+  /** Enable environment lighting (HDRI) */
+  environmentEnabled: boolean
+  /** Environment lighting preset (HDRI) */
+  environmentPreset: EnvironmentPreset
+  /** Environment intensity (0-2) */
+  environmentIntensity: number
+  /** Show environment as background */
+  environmentBackground: boolean
+  /** Background blur amount (0-1) */
+  backgroundBlurriness: number
+  /** Camera projection type - orthographic or perspective (independent of camera view position) */
+  cameraType: CameraType
 }
 
 // ============================================================================
@@ -428,6 +507,7 @@ export interface HistoryEntry {
 export interface SceneData {
   objects: AnySceneObject[]
   layers: Layer[]
+  areas?: SceneArea[]
   viewportSettings?: ViewportSettings
   gridSettings?: GridSettings
   cameraPosition?: Vec3
@@ -447,6 +527,14 @@ export const DEFAULT_LAYER: Layer = {
   frozen: false,
   printable: true,
   order: 0,
+}
+
+export const DEFAULT_AREA: SceneArea = {
+  id: "area-1",
+  name: "Area",
+  index: 1,
+  collapsed: false,
+  color: "#3b82f6",
 }
 
 export const DEFAULT_TRANSFORM: Transform = {
@@ -475,6 +563,13 @@ export const DEFAULT_VIEWPORT_SETTINGS: ViewportSettings = {
   antialiasing: true,
   postProcessingQuality: "medium",
   enablePostProcessing: true,
+  textureScale: 1.0, // 1.0 = 1 meter in world = 1 meter of texture (consistent density)
+  environmentEnabled: true,
+  environmentPreset: "apartment",
+  environmentIntensity: 1.0,
+  environmentBackground: false,
+  backgroundBlurriness: 0.5,
+  cameraType: "perspective", // Default to perspective projection
 }
 
 // ============================================================================
