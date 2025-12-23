@@ -148,14 +148,14 @@ function ErrorFallback({ error, onReset, variant, context }: ErrorFallbackProps)
             <HugeiconsIcon icon={AlertCircleIcon} className="h-12 w-12 text-destructive" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold text-foreground">Something went wrong</h1>
+            <h1 className="text-foreground">Something went wrong</h1>
             <p className="text-muted-foreground">
               {contextName} encountered an unexpected error. Please try again or reload the
               application.
             </p>
           </div>
           {error && (
-            <pre className="max-h-32 w-full overflow-auto rounded-md bg-muted p-3 text-left text-xs text-muted-foreground">
+            <pre className="max-h-32 w-full overflow-auto rounded-2xl bg-muted p-3 text-left text-xs text-muted-foreground">
               {error.message}
             </pre>
           )}
@@ -182,13 +182,13 @@ function ErrorFallback({ error, onReset, variant, context }: ErrorFallbackProps)
           <HugeiconsIcon icon={AlertCircleIcon} className="h-8 w-8 text-destructive" />
         </div>
         <div className="space-y-1">
-          <h2 className="text-lg font-medium text-foreground">{contextName} Error</h2>
+          <h3 className="text-foreground">{contextName} Error</h3>
           <p className="text-sm text-muted-foreground">
             An error occurred while loading this component.
           </p>
         </div>
         {error && (
-          <pre className="max-h-24 w-full overflow-auto rounded-md bg-muted p-2 text-left text-xs text-muted-foreground">
+          <pre className="max-h-24 w-full overflow-auto rounded-2xl bg-muted p-2 text-left text-xs text-muted-foreground">
             {error.message}
           </pre>
         )}

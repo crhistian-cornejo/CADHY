@@ -13,6 +13,7 @@
 import {
   Button,
   cn,
+  formatKbd,
   Input,
   Kbd,
   Popover,
@@ -90,7 +91,7 @@ function SavedViewItem({
   return (
     <div
       className={cn(
-        "group flex items-center gap-2 rounded-md p-1.5 hover:bg-accent/50 transition-colors",
+        "group flex items-center gap-2 rounded-2xl p-1.5 hover:bg-accent/50 transition-colors",
         isEditing && "bg-accent/50"
       )}
     >
@@ -106,7 +107,7 @@ function SavedViewItem({
                 onCancelEdit()
               }
             }}
-            className="h-6 text-[11px] flex-1"
+            className="h-6 text-xs flex-1"
             autoFocus
           />
           <div className="flex items-center gap-0.5 shrink-0">
@@ -142,7 +143,7 @@ function SavedViewItem({
           <Button
             variant="ghost"
             size="sm"
-            className="flex-1 justify-start h-6 px-1.5 text-[11px] font-normal"
+            className="flex-1 justify-start h-6 px-1.5 text-xs font-normal"
             onClick={() => onLoad(view.id)}
           >
             <HugeiconsIcon icon={Camera01Icon} className="mr-1.5 size-3" />
@@ -269,7 +270,7 @@ function CameraViewsSection() {
                 <button
                   type="button"
                   className={cn(
-                    "w-8 h-8 flex items-center justify-center rounded-lg transition-colors",
+                    "w-8 h-8 flex items-center justify-center rounded-2xl transition-colors",
                     "text-muted-foreground hover:text-foreground hover:bg-muted",
                     isOpen && "bg-primary/20 text-primary"
                   )}
@@ -290,7 +291,7 @@ function CameraViewsSection() {
       >
         <div className="space-y-2">
           {/* Header */}
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             {t("camera.savedViews", "Saved Views")}
           </p>
 
@@ -310,7 +311,7 @@ function CameraViewsSection() {
             <Button
               variant="outline"
               size="sm"
-              className="w-full h-6 text-[11px]"
+              className="w-full h-6 text-xs"
               onClick={handleSaveView}
               disabled={!newViewName.trim()}
             >
@@ -346,7 +347,7 @@ function CameraViewsSection() {
           {savedViews.length === 0 && (
             <>
               <Separator className="bg-border/50" />
-              <p className="text-[11px] text-muted-foreground text-center py-3">
+              <p className="text-xs text-muted-foreground text-center py-3">
                 {t("camera.noSavedViews", "No saved views yet")}
               </p>
             </>
@@ -378,7 +379,7 @@ function ToolbarButton({ icon: Icon, label, shortcut, active, onClick }: Toolbar
           type="button"
           onClick={onClick}
           className={cn(
-            "w-8 h-8 flex items-center justify-center rounded-lg transition-colors",
+            "w-8 h-8 flex items-center justify-center rounded-2xl transition-colors",
             "text-muted-foreground hover:text-foreground hover:bg-muted",
             active && "bg-primary/20 text-primary"
           )}
@@ -388,7 +389,7 @@ function ToolbarButton({ icon: Icon, label, shortcut, active, onClick }: Toolbar
       </TooltipTrigger>
       <TooltipContent side="left" className="flex items-center gap-2">
         <span>{label}</span>
-        {shortcut && <Kbd>{shortcut}</Kbd>}
+        {shortcut && <Kbd>{formatKbd(shortcut)}</Kbd>}
       </TooltipContent>
     </Tooltip>
   )

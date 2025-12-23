@@ -20,6 +20,7 @@ export interface PropertySectionProps {
   defaultOpen?: boolean
   children: React.ReactNode
   badge?: string | number
+  action?: React.ReactNode
 }
 
 // ============================================================================
@@ -32,26 +33,30 @@ export const PropertySection = React.memo(function PropertySection({
   defaultOpen = true,
   children,
   badge,
+  action,
 }: PropertySectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 hover:bg-muted/50 transition-colors">
-        <div className="flex items-center gap-2">
+      <div className="flex w-full items-center justify-between px-3 py-2 hover:bg-muted/50 transition-colors">
+        <CollapsibleTrigger className="flex items-center gap-2 flex-1">
           <HugeiconsIcon
             icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon}
             className="size-3 text-muted-foreground"
           />
           <HugeiconsIcon icon={icon} className="size-4 text-muted-foreground" />
           <span className="text-xs font-medium">{title}</span>
+        </CollapsibleTrigger>
+        <div className="flex items-center gap-1">
+          {action}
+          {badge !== undefined && (
+            <Badge variant="secondary" className="h-4 px-1.5 text-xs">
+              {badge}
+            </Badge>
+          )}
         </div>
-        {badge !== undefined && (
-          <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-            {badge}
-          </Badge>
-        )}
-      </CollapsibleTrigger>
+      </div>
       <CollapsibleContent>
         <div className="px-3 pb-3 pt-1 space-y-2">{children}</div>
       </CollapsibleContent>

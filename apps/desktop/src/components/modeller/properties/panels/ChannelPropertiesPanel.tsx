@@ -161,17 +161,17 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
         {/* Section Type Selector */}
         <PropertyRow label={t("properties.type")}>
           <Select value={object.section.type} onValueChange={handleSectionTypeChange}>
-            <SelectTrigger className="h-6 text-[10px]">
+            <SelectTrigger className="h-6 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="rectangular" className="text-[10px]">
+              <SelectItem value="rectangular" className="text-xs">
                 {t("properties.sectionTypes.rectangular")}
               </SelectItem>
-              <SelectItem value="trapezoidal" className="text-[10px]">
+              <SelectItem value="trapezoidal" className="text-xs">
                 {t("properties.sectionTypes.trapezoidal")}
               </SelectItem>
-              <SelectItem value="triangular" className="text-[10px]">
+              <SelectItem value="triangular" className="text-xs">
                 {t("properties.sectionTypes.triangular")}
               </SelectItem>
             </SelectContent>
@@ -188,7 +188,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
                 step={0.1}
                 min={0.1}
                 precision={2}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.sectionParams.depthY")}>
@@ -198,7 +198,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
                 step={0.1}
                 min={0.1}
                 precision={2}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
           </>
@@ -213,7 +213,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
                 step={0.1}
                 min={0.1}
                 precision={2}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.sectionParams.depthY")}>
@@ -223,7 +223,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
                 step={0.1}
                 min={0.1}
                 precision={2}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.sectionParams.sideSlope")}>
@@ -233,7 +233,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
                 step={0.1}
                 min={0}
                 precision={2}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
           </>
@@ -248,7 +248,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
                 step={0.1}
                 min={0.1}
                 precision={2}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.sectionParams.sideSlope")}>
@@ -258,7 +258,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
                 step={0.1}
                 min={0.1}
                 precision={2}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
           </>
@@ -274,7 +274,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
             step={0.01}
             min={0.05}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.freeboard")}>
@@ -284,7 +284,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
             step={0.05}
             min={0.1}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
       </PropertySection>
@@ -298,7 +298,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
             step={0.001}
             min={0.001}
             precision={4}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.slope")}>
@@ -308,7 +308,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
             step={0.0001}
             min={0}
             precision={5}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.length")}>
@@ -318,7 +318,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
             step={1}
             min={0.1}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
       </PropertySection>
@@ -332,11 +332,11 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
             step={1}
             min={0}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.endStation")}>
-          <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+          <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
             {endStation.toFixed(2)} m
           </div>
         </PropertyRow>
@@ -346,11 +346,11 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
             onChange={(v) => handleChange("startElevation", v)}
             step={0.1}
             precision={3}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.endElevation")}>
-          <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+          <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
             {endElevation.toFixed(3)} m
           </div>
         </PropertyRow>
@@ -359,14 +359,14 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
           <>
             {object.upstreamChannelId && (
               <PropertyRow label={t("properties.upstream")}>
-                <Badge variant="outline" className="text-[9px]">
+                <Badge variant="outline" className="text-xs">
                   {t("properties.connected")}
                 </Badge>
               </PropertyRow>
             )}
             {object.downstreamChannelId && (
               <PropertyRow label={t("properties.downstream")}>
-                <Badge variant="outline" className="text-[9px]">
+                <Badge variant="outline" className="text-xs">
                   {t("properties.connected")}
                 </Badge>
               </PropertyRow>

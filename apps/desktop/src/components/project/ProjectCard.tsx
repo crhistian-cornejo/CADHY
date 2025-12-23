@@ -112,7 +112,7 @@ export const ProjectCard = memo(function ProjectCard({
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       className={cn(
-        "group relative rounded-xl cursor-pointer transition-all duration-200",
+        "group relative rounded-2xl cursor-pointer transition-all duration-200",
         "border border-foreground/[0.06] hover:border-foreground/[0.12]",
         "bg-card hover:shadow-sm hover:-translate-y-0.5",
         isSelected && "ring-1 ring-primary/40 border-primary/20",
@@ -123,7 +123,7 @@ export const ProjectCard = memo(function ProjectCard({
       {/* Thumbnail */}
       <div
         className={cn(
-          "relative overflow-hidden rounded-lg bg-muted flex items-center justify-center",
+          "relative overflow-hidden rounded-2xl bg-muted flex items-center justify-center",
           viewMode === "grid" ? "aspect-video w-full mb-3" : "size-14 shrink-0"
         )}
       >
@@ -195,7 +195,7 @@ export const ProjectCard = memo(function ProjectCard({
                   onClick={() => onMoveToFolder?.(project.id, folder.id)}
                 >
                   <div
-                    className="size-3 rounded-sm bg-folder-front"
+                    className="size-3 rounded-2xl bg-folder-front"
                     data-folder-color={folder.colorPreset}
                   />
                   {folder.name}

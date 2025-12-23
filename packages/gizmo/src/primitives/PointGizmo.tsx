@@ -432,7 +432,7 @@ export function PointGizmo({
                 fontFamily: "monospace",
                 fontWeight: 500,
                 padding: "3px 6px",
-                borderRadius: "3px",
+                borderRadius: "16px",
                 whiteSpace: "nowrap",
                 boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
               }}

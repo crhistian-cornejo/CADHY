@@ -207,7 +207,7 @@ function ChatMessage({ message, isStreaming = false, fallbackProvider }: ChatMes
       >
         {/* Header: time + name */}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {message.createdAt.toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -248,7 +248,7 @@ function ChatMessage({ message, isStreaming = false, fallbackProvider }: ChatMes
       {/* Avatar */}
       <div
         data-slot="message-avatar"
-        className="size-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-muted/50 p-1"
+        className="size-7 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden bg-muted/50 p-1"
       >
         <ProviderIcon className="size-5" />
       </div>
@@ -257,7 +257,7 @@ function ChatMessage({ message, isStreaming = false, fallbackProvider }: ChatMes
       <Message from="assistant" className="flex-1 min-w-0 max-w-full">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-medium">{t("ai.assistant")}</span>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {message.createdAt.toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -471,9 +471,9 @@ function WelcomeScreen({ onSuggestionClick }: WelcomeScreenProps) {
             key={i}
             type="button"
             onClick={() => onSuggestionClick(suggestion.text)}
-            className="w-full text-left px-3 py-2 text-xs rounded-lg border border-border/50 hover:bg-muted/50 hover:border-border transition-colors group"
+            className="w-full text-left px-3 py-2 text-xs rounded-2xl border border-border/50 hover:bg-muted/50 hover:border-border transition-colors group"
           >
-            <span className="text-muted-foreground text-[10px] uppercase tracking-wide mr-2 group-hover:text-foreground/70">
+            <span className="text-muted-foreground text-xs uppercase tracking-wide mr-2 group-hover:text-foreground/70">
               {suggestion.category}
             </span>
             <span className="text-foreground/80 group-hover:text-foreground">
@@ -690,7 +690,7 @@ function ChatHistorySheet({
           </div>
 
           {/* Search */}
-          <InputGroup className="border-border/50 h-8 rounded-lg shadow-none bg-transparent dark:bg-transparent focus-within:border-primary/50">
+          <InputGroup className="border-border/50 h-8 rounded-2xl shadow-none bg-transparent dark:bg-transparent focus-within:border-primary/50">
             <InputGroupAddon align="inline-start">
               <HugeiconsIcon icon={Search01Icon} className="size-4 opacity-50" />
             </InputGroupAddon>
@@ -721,7 +721,7 @@ function ChatHistorySheet({
             groupedSessions.map((group) => (
               <div key={group.label} className="mb-3">
                 <div className="px-2 py-1.5">
-                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {group.label}
                   </span>
                 </div>
@@ -730,7 +730,7 @@ function ChatHistorySheet({
                     key={session.id}
                     onClick={() => onSelectSession(session.id)}
                     className={cn(
-                      "group relative flex flex-col gap-1 p-3 rounded-lg cursor-pointer transition-colors",
+                      "group relative flex flex-col gap-1 p-3 rounded-2xl cursor-pointer transition-colors",
                       "hover:bg-accent/80",
                       session.id === currentSessionId && "bg-primary/10 ring-1 ring-primary/30"
                     )}
@@ -895,7 +895,7 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
         className="flex h-10 shrink-0 items-center justify-between border-b border-border/40 bg-muted/30 px-3"
       >
         <div className="flex items-center gap-2">
-          <div className="size-5 rounded flex items-center justify-center">
+          <div className="size-5 rounded-2xl flex items-center justify-center">
             <CadhyLogo className="size-4 text-foreground" />
           </div>
           <span className="text-xs font-medium">{t("ai.title")}</span>
@@ -942,7 +942,7 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
 
           {/* Model selector with provider icons - grouped by provider */}
           <Select value={modelId} onValueChange={(value) => value && setModelId(value)}>
-            <SelectTrigger className="h-6 w-auto max-w-[180px] text-[10px] border-none bg-transparent hover:bg-muted/50">
+            <SelectTrigger className="h-6 w-auto max-w-[180px] text-xs border-none bg-transparent hover:bg-muted/50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent
@@ -956,7 +956,7 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
                     <Fragment key={group.provider}>
                       {groupIndex > 0 && <SelectSeparator />}
                       <SelectGroup>
-                        <SelectLabel className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground px-2 py-1">
+                        <SelectLabel className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground px-2 py-1">
                           {group.isActive && (
                             <span className="size-1.5 rounded-full bg-green-500" />
                           )}
@@ -1035,7 +1035,7 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
                   animate={{ opacity: 1 }}
                   className="flex gap-3 px-4 py-3"
                 >
-                  <div className="size-7 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden p-1">
+                  <div className="size-7 rounded-2xl bg-muted/50 flex items-center justify-center overflow-hidden p-1">
                     <CurrentProviderIcon className="size-5 animate-pulse" />
                   </div>
                   <div className="flex items-center gap-1">

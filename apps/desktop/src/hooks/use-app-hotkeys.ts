@@ -5,6 +5,7 @@
  * Uses the hotkey registry system for consistent, customizable shortcuts.
  */
 
+import { toast } from "@cadhy/ui"
 import { useCallback } from "react"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useLayoutStore } from "@/stores/layout-store"
@@ -568,6 +569,9 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
     },
     useCallback(() => useNavigationStore.getState().setView("results"), [])
   )
+
+  // NOTE: CAD operation hotkeys (Fillet, Chamfer, etc.) are now registered
+  // in useCADOperationHotkeys within CADOperationsProvider
 
   // ========== THEME HOTKEYS ==========
 

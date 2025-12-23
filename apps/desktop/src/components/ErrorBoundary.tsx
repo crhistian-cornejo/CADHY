@@ -66,16 +66,16 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
       return (
         <div className="flex min-h-[400px] items-center justify-center p-4">
-          <div className="max-w-md space-y-4 rounded-lg border border-destructive bg-destructive/10 p-6">
+          <div className="max-w-md space-y-4 rounded-2xl border border-destructive bg-destructive/10 p-6">
             <div>
-              <h2 className="text-lg font-semibold text-destructive">Something went wrong</h2>
+              <h3 className="text-destructive">Something went wrong</h3>
               {this.props.name && (
                 <p className="mt-1 text-sm text-muted-foreground">Error in: {this.props.name}</p>
               )}
             </div>
 
             {this.state.error && (
-              <div className="rounded bg-muted p-3">
+              <div className="rounded-2xl bg-muted p-3">
                 <p className="font-mono text-xs text-muted-foreground">
                   {this.state.error.message}
                 </p>

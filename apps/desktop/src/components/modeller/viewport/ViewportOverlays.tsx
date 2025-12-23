@@ -16,9 +16,9 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  toast,
 } from "@cadhy/ui"
 import {
-  Add01Icon,
   Cursor01Icon,
   MoreHorizontalIcon,
   Move01Icon,
@@ -28,6 +28,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useState } from "react"
+import { useCADOperationsContext } from "@/components/modeller/dialogs"
 import { getPlatformSync } from "@/hooks/use-platform"
 import {
   type TransformMode,
@@ -38,11 +39,8 @@ import {
   useTransformMode,
   useViewportSettings,
 } from "@/stores/modeller"
-import { FloatingCreatePanel } from "../creators/FloatingCreatePanel"
-import { FloatingTransformPanel } from "../transform/FloatingTransformPanel"
 import {
   BooleanIcon,
-  ChannelIcon,
   ControlPointIcon,
   CutIcon,
   DeleteIcon,
@@ -134,8 +132,8 @@ function ToolbarButton({
         </button>
       </TooltipTrigger>
       <TooltipContent side={side} sideOffset={8} className="flex items-center gap-2 px-2 py-1">
-        <span className="text-[11px]">{label}</span>
-        {formattedShortcut && <Kbd className="h-4 min-w-4 text-[9px]">{formattedShortcut}</Kbd>}
+        <span className="text-xs">{label}</span>
+        {formattedShortcut && <Kbd className="h-4 min-w-4 text-xs">{formattedShortcut}</Kbd>}
       </TooltipContent>
     </Tooltip>
   )
@@ -164,7 +162,7 @@ function _CadIconButton({
       onClick={onClick}
       className={cn(
         "w-full flex items-center gap-2.5 px-2 py-1.5 rounded-[10px] transition-all duration-200 group text-left",
-        "hover:bg-white/5 text-zinc-400 hover:text-zinc-100",
+        "hover:bg-accent text-muted-foreground hover:text-foreground",
         active && "bg-blue-600/20 text-blue-400 ring-1 ring-blue-500/40"
       )}
     >
@@ -173,9 +171,9 @@ function _CadIconButton({
         className="size-4 group-hover:scale-110 transition-transform"
         color={color}
       />
-      <span className="text-[12px] font-medium flex-1">{label}</span>
+      <span className="text-xs font-medium flex-1">{label}</span>
       {shortcut && (
-        <span className="text-[9px] text-zinc-500 group-hover:text-zinc-400 border border-white/5 bg-zinc-800/50 px-1 rounded-md py-0.25">
+        <span className="text-xs text-muted-foreground group-hover:text-foreground border border-border bg-muted px-1 rounded-2xl py-0.25">
           {shortcut.replace("⇧", isMac ? "\u21E7" : "Shift+")}
         </span>
       )}
@@ -236,8 +234,7 @@ function SelectionToolbar() {
 function LeftToolbar() {
   const transformMode = useTransformMode()
   const isBoxSelectMode = useBoxSelectMode()
-  const { setTransformMode, setBoxSelectMode, toggleCreatePanel, isCreatePanelOpen } =
-    useModellerStore()
+  const { setTransformMode, setBoxSelectMode } = useModellerStore()
 
   const handleTransformMode = useCallback(
     (mode: TransformMode) => {
@@ -294,33 +291,6 @@ function LeftToolbar() {
           onClick={() => handleTransformMode("scale")}
         />
       </div>
-
-      <Separator className="w-6 bg-border/50 my-1" />
-
-      {/* Creation Tools */}
-      <div className="flex flex-col gap-0.5 items-center">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={toggleCreatePanel}
-              className={cn(
-                "w-7.5 h-7.5 flex items-center justify-center rounded-[10px] transition-all duration-200 outline-none",
-                "text-muted-foreground hover:bg-muted hover:text-foreground",
-                isCreatePanelOpen && "bg-secondary text-secondary-foreground"
-              )}
-            >
-              <HugeiconsIcon icon={Add01Icon} className="size-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8} className="flex items-center gap-2 px-2 py-1">
-            <span className="text-[11px]">Create Object</span>
-            <Kbd className="h-4 min-w-4 text-[9px]">+</Kbd>
-          </TooltipContent>
-        </Tooltip>
-
-        <ToolbarButton icon={ChannelIcon} label="Add Channel" shortcut="⇧C" color="text-cyan-400" />
-      </div>
     </div>
   )
 }
@@ -331,6 +301,9 @@ function LeftToolbar() {
 
 function BottomToolbar() {
   const [operationsOpen, setOperationsOpen] = useState(false)
+
+  // CAD Operations context
+  const { openOperationDialog } = useCADOperationsContext()
 
   // Transform settings
   const viewportSettings = useViewportSettings()
@@ -352,11 +325,70 @@ function BottomToolbar() {
     setOperationsOpen(false)
   }
 
+  const handleOperation = useCallback(
+    (operationId: string) => {
+      setOperationsOpen(false)
+
+      if (selectedObjects.length === 0) {
+        toast.error("No objects selected. Select an object first.")
+        return
+      }
+
+      switch (operationId) {
+        case "fillet":
+          openOperationDialog("fillet")
+          break
+        case "chamfer":
+          openOperationDialog("chamfer")
+          break
+        case "shell":
+          openOperationDialog("shell")
+          break
+        case "mirror":
+          toast.info("Mirror operation - Coming soon!")
+          break
+        case "duplicate":
+          toast.info("Duplicate operation - Coming soon!")
+          break
+        case "pipe":
+          toast.info("Pipe operation - Coming soon!")
+          break
+        default:
+          toast.error(`Unknown operation: ${operationId}`)
+      }
+    },
+    [selectedObjects, openOperationDialog]
+  )
+
   const operations = [
-    { id: "mirror", icon: MirrorIcon, label: "Mirror", shortcut: "X" },
-    { id: "fillet", icon: FilletIcon, label: "Fillet", shortcut: "F" },
-    { id: "duplicate", icon: DuplicateIcon, label: "Duplicate", shortcut: "D" },
-    { id: "pipe", icon: PipeIcon, label: "Pipe", shortcut: "P" },
+    {
+      id: "mirror",
+      icon: MirrorIcon,
+      label: "Mirror",
+      shortcut: "X",
+      onClick: () => handleOperation("mirror"),
+    },
+    {
+      id: "fillet",
+      icon: FilletIcon,
+      label: "Fillet",
+      shortcut: "F",
+      onClick: () => handleOperation("fillet"),
+    },
+    {
+      id: "duplicate",
+      icon: DuplicateIcon,
+      label: "Duplicate",
+      shortcut: "D",
+      onClick: () => handleOperation("duplicate"),
+    },
+    {
+      id: "pipe",
+      icon: PipeIcon,
+      label: "Pipe",
+      shortcut: "P",
+      onClick: () => handleOperation("pipe"),
+    },
   ]
 
   return (
@@ -424,22 +456,22 @@ function BottomToolbar() {
           side="top"
           align="center"
           sideOffset={12}
-          className="w-56 p-2 bg-background/95 backdrop-blur-md border border-border/50 shadow-2xl rounded-xl"
+          className="w-56 p-2 bg-background/95 backdrop-blur-md border border-border/50 shadow-2xl rounded-2xl"
         >
           <div className="space-y-0.5 p-1">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 px-2">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 px-2">
               All Operations
             </p>
             {operations.map((op) => (
               <button
                 type="button"
                 key={op.id}
-                onClick={() => setOperationsOpen(false)}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-all text-left group"
+                onClick={op.onClick}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-muted transition-all text-left group"
               >
                 <SmartIcon
                   icon={op.icon}
-                  className="size-4 text-zinc-500 group-hover:text-foreground"
+                  className="size-4 text-muted-foreground group-hover:text-foreground"
                 />
                 <span className="text-xs font-medium flex-1 text-muted-foreground group-hover:text-foreground">
                   {op.label}
@@ -474,19 +506,17 @@ function BottomToolbar() {
             </PopoverTrigger>
           </TooltipTrigger>
           <TooltipContent side="top" sideOffset={8}>
-            <span className="text-[11px]">Render Quality</span>
+            <span className="text-xs">Render Quality</span>
           </TooltipContent>
         </Tooltip>
         <PopoverContent
           side="top"
           align="center"
           sideOffset={12}
-          className="w-44 p-1.5 bg-background/95 backdrop-blur-xl border border-border/40 shadow-2xl rounded-xl"
+          className="w-44 p-1.5 bg-background/95 backdrop-blur-xl border border-border/40 shadow-2xl rounded-2xl"
         >
           <div className="space-y-0.5">
-            <p className="text-[8px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 py-1">
-              Render Quality
-            </p>
+            <p className="section-label px-2 py-1">Render Quality</p>
             {[
               { id: "low", name: "Draft", shortcut: "1" },
               { id: "medium", name: "Modeling", shortcut: "2" },
@@ -502,16 +532,14 @@ function BottomToolbar() {
                   })
                 }
                 className={cn(
-                  "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-all text-left group",
-                  "hover:bg-white/5 text-zinc-400 hover:text-zinc-200",
+                  "w-full flex items-center justify-between px-2.5 py-1.5 rounded-2xl transition-all text-left group",
+                  "hover:bg-accent text-muted-foreground hover:text-foreground",
                   viewportSettings.postProcessingQuality === mode.id &&
                     "bg-primary/15 text-primary ring-1 ring-primary/30"
                 )}
               >
-                <span className="text-[11px] font-medium">{mode.name}</span>
-                <span className="text-[9px] text-muted-foreground/50 font-mono">
-                  {mode.shortcut}
-                </span>
+                <span className="text-xs font-medium">{mode.name}</span>
+                <span className="text-xs text-muted-foreground/50 font-mono">{mode.shortcut}</span>
               </button>
             ))}
           </div>
@@ -522,15 +550,11 @@ function BottomToolbar() {
 }
 
 export function ViewportOverlays({ className }: ViewportOverlaysProps) {
-  const { isCreatePanelOpen, closeCreatePanel } = useModellerStore()
-
   return (
     <div className={cn("absolute inset-0 pointer-events-none", className)}>
       <SelectionToolbar />
       <LeftToolbar />
       <BottomToolbar />
-      <FloatingTransformPanel />
-      <FloatingCreatePanel isOpen={isCreatePanelOpen} onClose={closeCreatePanel} />
     </div>
   )
 }

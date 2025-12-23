@@ -255,24 +255,24 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
         {/* Chute Type */}
         <PropertyRow label={t("properties.chuteType", "Type")}>
           <Select value={object.chuteType} onValueChange={(v) => handleTypeChange(v as ChuteType)}>
-            <SelectTrigger className="h-6 text-[10px]">
+            <SelectTrigger className="h-6 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {(Object.keys(CHUTE_TYPE_INFO) as ChuteType[]).map((type) => (
-                <SelectItem key={type} value={type} className="text-[10px]">
+                <SelectItem key={type} value={type} className="text-xs">
                   {CHUTE_TYPE_INFO[type].label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </PropertyRow>
-        <div className="text-[9px] text-muted-foreground px-1 -mt-1 mb-2">
+        <div className="text-xs text-muted-foreground px-1 -mt-1 mb-2">
           {CHUTE_TYPE_INFO[object.chuteType ?? "smooth"]?.description ?? "Standard chute"}
         </div>
 
         {/* Inlet Section */}
-        <div className="text-[9px] font-medium text-muted-foreground px-1 mt-2 mb-1">
+        <div className="text-xs font-medium text-muted-foreground px-1 mt-2 mb-1">
           Inlet Section (transition from upstream)
         </div>
         <PropertyRow label="Inlet Length">
@@ -282,7 +282,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             step={0.5}
             min={0}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label="Inlet Slope">
@@ -293,14 +293,12 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             min={0}
             max={0.1}
             precision={3}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
 
         {/* Main Chute Section */}
-        <div className="text-[9px] font-medium text-muted-foreground px-1 mt-2 mb-1">
-          Main Chute
-        </div>
+        <div className="text-xs font-medium text-muted-foreground px-1 mt-2 mb-1">Main Chute</div>
         <PropertyRow label={t("properties.length", "Length")}>
           <NumberInput
             value={object.length}
@@ -308,7 +306,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             step={1}
             min={0.5}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.drop", "Drop")}>
@@ -318,11 +316,11 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             step={0.5}
             min={0}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.slope", "Slope")}>
-          <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+          <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
             {slopePercent.toFixed(1)}% ({slopeAngle.toFixed(1)}°)
           </div>
         </PropertyRow>
@@ -341,7 +339,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             step={0.1}
             min={0.1}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.depth", "Depth")}>
@@ -351,7 +349,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             step={0.1}
             min={0.1}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.sideSlope", "Side Slope")}>
@@ -361,7 +359,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             step={0.1}
             min={0}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.thickness", "Thickness")}>
@@ -371,7 +369,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             step={0.05}
             min={0.05}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.manningN", "Manning's n")}>
@@ -381,7 +379,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             step={0.001}
             min={0.001}
             precision={4}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
       </PropertySection>
@@ -400,7 +398,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
               step={0.05}
               min={0.1}
               precision={2}
-              className="h-6 text-[10px]"
+              className="h-6 text-xs"
             />
           </PropertyRow>
           <PropertyRow label={t("properties.stepLength", "Step Length")}>
@@ -410,11 +408,11 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
               step={0.1}
               min={0.2}
               precision={2}
-              className="h-6 text-[10px]"
+              className="h-6 text-xs"
             />
           </PropertyRow>
           <PropertyRow label={t("properties.numSteps", "Num. Steps")}>
-            <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+            <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
               {object.stepLength > 0 ? Math.ceil(object.length / object.stepLength) : 0}
             </div>
           </PropertyRow>
@@ -435,7 +433,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
               step={0.1}
               min={0.3}
               precision={2}
-              className="h-6 text-[10px]"
+              className="h-6 text-xs"
             />
           </PropertyRow>
           <PropertyRow label={t("properties.baffleHeight", "Height")}>
@@ -445,11 +443,11 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
               step={0.05}
               min={0.1}
               precision={2}
-              className="h-6 text-[10px]"
+              className="h-6 text-xs"
             />
           </PropertyRow>
           <PropertyRow label={t("properties.numBaffles", "Num. Rows")}>
-            <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+            <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
               {object.baffleSpacing > 0 ? Math.floor(object.length / object.baffleSpacing) : 0}
             </div>
           </PropertyRow>
@@ -469,11 +467,11 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             step={1}
             min={0}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.endStation", "End St.")}>
-          <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+          <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
             {object.endStation?.toFixed(2)} m
           </div>
         </PropertyRow>
@@ -483,11 +481,11 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
             onChange={(v) => handleChange("startElevation", v)}
             step={0.1}
             precision={3}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.endElevation", "End Elev.")}>
-          <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+          <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
             {object.endElevation?.toFixed(3)} m
           </div>
         </PropertyRow>
@@ -501,11 +499,11 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
       >
         {/* Enable/Disable Toggle */}
         <div className="flex items-center justify-between mb-2">
-          <Label className="text-[10px]">{t("properties.enabled", "Enabled")}</Label>
+          <Label className="text-xs">{t("properties.enabled", "Enabled")}</Label>
           <Button
             variant={object.stillingBasin ? "secondary" : "outline"}
             size="sm"
-            className="h-6 text-[10px] px-2"
+            className="h-6 text-xs px-2"
             onClick={() => handleBasinToggle(!object.stillingBasin)}
           >
             {object.stillingBasin ? "Yes" : "No"}
@@ -520,21 +518,21 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
                 value={object.stillingBasin.type}
                 onValueChange={(v) => handleBasinTypeChange(v as StillingBasinType)}
               >
-                <SelectTrigger className="h-6 text-[10px]">
+                <SelectTrigger className="h-6 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.keys(STILLING_BASIN_TYPE_INFO) as StillingBasinType[])
                     .filter((type) => type !== "none")
                     .map((type) => (
-                      <SelectItem key={type} value={type} className="text-[10px]">
+                      <SelectItem key={type} value={type} className="text-xs">
                         {STILLING_BASIN_TYPE_INFO[type].label}
                       </SelectItem>
                     ))}
                 </SelectContent>
               </Select>
             </PropertyRow>
-            <div className="text-[9px] text-muted-foreground px-1 -mt-1 mb-2">
+            <div className="text-xs text-muted-foreground px-1 -mt-1 mb-2">
               {STILLING_BASIN_TYPE_INFO[object.stillingBasin.type].description}
               <span className="text-primary ml-1">
                 ({STILLING_BASIN_TYPE_INFO[object.stillingBasin.type].froudeRange})
@@ -549,7 +547,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
                 step={0.5}
                 min={0.5}
                 precision={2}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.basinDepth", "Depth")}>
@@ -559,17 +557,17 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
                 step={0.1}
                 min={0}
                 precision={2}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
 
             {/* Features list */}
             {STILLING_BASIN_TYPE_INFO[object.stillingBasin.type].features.length > 0 && (
               <div className="mt-2 px-1">
-                <div className="text-[9px] text-muted-foreground mb-1">Features:</div>
+                <div className="text-xs text-muted-foreground mb-1">Features:</div>
                 <div className="flex flex-wrap gap-1">
                   {STILLING_BASIN_TYPE_INFO[object.stillingBasin.type].features.map((f, i) => (
-                    <Badge key={i} variant="outline" className="text-[8px] h-4">
+                    <Badge key={i} variant="outline" className="text-xs h-4">
                       {f}
                     </Badge>
                   ))}
@@ -588,20 +586,20 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
       >
         <PropertyRow label={t("properties.upstream", "Upstream")}>
           {upstreamName ? (
-            <Badge variant="outline" className="text-[9px]">
+            <Badge variant="outline" className="text-xs">
               {upstreamName}
             </Badge>
           ) : (
-            <span className="text-[10px] text-muted-foreground">None</span>
+            <span className="text-xs text-muted-foreground">None</span>
           )}
         </PropertyRow>
         <PropertyRow label={t("properties.downstream", "Downstream")}>
           {downstreamName ? (
-            <Badge variant="outline" className="text-[9px]">
+            <Badge variant="outline" className="text-xs">
               {downstreamName}
             </Badge>
           ) : (
-            <span className="text-[10px] text-muted-foreground">None</span>
+            <span className="text-xs text-muted-foreground">None</span>
           )}
         </PropertyRow>
       </PropertySection>

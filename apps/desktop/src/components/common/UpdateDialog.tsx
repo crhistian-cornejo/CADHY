@@ -176,7 +176,7 @@ export function UpdateDialog() {
         )}
 
         {updateInfo?.body && !downloading && !isInstalling && !readyToInstall && (
-          <div className="rounded-lg bg-muted/50 p-3 text-xs max-h-32 overflow-y-auto">
+          <div className="rounded-2xl bg-muted/50 p-3 text-xs max-h-32 overflow-y-auto">
             <p className="font-medium mb-1">What's new:</p>
             <p className="text-muted-foreground whitespace-pre-wrap">
               {updateInfo.body.replace(/https:\/\/github\.com\/[^\s]+\/releases\/tag\/[^\s]+/g, "")}

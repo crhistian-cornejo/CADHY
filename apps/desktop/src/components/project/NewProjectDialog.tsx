@@ -240,7 +240,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
                 <SelectContent>
                   <SelectItem value="none">
                     <div className="flex items-center gap-2">
-                      <div className="size-3 rounded-sm bg-muted" />
+                      <div className="size-3 rounded-2xl bg-muted" />
                       <span>No folder</span>
                     </div>
                   </SelectItem>
@@ -251,7 +251,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
                         <div className="flex items-center gap-2">
                           <div
                             className={cn(
-                              "size-3 rounded-sm",
+                              "size-3 rounded-2xl",
                               folderColorMap[folder.colorPreset] || "bg-blue-500"
                             )}
                           />
@@ -263,7 +263,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
                   })}
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Organize your project in a folder for easy access later.
               </p>
             </div>
@@ -272,7 +272,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           {/* Template Selection */}
           <div className="grid gap-1.5">
             <Label className="text-xs">Template</Label>
-            <ScrollArea className="h-[160px] rounded-md border p-1.5">
+            <ScrollArea className="h-[160px] rounded-2xl border p-1.5">
               <div className="grid grid-cols-2 gap-1.5">
                 {PROJECT_TEMPLATES.map((template) => (
                   <TemplateCard
@@ -288,7 +288,9 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{error}</div>
+            <div className="rounded-2xl bg-destructive/10 p-2 text-xs text-destructive">
+              {error}
+            </div>
           )}
         </div>
 
@@ -323,7 +325,7 @@ function TemplateCard({ template, isSelected, onSelect }: TemplateCardProps) {
       type="button"
       onClick={onSelect}
       className={cn(
-        "relative flex flex-col items-start gap-1.5 rounded-md border p-2 text-left transition-all hover:bg-accent/50",
+        "relative flex flex-col items-start gap-1.5 rounded-2xl border p-2 text-left transition-all hover:bg-accent/50",
         isSelected
           ? "border-primary bg-primary/5 ring-1 ring-primary"
           : "border-border hover:border-primary/50"
@@ -337,14 +339,14 @@ function TemplateCard({ template, isSelected, onSelect }: TemplateCardProps) {
       )}
 
       {/* Icon */}
-      <div className="flex size-7 items-center justify-center rounded bg-muted">
+      <div className="flex size-7 items-center justify-center rounded-2xl bg-muted">
         <HugeiconsIcon icon={Icon} className="size-4 text-muted-foreground" />
       </div>
 
       {/* Info */}
       <div className="space-y-0.5">
         <h4 className="text-xs font-medium leading-none">{template.name}</h4>
-        <p className="text-[10px] text-muted-foreground line-clamp-2">{template.description}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2">{template.description}</p>
       </div>
     </button>
   )

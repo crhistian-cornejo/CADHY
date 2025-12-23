@@ -62,13 +62,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         {/* Header */}
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+            <div className="flex items-center justify-center size-10 rounded-2xl bg-primary/10">
               <HugeiconsIcon icon={Settings01Icon} className="size-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-semibold">
-                {t("settings.title", "Settings")}
-              </DialogTitle>
+              <DialogTitle>{t("settings.title", "Settings")}</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 {t("settings.description", "Configure your profile and AI providers")}
               </DialogDescription>

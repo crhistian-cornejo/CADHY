@@ -64,7 +64,7 @@ function GalleryItem({ image, index, onClick }: GalleryItemProps) {
       }}
       whileHover={{ scale: 1.02 }}
       className={cn(
-        "relative cursor-pointer overflow-hidden rounded-xl",
+        "relative cursor-pointer overflow-hidden rounded-2xl",
         "bg-muted/50 border border-border/50",
         "aspect-[4/3]"
       )}
@@ -88,7 +88,7 @@ function GalleryItem({ image, index, onClick }: GalleryItemProps) {
           >
             <div className="absolute bottom-0 left-0 right-0 p-3">
               <p className="text-xs font-medium text-white truncate">{image.sessionTitle}</p>
-              <p className="text-[10px] text-white/70 mt-0.5">
+              <p className="text-xs text-white/70 mt-0.5">
                 {new Date(image.createdAt).toLocaleDateString()}
               </p>
             </div>
@@ -192,7 +192,7 @@ function Lightbox({ image, onClose, onPrev, onNext, hasPrev, hasNext }: Lightbox
           <img
             src={dataUrl}
             alt={`Generated from ${image.sessionTitle}`}
-            className="max-w-full max-h-[85vh] rounded-lg object-contain"
+            className="max-w-full max-h-[85vh] rounded-2xl object-contain"
           />
 
           {/* Image info */}
@@ -202,7 +202,7 @@ function Lightbox({ image, onClose, onPrev, onNext, hasPrev, hasNext }: Lightbox
             transition={{ delay: 0.2 }}
             className="absolute bottom-4 left-4 right-4 flex items-center justify-between"
           >
-            <div className="rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm">
+            <div className="rounded-2xl bg-black/50 px-3 py-2 backdrop-blur-sm">
               <p className="text-sm font-medium text-white">{image.sessionTitle}</p>
               <p className="text-xs text-white/70">{new Date(image.createdAt).toLocaleString()}</p>
             </div>
@@ -210,7 +210,7 @@ function Lightbox({ image, onClose, onPrev, onNext, hasPrev, hasNext }: Lightbox
             <button
               type="button"
               onClick={handleDownload}
-              className="rounded-lg bg-black/50 p-2 text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
+              className="rounded-2xl bg-black/50 p-2 text-white hover:bg-black/70 backdrop-blur-sm transition-colors"
             >
               <HugeiconsIcon icon={Download01Icon} className="size-5" />
             </button>
@@ -310,7 +310,7 @@ function LoadingState() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-6">
       {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className={cn("animate-pulse rounded-xl bg-muted/50", "aspect-[4/3]")}>
+        <div key={i} className={cn("animate-pulse rounded-2xl bg-muted/50", "aspect-[4/3]")}>
           <div className="flex h-full items-center justify-center">
             <HugeiconsIcon icon={Image01Icon} className="size-8 text-muted-foreground/30" />
           </div>
@@ -369,7 +369,7 @@ export function GalleryView({ onBack, className }: GalleryViewProps) {
             </Button>
           )}
           <div>
-            <h1 className="text-lg font-semibold">{t("gallery.title", "AI Gallery")}</h1>
+            <h1>{t("gallery.title", "AI Gallery")}</h1>
             {totalCount > 0 && (
               <p className="text-xs text-muted-foreground">
                 {t("gallery.imageCount", "{{count}} images", { count: totalCount })}

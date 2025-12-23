@@ -74,7 +74,7 @@ export function Tool({
         data-status={status}
         open={isOpen}
         onOpenChange={setIsOpen}
-        className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
+        className={cn("rounded-2xl border bg-card text-card-foreground shadow-sm", className)}
         {...props}
       >
         {children}
@@ -167,7 +167,7 @@ export function ToolInput({ children, className, ...props }: ToolInputProps) {
   return (
     <div data-slot="tool-input" className={cn("space-y-1", className)} {...props}>
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Input</div>
-      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2 text-xs">
+      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-2xl bg-muted p-2 text-xs">
         {children}
       </pre>
     </div>
@@ -185,7 +185,7 @@ export function ToolOutput({ children, className, ...props }: ToolOutputProps) {
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Output
       </div>
-      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2 text-xs">
+      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-2xl bg-muted p-2 text-xs">
         {children}
       </pre>
     </div>
@@ -201,7 +201,7 @@ export function ToolError({ children, className, ...props }: ToolErrorProps) {
   return (
     <div data-slot="tool-error" className={cn("mt-2 space-y-1", className)} {...props}>
       <div className="text-xs font-medium uppercase tracking-wide text-destructive">Error</div>
-      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-2xl bg-destructive/10 p-2 text-xs text-destructive">
         {children}
       </pre>
     </div>

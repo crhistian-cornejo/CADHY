@@ -82,12 +82,12 @@ export function ProfileTab() {
       {/* Avatar Section */}
       <div className="flex items-center gap-3">
         <div className="relative">
-          <Avatar className="size-14 rounded-lg">
+          <Avatar className="size-14 rounded-2xl">
             <AvatarImage
               src={isEditing ? editedProfile.avatar : profile.avatar}
               alt={isEditing ? editedProfile.name : profile.name}
             />
-            <AvatarFallback className="rounded-lg text-base">
+            <AvatarFallback className="rounded-2xl text-base">
               {(isEditing ? editedProfile.name : profile.name).slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -128,7 +128,7 @@ export function ProfileTab() {
               className="h-8 text-xs"
             />
           ) : (
-            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-md">{profile.name}</p>
+            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">{profile.name}</p>
           )}
         </div>
 
@@ -146,7 +146,7 @@ export function ProfileTab() {
               className="h-8 text-xs"
             />
           ) : (
-            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-md">{profile.email}</p>
+            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">{profile.email}</p>
           )}
         </div>
 
@@ -162,7 +162,7 @@ export function ProfileTab() {
               className="h-8 text-xs"
             />
           ) : (
-            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-md">
+            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">
               {profile.company || t("settings.profile.notSet", "Not set")}
             </p>
           )}
@@ -180,7 +180,7 @@ export function ProfileTab() {
               className="h-8 text-xs"
             />
           ) : (
-            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-md">
+            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">
               {profile.role || t("settings.profile.notSet", "Not set")}
             </p>
           )}

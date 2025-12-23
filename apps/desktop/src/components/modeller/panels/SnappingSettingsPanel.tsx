@@ -147,7 +147,7 @@ export function SnappingSettingsPanel() {
           <Separator />
 
           {/* Visual Indicator */}
-          <div className="rounded-md bg-green-500/10 border border-green-500/20 p-3">
+          <div className="rounded-2xl bg-green-500/10 border border-green-500/20 p-3">
             <p className="text-xs text-green-600 dark:text-green-400">
               ✓ Snapping enabled - Green sphere indicates snap points
             </p>
@@ -172,7 +172,7 @@ export function SnappingSettingsPanel() {
                 distance: 0.5,
               })
             }
-            className="rounded-md border bg-card p-2 text-xs hover:bg-accent/50 transition-colors"
+            className="rounded-2xl border bg-card p-2 text-xs hover:bg-accent/50 transition-colors"
           >
             Precision
           </button>
@@ -188,7 +188,7 @@ export function SnappingSettingsPanel() {
                 distance: 1.0,
               })
             }
-            className="rounded-md border bg-card p-2 text-xs hover:bg-accent/50 transition-colors"
+            className="rounded-2xl border bg-card p-2 text-xs hover:bg-accent/50 transition-colors"
           >
             Grid Only
           </button>

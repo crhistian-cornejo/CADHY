@@ -61,12 +61,16 @@ interface ChuteCreatorProps {
 // CHUTE TYPE OPTIONS
 // ============================================================================
 
-const CHUTE_TYPES: { value: ChuteType; label: string; description: string }[] = [
-  { value: "smooth", label: "Smooth", description: "Standard concrete - highest velocity" },
-  { value: "stepped", label: "Stepped", description: "Step drops for energy dissipation" },
-  { value: "baffled", label: "Baffled", description: "Baffle blocks along flow" },
-  { value: "ogee", label: "Ogee Crest", description: "Ogee profile for spillways" },
-  { value: "converging", label: "Converging", description: "Converging walls" },
+const CHUTE_TYPES: { value: ChuteType; labelKey: string; descKey: string }[] = [
+  { value: "smooth", labelKey: "createPanel.smooth", descKey: "createPanel.smoothDesc" },
+  { value: "stepped", labelKey: "createPanel.stepped", descKey: "createPanel.steppedDesc" },
+  { value: "baffled", labelKey: "createPanel.baffled", descKey: "createPanel.baffledDesc" },
+  { value: "ogee", labelKey: "createPanel.ogee", descKey: "createPanel.ogeeDesc" },
+  {
+    value: "converging",
+    labelKey: "createPanel.converging",
+    descKey: "createPanel.convergingDesc",
+  },
 ]
 
 // ============================================================================
@@ -75,31 +79,46 @@ const CHUTE_TYPES: { value: ChuteType; label: string; description: string }[] = 
 
 const STILLING_BASIN_TYPES: {
   value: StillingBasinType
-  label: string
-  description: string
+  labelKey: string
+  descKey: string
   froudeRange: string
 }[] = [
-  { value: "none", label: "None", description: "No stilling basin", froudeRange: "-" },
-  { value: "type-i", label: "Type I", description: "Undular jump basin", froudeRange: "Fr < 1.7" },
+  {
+    value: "none",
+    labelKey: "createPanel.none",
+    descKey: "createPanel.noneDesc",
+    froudeRange: "-",
+  },
+  {
+    value: "type-i",
+    labelKey: "createPanel.stillingBasinTypes.typeI",
+    descKey: "createPanel.stillingBasinTypes.typeIDesc",
+    froudeRange: "Fr < 1.7",
+  },
   {
     value: "type-ii",
-    label: "Type II",
-    description: "High dam spillways",
+    labelKey: "createPanel.stillingBasinTypes.typeII",
+    descKey: "createPanel.stillingBasinTypes.typeIIDesc",
     froudeRange: "Fr > 4.5, V > 15 m/s",
   },
   {
     value: "type-iii",
-    label: "Type III",
-    description: "Small dams",
+    labelKey: "createPanel.stillingBasinTypes.typeIII",
+    descKey: "createPanel.stillingBasinTypes.typeIIIDesc",
     froudeRange: "Fr 4.5-17, V < 15 m/s",
   },
   {
     value: "type-iv",
-    label: "Type IV",
-    description: "Wave suppression",
+    labelKey: "createPanel.stillingBasinTypes.typeIV",
+    descKey: "createPanel.stillingBasinTypes.typeIVDesc",
     froudeRange: "Fr 2.5-4.5",
   },
-  { value: "saf", label: "SAF", description: "St. Anthony Falls", froudeRange: "Fr 1.7-17" },
+  {
+    value: "saf",
+    labelKey: "createPanel.stillingBasinTypes.saf",
+    descKey: "createPanel.stillingBasinTypes.safDesc",
+    froudeRange: "Fr 1.7-17",
+  },
 ]
 
 // ============================================================================
@@ -145,7 +164,7 @@ function ParamInput({
 
   return (
     <div className="flex items-center gap-2">
-      <Label className="w-20 text-[10px] text-muted-foreground shrink-0">{label}</Label>
+      <Label className="w-20 text-xs text-muted-foreground shrink-0">{label}</Label>
       <div className="flex-1 flex items-center gap-1">
         <NumberInput
           value={Number(displayValue.toFixed(4))}
@@ -156,7 +175,7 @@ function ParamInput({
           className="h-7 text-xs"
           disabled={disabled}
         />
-        {unitLabel && <span className="text-[10px] text-muted-foreground w-6">{unitLabel}</span>}
+        {unitLabel && <span className="text-xs text-muted-foreground w-6">{unitLabel}</span>}
       </div>
     </div>
   )
@@ -264,9 +283,18 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
       setThickness(transition.outlet.wallThickness)
     } else if (upstreamElement.type === "channel") {
       const channel = upstreamElement as ChannelObject
-      setWidth(channel.width)
-      setDepth(channel.depth)
-      setSideSlope(channel.sideSlope)
+      const section = channel.section
+      if (section.type === "rectangular") {
+        setWidth((section as RectangularSection).width)
+      } else if (section.type === "trapezoidal") {
+        setWidth((section as TrapezoidalSection).bottomWidth)
+      }
+      setDepth(section.depth)
+      if (section.type === "trapezoidal") {
+        setSideSlope((section as TrapezoidalSection).sideSlope)
+      } else if (section.type === "triangular") {
+        setSideSlope((section as TriangularSection).sideSlope)
+      }
       // Channels don't have explicit thickness, use default
     }
   }, [upstreamElement])
@@ -420,7 +448,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="size-6 rounded bg-amber-500/20 flex items-center justify-center">
+          <div className="size-6 rounded-2xl bg-amber-500/20 flex items-center justify-center">
             <HugeiconsIcon icon={ArrowDown01Icon} className="size-3.5 text-amber-500" />
           </div>
           <span className="text-xs font-medium">{t("createPanel.chute", "Chute")}</span>
@@ -433,7 +461,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
       <div className="space-y-2">
         {/* Name */}
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("createPanel.name")}
           </Label>
           <Input
@@ -441,7 +469,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="h-7 text-xs"
-            placeholder="Chute name"
+            placeholder={t("createPanel.objectName")}
           />
         </div>
 
@@ -449,13 +477,13 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
 
         {/* Chute Type */}
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("createPanel.chuteType", "Chute Type")}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("createPanel.type", "Type")}
           </Label>
           <Select value={chuteType} onValueChange={(v) => setChuteType(v as ChuteType)}>
@@ -466,8 +494,8 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
               {CHUTE_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value} className="text-xs">
                   <div className="flex flex-col">
-                    <span>{type.label}</span>
-                    <span className="text-[9px] text-muted-foreground">{type.description}</span>
+                    <span>{t(type.labelKey)}</span>
+                    <span className="text-xs text-muted-foreground">{t(type.descKey)}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -479,7 +507,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
         {chuteType === "stepped" && (
           <div className="space-y-2 pl-2 border-l-2 border-amber-500/20">
             <ParamInput
-              label="Step Height"
+              label={t("createPanel.stepHeight")}
               value={stepHeight}
               onChange={setStepHeight}
               min={0.1}
@@ -488,7 +516,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
               unitType="length"
             />
             <ParamInput
-              label="Step Length"
+              label={t("createPanel.stepLength")}
               value={stepLength}
               onChange={setStepLength}
               min={0.3}
@@ -503,7 +531,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
         {chuteType === "baffled" && (
           <div className="space-y-2 pl-2 border-l-2 border-amber-500/20">
             <ParamInput
-              label="Baffle Spacing"
+              label={t("createPanel.baffleSpacing")}
               value={baffleSpacing}
               onChange={setBaffleSpacing}
               min={0.5}
@@ -512,7 +540,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
               unitType="length"
             />
             <ParamInput
-              label="Baffle Height"
+              label={t("createPanel.baffleHeight")}
               value={baffleHeight}
               onChange={setBaffleHeight}
               min={0.1}
@@ -527,18 +555,18 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
 
         {/* Upstream Connection */}
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("createPanel.connection", "Connection")}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("createPanel.upstream", "Upstream")}
           </Label>
-          <Select value={upstreamId} onValueChange={handleUpstreamChange}>
+          <Select value={upstreamId} onValueChange={(v) => handleUpstreamChange(v ?? "none")}>
             <SelectTrigger className="h-7 text-xs">
-              <SelectValue placeholder="Select element" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none" className="text-xs">
@@ -557,18 +585,16 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
 
         {/* Geometry */}
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("createPanel.geometry", "Geometry")}
           </span>
         </div>
 
         {/* Inlet Section */}
-        <div className="text-[9px] text-muted-foreground mb-1">
-          Inlet (transition from upstream)
-        </div>
+        <div className="text-xs text-muted-foreground mb-1">{t("createPanel.inlet")}</div>
         <div className="grid grid-cols-2 gap-2 pl-2 border-l-2 border-amber-500/20 mb-2">
           <ParamInput
-            label="Inlet L"
+            label={t("createPanel.inletL")}
             value={inletLength}
             onChange={setInletLength}
             min={0}
@@ -577,7 +603,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
             unitType="length"
           />
           <ParamInput
-            label="Inlet Slope"
+            label={t("createPanel.inletSlope")}
             value={inletSlope}
             onChange={setInletSlope}
             min={0}
@@ -588,10 +614,10 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
         </div>
 
         {/* Main Chute Section */}
-        <div className="text-[9px] text-muted-foreground mb-1">Main Chute</div>
+        <div className="text-xs text-muted-foreground mb-1">{t("createPanel.mainChute")}</div>
         <div className="grid grid-cols-2 gap-2">
           <ParamInput
-            label="Length (L)"
+            label={t("createPanel.lengthSymbol")}
             value={length}
             onChange={setLength}
             min={1}
@@ -599,7 +625,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
             unitType="length"
           />
           <ParamInput
-            label="Drop (H)"
+            label={t("createPanel.dropH")}
             value={drop}
             onChange={setDrop}
             min={0.1}
@@ -609,7 +635,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
         </div>
 
         <ParamInput
-          label="Width (b)"
+          label={t("createPanel.widthSymbol")}
           value={width}
           onChange={setWidth}
           min={0.5}
@@ -617,7 +643,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
           unitType="length"
         />
         <ParamInput
-          label="Depth (y)"
+          label={t("createPanel.depthSymbol")}
           value={depth}
           onChange={setDepth}
           min={0.3}
@@ -625,7 +651,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
           unitType="length"
         />
         <ParamInput
-          label="Side Slope"
+          label={t("createPanel.sideSlope")}
           value={sideSlope}
           onChange={setSideSlope}
           min={0}
@@ -633,7 +659,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
           customUnit="H:V"
         />
         <ParamInput
-          label="Wall (e)"
+          label={t("createPanel.wall")}
           value={thickness}
           onChange={setThickness}
           min={0.1}
@@ -645,7 +671,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
 
         {/* Hydraulics */}
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("createPanel.hydraulics", "Hydraulics")}
           </span>
         </div>
@@ -663,13 +689,13 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
 
         {/* Stilling Basin */}
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("createPanel.stillingBasin", "Stilling Basin")}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("createPanel.type", "Type")}
           </Label>
           <Select value={basinType} onValueChange={(v) => setBasinType(v as StillingBasinType)}>
@@ -680,9 +706,9 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
               {STILLING_BASIN_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value} className="text-xs">
                   <div className="flex flex-col">
-                    <span>{type.label}</span>
-                    <span className="text-[9px] text-muted-foreground">
-                      {type.description} • {type.froudeRange}
+                    <span>{t(type.labelKey)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t(type.descKey)} • {type.froudeRange}
                     </span>
                   </div>
                 </SelectItem>
@@ -695,15 +721,17 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
           <div className="space-y-2 pl-2 border-l-2 border-amber-500/20">
             {/* Auto-design toggle */}
             <div className="flex items-center gap-2">
-              <Label className="w-20 text-[10px] text-muted-foreground shrink-0">Auto Design</Label>
+              <Label className="w-20 text-xs text-muted-foreground shrink-0">
+                {t("createPanel.autoDesign")}
+              </Label>
               <Switch checked={useAutoDesign} onCheckedChange={setUseAutoDesign} />
-              <span className="text-[9px] text-muted-foreground">USBR EM-25</span>
+              <span className="text-xs text-muted-foreground">USBR EM-25</span>
             </div>
 
             {useAutoDesign && (
               <>
                 <ParamInput
-                  label="Discharge Q"
+                  label={t("createPanel.discharge")}
                   value={designDischarge}
                   onChange={setDesignDischarge}
                   min={0.1}
@@ -712,26 +740,30 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
                 />
 
                 {autoDesignResult && (
-                  <div className="p-2 rounded bg-amber-500/10 space-y-1 text-[9px]">
+                  <div className="p-2 rounded-2xl bg-amber-500/10 space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Froude Number:</span>
+                      <span className="text-muted-foreground">
+                        {t("createPanel.froudeNumber")}:
+                      </span>
                       <span className="font-mono">{autoDesignResult.froudeNumber.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Outlet Velocity:</span>
+                      <span className="text-muted-foreground">
+                        {t("createPanel.outletVelocity")}:
+                      </span>
                       <span className="font-mono">
                         {autoDesignResult.outletVelocity.toFixed(2)} m/s
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Recommended:</span>
-                      <Badge variant="outline" className="text-[8px] h-4">
+                      <span className="text-muted-foreground">{t("createPanel.recommended")}:</span>
+                      <Badge variant="outline" className="text-xs h-4">
                         {STILLING_BASIN_TYPE_INFO[autoDesignResult.recommendedType]?.label ??
                           autoDesignResult.recommendedType}
                       </Badge>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Basin Length:</span>
+                      <span className="text-muted-foreground">{t("createPanel.basinLength")}:</span>
                       <span className="font-mono">
                         {autoDesignResult.config.length.toFixed(2)} m
                       </span>
@@ -757,7 +789,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
             {!useAutoDesign && (
               <>
                 <ParamInput
-                  label="Basin L"
+                  label={t("createPanel.basinLength")}
                   value={basinLength}
                   onChange={setBasinLength}
                   min={2}
@@ -765,7 +797,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
                   unitType="length"
                 />
                 <ParamInput
-                  label="Basin D"
+                  label={t("createPanel.basinDepth")}
                   value={basinDepth}
                   onChange={setBasinDepth}
                   min={0.3}
@@ -773,7 +805,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
                   unitType="length"
                 />
                 <ParamInput
-                  label="End Sill H"
+                  label={t("createPanel.endSillHeight")}
                   value={endSillHeight}
                   onChange={setEndSillHeight}
                   min={0}
@@ -788,14 +820,14 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
         {/* Material */}
         <Separator className="my-2" />
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("layersPanel.color", "Color")}
           </Label>
           <input
             type="color"
             value={chuteColor}
             onChange={(e) => setChuteColor(e.target.value)}
-            className="w-8 h-7 rounded border border-border cursor-pointer"
+            className="w-8 h-7 rounded-2xl border border-border cursor-pointer"
           />
           <Input
             value={chuteColor}
@@ -805,44 +837,44 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
         </div>
 
         {/* Computed Values */}
-        <div className="mt-2 p-2 rounded bg-muted/30 space-y-1">
-          <div className="flex justify-between text-[10px]">
+        <div className="mt-2 p-2 rounded-2xl bg-muted/30 space-y-1">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Main Chute Slope:</span>
             <span className="font-mono">
               {slopePercent}% ({slopeRatio})
             </span>
           </div>
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Total Length:</span>
             <span className="font-mono">
               {formatLength(totalHorizontalLength)} (inlet {formatLength(inletLength)} + main{" "}
               {formatLength(length)})
             </span>
           </div>
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">
               {t("createPanel.startStation", "Start Station")}:
             </span>
             <span className="font-mono">{formatLength(startStation)}</span>
           </div>
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">
               {t("createPanel.endStation", "End Station")}:
             </span>
             <span className="font-mono">{formatLength(endStation)}</span>
           </div>
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">
               {t("createPanel.startElev", "Start Elev.")}:
             </span>
             <span className="font-mono">{formatLength(startElevation)}</span>
           </div>
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">{t("createPanel.endElev", "End Elev.")}:</span>
             <span className="font-mono">{formatLength(endElevation)}</span>
           </div>
           {basinType !== "none" && (
-            <div className="flex justify-between text-[10px] text-amber-500">
+            <div className="flex justify-between text-xs text-amber-500">
               <span>+ Stilling Basin:</span>
               <span className="font-mono">
                 {formatLength(
@@ -865,7 +897,7 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
         >
           <HugeiconsIcon icon={Tick01Icon} className="size-3 mr-1" />
           {t("createPanel.create")}
-          <span className="text-[9px] opacity-60 ml-1">{submitShortcut}</span>
+          <span className="text-xs opacity-60 ml-1">{submitShortcut}</span>
         </Button>
       </div>
     </Card>

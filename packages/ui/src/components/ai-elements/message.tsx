@@ -61,7 +61,7 @@ export function MessageContent({ children, className, ...props }: MessageContent
       className={cn(
         "flex w-fit flex-col gap-2 overflow-hidden text-sm",
         // User messages get bubble style
-        "group-[[data-from=user]]:ml-auto group-[[data-from=user]]:rounded-lg group-[[data-from=user]]:bg-secondary group-[[data-from=user]]:px-4 group-[[data-from=user]]:py-3 group-[[data-from=user]]:text-foreground",
+        "group-[[data-from=user]]:ml-auto group-[[data-from=user]]:rounded-2xl group-[[data-from=user]]:bg-secondary group-[[data-from=user]]:px-4 group-[[data-from=user]]:py-3 group-[[data-from=user]]:text-foreground",
         // Assistant messages are plain
         "group-[[data-from=assistant]]:text-foreground",
         className
@@ -85,7 +85,7 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>
  */
 function ScrollableTable({ children, ...props }: ComponentPropsWithoutRef<"table">) {
   return (
-    <div className="my-3 overflow-x-auto rounded-lg border border-border">
+    <div className="my-3 overflow-x-auto rounded-2xl border border-border">
       <table {...props} className="min-w-full border-collapse text-sm">
         {children}
       </table>
@@ -133,9 +133,9 @@ export const MessageResponse: React.NamedExoticComponent<MessageResponseProps> =
           // Reset margins on first/last children
           "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
           // Code block styling
-          "[&_pre]:my-3 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-border [&_pre]:overflow-x-auto",
+          "[&_pre]:my-3 [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border [&_pre]:overflow-x-auto",
           // Inline code styling
-          "[&_code:not(pre_code)]:rounded [&_code:not(pre_code)]:bg-muted [&_code:not(pre_code)]:px-1.5 [&_code:not(pre_code)]:py-0.5 [&_code:not(pre_code)]:text-foreground [&_code:not(pre_code)]:font-mono [&_code:not(pre_code)]:text-xs",
+          "[&_code:not(pre_code)]:rounded-2xl [&_code:not(pre_code)]:bg-muted [&_code:not(pre_code)]:px-1.5 [&_code:not(pre_code)]:py-0.5 [&_code:not(pre_code)]:text-foreground [&_code:not(pre_code)]:font-mono [&_code:not(pre_code)]:text-xs",
           // Remove last row bottom border
           "[&_tr:last-child_td]:border-b-0",
           // Blockquote styling
@@ -291,7 +291,7 @@ export function MessageAttachment({ data, className, onRemove, ...props }: Messa
   return (
     <div
       data-slot="message-attachment"
-      className={cn("group relative size-24 overflow-hidden rounded-lg", className)}
+      className={cn("group relative size-24 overflow-hidden rounded-2xl", className)}
       {...props}
     >
       {isImage && data.url ? (
@@ -307,7 +307,7 @@ export function MessageAttachment({ data, className, onRemove, ...props }: Messa
           <Tooltip>
             <TooltipTrigger
               render={
-                <div className="flex size-full shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground cursor-default">
+                <div className="flex size-full shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground cursor-default">
                   <span className="text-xs">{filename || "File"}</span>
                 </div>
               }

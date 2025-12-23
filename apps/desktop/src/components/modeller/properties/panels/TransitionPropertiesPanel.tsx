@@ -131,23 +131,23 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             value={object.transitionType}
             onValueChange={(v) => handleTypeChange(v as TransitionTypeEnum)}
           >
-            <SelectTrigger className="h-6 text-[10px]">
+            <SelectTrigger className="h-6 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="linear" className="text-[10px]">
+              <SelectItem value="linear" className="text-xs">
                 {t("properties.transitionTypes.linear", "Linear")}
               </SelectItem>
-              <SelectItem value="warped" className="text-[10px]">
+              <SelectItem value="warped" className="text-xs">
                 {t("properties.transitionTypes.warped", "Warped")}
               </SelectItem>
-              <SelectItem value="cylindrical" className="text-[10px]">
+              <SelectItem value="cylindrical" className="text-xs">
                 {t("properties.transitionTypes.cylindrical", "Cylindrical")}
               </SelectItem>
-              <SelectItem value="inlet" className="text-[10px]">
+              <SelectItem value="inlet" className="text-xs">
                 {t("properties.transitionTypes.inlet", "Inlet")}
               </SelectItem>
-              <SelectItem value="outlet" className="text-[10px]">
+              <SelectItem value="outlet" className="text-xs">
                 {t("properties.transitionTypes.outlet", "Outlet")}
               </SelectItem>
             </SelectContent>
@@ -162,18 +162,18 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             step={0.5}
             min={0.5}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
 
         {/* Stations */}
         <PropertyRow label={t("properties.startStation", "Start St.")}>
-          <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+          <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
             {object.startStation?.toFixed(2)} m
           </div>
         </PropertyRow>
         <PropertyRow label={t("properties.endStation", "End St.")}>
-          <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+          <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
             {object.endStation?.toFixed(2)} m
           </div>
         </PropertyRow>
@@ -191,7 +191,7 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             onChange={handleStartElevationChange}
             step={0.1}
             precision={3}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.endElevation", "End Elev.")}>
@@ -200,11 +200,11 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             onChange={handleEndElevationChange}
             step={0.1}
             precision={3}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
           />
         </PropertyRow>
         <PropertyRow label={t("properties.slope", "Slope")}>
-          <div className="h-6 flex items-center text-[10px] text-muted-foreground px-2 bg-muted/30 rounded">
+          <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
             {object.length > 0
               ? ((object.startElevation - object.endElevation) / object.length).toFixed(5)
               : "0.00000"}
@@ -224,17 +224,17 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             onValueChange={(v) => handleInletChange("sectionType", v)}
             disabled={!!object.upstreamChannelId}
           >
-            <SelectTrigger className="h-6 text-[10px]">
+            <SelectTrigger className="h-6 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="rectangular" className="text-[10px]">
+              <SelectItem value="rectangular" className="text-xs">
                 Rectangular
               </SelectItem>
-              <SelectItem value="trapezoidal" className="text-[10px]">
+              <SelectItem value="trapezoidal" className="text-xs">
                 Trapezoidal
               </SelectItem>
-              <SelectItem value="triangular" className="text-[10px]">
+              <SelectItem value="triangular" className="text-xs">
                 Triangular
               </SelectItem>
             </SelectContent>
@@ -247,7 +247,7 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             step={0.1}
             min={0}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
             disabled={!!object.upstreamChannelId}
           />
         </PropertyRow>
@@ -258,7 +258,7 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             step={0.1}
             min={0.1}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
             disabled={!!object.upstreamChannelId}
           />
         </PropertyRow>
@@ -270,15 +270,13 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
               step={0.1}
               min={0}
               precision={2}
-              className="h-6 text-[10px]"
+              className="h-6 text-xs"
               disabled={!!object.upstreamChannelId}
             />
           </PropertyRow>
         )}
         {object.upstreamChannelId && (
-          <div className="text-[9px] text-muted-foreground mt-1 px-1">
-            Linked to: {upstreamName}
-          </div>
+          <div className="text-xs text-muted-foreground mt-1 px-1">Linked to: {upstreamName}</div>
         )}
       </PropertySection>
 
@@ -294,17 +292,17 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             onValueChange={(v) => handleOutletChange("sectionType", v)}
             disabled={!!object.downstreamChannelId}
           >
-            <SelectTrigger className="h-6 text-[10px]">
+            <SelectTrigger className="h-6 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="rectangular" className="text-[10px]">
+              <SelectItem value="rectangular" className="text-xs">
                 Rectangular
               </SelectItem>
-              <SelectItem value="trapezoidal" className="text-[10px]">
+              <SelectItem value="trapezoidal" className="text-xs">
                 Trapezoidal
               </SelectItem>
-              <SelectItem value="triangular" className="text-[10px]">
+              <SelectItem value="triangular" className="text-xs">
                 Triangular
               </SelectItem>
             </SelectContent>
@@ -317,7 +315,7 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             step={0.1}
             min={0}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
             disabled={!!object.downstreamChannelId}
           />
         </PropertyRow>
@@ -328,7 +326,7 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
             step={0.1}
             min={0.1}
             precision={2}
-            className="h-6 text-[10px]"
+            className="h-6 text-xs"
             disabled={!!object.downstreamChannelId}
           />
         </PropertyRow>
@@ -340,15 +338,13 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
               step={0.1}
               min={0}
               precision={2}
-              className="h-6 text-[10px]"
+              className="h-6 text-xs"
               disabled={!!object.downstreamChannelId}
             />
           </PropertyRow>
         )}
         {object.downstreamChannelId && (
-          <div className="text-[9px] text-muted-foreground mt-1 px-1">
-            Linked to: {downstreamName}
-          </div>
+          <div className="text-xs text-muted-foreground mt-1 px-1">Linked to: {downstreamName}</div>
         )}
       </PropertySection>
 
@@ -360,20 +356,20 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
       >
         <PropertyRow label={t("properties.upstream", "Upstream")}>
           {upstreamName ? (
-            <Badge variant="outline" className="text-[9px]">
+            <Badge variant="outline" className="text-xs">
               {upstreamName}
             </Badge>
           ) : (
-            <span className="text-[10px] text-muted-foreground">None</span>
+            <span className="text-xs text-muted-foreground">None</span>
           )}
         </PropertyRow>
         <PropertyRow label={t("properties.downstream", "Downstream")}>
           {downstreamName ? (
-            <Badge variant="outline" className="text-[9px]">
+            <Badge variant="outline" className="text-xs">
               {downstreamName}
             </Badge>
           ) : (
-            <span className="text-[10px] text-muted-foreground">None</span>
+            <span className="text-xs text-muted-foreground">None</span>
           )}
         </PropertyRow>
       </PropertySection>

@@ -127,7 +127,7 @@ function Timeline({
     <div className="space-y-2">
       {/* Timeline Bar */}
       <div
-        className="relative h-12 bg-muted/30 rounded-md border border-border cursor-pointer select-none"
+        className="relative h-12 bg-muted/30 rounded-2xl border border-border cursor-pointer select-none"
         onClick={handleTimelineClick}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
@@ -145,7 +145,7 @@ function Timeline({
             >
               <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {keyframe.name}
                   </span>
                   <Button
@@ -174,7 +174,7 @@ function Timeline({
         </div>
 
         {/* Time markers */}
-        <div className="absolute inset-x-0 bottom-1 flex justify-between px-2 text-[9px] text-muted-foreground">
+        <div className="absolute inset-x-0 bottom-1 flex justify-between px-2 text-xs text-muted-foreground">
           <span>0s</span>
           <span>{playbackTime.toFixed(1)}s</span>
           <span>{animation.duration}s</span>
@@ -279,7 +279,7 @@ export function CameraAnimationPanel({ className, onClose }: CameraAnimationPane
     <div className={cn("flex flex-col h-full bg-background border-l border-border", className)}>
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
-        <h2 className="text-sm font-semibold">{t("animation.title", "Camera Animations")}</h2>
+        <h3>{t("animation.title", "Camera Animations")}</h3>
       </div>
 
       <ScrollArea className="flex-1 p-3">
@@ -445,7 +445,7 @@ export function CameraAnimationPanel({ className, onClose }: CameraAnimationPane
                   {currentAnimation.keyframes.map((keyframe, _index) => (
                     <div
                       key={keyframe.id}
-                      className="flex items-center justify-between p-2 rounded border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
+                      className="flex items-center justify-between p-2 rounded-2xl border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono text-muted-foreground">

@@ -233,6 +233,8 @@ pub fn run() {
             commands::cad::cad_shape_count,
             commands::cad::cad_simplify,
             commands::cad::cad_combine,
+            // CAD commands - Topology
+            commands::cad::cad_get_topology,
             // Chat persistence commands
             commands::chat::chat_init,
             commands::chat::chat_save_session,

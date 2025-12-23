@@ -59,7 +59,7 @@ export function AIProvidersTab() {
   return (
     <div className="space-y-4">
       {/* Active Provider Status */}
-      <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+      <div className="p-3 rounded-2xl bg-muted/30 border border-border/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div
@@ -94,12 +94,12 @@ export function AIProvidersTab() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+            <div className="size-8 rounded-2xl bg-orange-500/10 flex items-center justify-center">
               <span className="text-sm font-bold text-orange-600">O</span>
             </div>
             <div>
               <h4 className="text-xs font-medium">Ollama (Local)</h4>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {t("settings.ai.ollamaDesc", "Run AI models locally on your machine")}
               </p>
             </div>
@@ -107,20 +107,20 @@ export function AIProvidersTab() {
           {hasOllamaLocal ? (
             <Badge
               variant="outline"
-              className="text-[10px] bg-green-500/10 text-green-600 border-green-500/30"
+              className="text-xs bg-green-500/10 text-green-600 border-green-500/30"
             >
               <HugeiconsIcon icon={Tick02Icon} className="size-3 mr-1" />
               {t("settings.ai.running", "Running")}
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-xs">
               {t("settings.ai.notRunning", "Not running")}
             </Badge>
           )}
         </div>
 
         {hasOllamaLocal && ollamaStatus && (
-          <div className="text-[10px] text-muted-foreground pl-10 space-y-0.5">
+          <div className="text-xs text-muted-foreground pl-10 space-y-0.5">
             {ollamaStatus.version && <p>Version: {ollamaStatus.version}</p>}
             <p>
               {t("settings.ai.ollamaModels", "{{count}} models installed", {
@@ -130,12 +130,12 @@ export function AIProvidersTab() {
             {ollamaModels.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
                 {ollamaModels.slice(0, 4).map((model) => (
-                  <Badge key={model} variant="secondary" className="text-[9px] px-1.5 py-0">
+                  <Badge key={model} variant="secondary" className="text-xs px-1.5 py-0">
                     {model}
                   </Badge>
                 ))}
                 {ollamaModels.length > 4 && (
-                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
                     +{ollamaModels.length - 4} more
                   </Badge>
                 )}
@@ -157,7 +157,7 @@ export function AIProvidersTab() {
         )}
 
         {hasOllamaLocal && ollamaModels.length === 0 && (
-          <div className="flex items-start gap-2 p-2 rounded-md bg-yellow-500/10 text-[10px] text-yellow-700 dark:text-yellow-400">
+          <div className="flex items-start gap-2 p-2 rounded-2xl bg-yellow-500/10 text-xs text-yellow-700 dark:text-yellow-400">
             <HugeiconsIcon icon={AlertCircleIcon} className="size-3.5 mt-0.5 shrink-0" />
             <p>
               {t(
@@ -175,12 +175,12 @@ export function AIProvidersTab() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+            <div className="size-8 rounded-2xl bg-violet-500/10 flex items-center justify-center">
               <HugeiconsIcon icon={SparklesIcon} className="size-4 text-violet-500" />
             </div>
             <div>
               <h4 className="text-xs font-medium">CADHY Gateway</h4>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {t("settings.ai.gatewayDesc", "Fallback when no other provider is available")}
               </p>
             </div>
@@ -188,7 +188,7 @@ export function AIProvidersTab() {
           <Badge
             variant="outline"
             className={cn(
-              "text-[10px]",
+              "text-xs",
               usingGateway && "bg-violet-500/10 text-violet-600 border-violet-500/30"
             )}
           >
@@ -198,7 +198,7 @@ export function AIProvidersTab() {
           </Badge>
         </div>
 
-        <div className="flex items-start gap-2 p-2 rounded-md bg-muted/20 text-[10px] text-muted-foreground">
+        <div className="flex items-start gap-2 p-2 rounded-2xl bg-muted/20 text-xs text-muted-foreground">
           <HugeiconsIcon icon={InformationCircleIcon} className="size-3.5 mt-0.5 shrink-0" />
           <p>
             {t(

@@ -151,7 +151,7 @@ export function MeasurementToolsPanel() {
 
       {/* Current Measurement Instructions */}
       {mode !== "none" && (
-        <div className="rounded-md bg-blue-500/10 border border-blue-500/20 p-3 space-y-2">
+        <div className="rounded-2xl bg-blue-500/10 border border-blue-500/20 p-3 space-y-2">
           <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
             {mode === "distance" && "Click 2 points to measure distance"}
             {mode === "area" &&
@@ -209,7 +209,7 @@ export function MeasurementToolsPanel() {
         </div>
 
         {measurements.length === 0 ? (
-          <div className="rounded-md border border-dashed p-4 text-center">
+          <div className="rounded-2xl border border-dashed p-4 text-center">
             <p className="text-xs text-muted-foreground">No measurements yet</p>
           </div>
         ) : (
@@ -217,7 +217,7 @@ export function MeasurementToolsPanel() {
             {measurements.map((measurement, index) => (
               <div
                 key={index}
-                className="rounded-md border bg-card p-2 flex items-center justify-between hover:bg-accent/50 transition-colors"
+                className="rounded-2xl border bg-card p-2 flex items-center justify-between hover:bg-accent/50 transition-colors"
               >
                 <div className="flex-1">
                   <p className="text-xs font-mono font-medium">
@@ -239,7 +239,7 @@ export function MeasurementToolsPanel() {
       </div>
 
       {/* Quick Tips */}
-      <div className="rounded-md bg-muted/30 p-3 space-y-1">
+      <div className="rounded-2xl bg-muted/30 p-3 space-y-1">
         <p className="text-xs font-medium">Tips:</p>
         <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
           <li>Click on objects to select measurement points</li>

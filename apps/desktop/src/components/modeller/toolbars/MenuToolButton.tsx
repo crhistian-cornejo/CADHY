@@ -40,7 +40,7 @@ export const MenuToolButton = React.memo(function MenuToolButton({
     >
       <HugeiconsIcon icon={icon} className="mr-2 size-4" />
       <span className="flex-1">{label}</span>
-      {shortcut && <kbd className="ml-auto text-[10px] text-muted-foreground">{shortcut}</kbd>}
+      {shortcut && <kbd className="ml-auto text-xs text-muted-foreground">{shortcut}</kbd>}
     </DropdownMenuItem>
   )
 })

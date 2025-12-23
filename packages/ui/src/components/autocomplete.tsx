@@ -41,7 +41,7 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
         {showTrigger && (
           <AutocompleteTrigger
             className={cn(
-              "-translate-y-1/2 absolute top-1/2 end-0.5 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent opacity-80 outline-none transition-colors hover:opacity-100 has-[+[data-slot=autocomplete-clear]]:hidden [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0"
+              "-translate-y-1/2 absolute top-1/2 end-0.5 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-transparent opacity-80 outline-none transition-colors hover:opacity-100 has-[+[data-slot=autocomplete-clear]]:hidden [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0"
             )}
           >
             <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
@@ -50,7 +50,7 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
         {showClear && (
           <AutocompleteClear
             className={cn(
-              "-translate-y-1/2 absolute top-1/2 end-0.5 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent opacity-80 outline-none transition-colors hover:opacity-100 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0"
+              "-translate-y-1/2 absolute top-1/2 end-0.5 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-transparent opacity-80 outline-none transition-colors hover:opacity-100 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0"
             )}
           >
             <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
@@ -80,7 +80,7 @@ function AutocompletePopup({
       >
         <span
           className={cn(
-            "relative flex max-h-full origin-(--transform-origin) rounded-lg border bg-popover bg-clip-padding transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] before:shadow-lg data-starting-style:scale-98 data-starting-style:opacity-0",
+            "relative flex max-h-full origin-(--transform-origin) rounded-2xl border bg-popover bg-clip-padding transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[15px] before:shadow-lg data-starting-style:scale-98 data-starting-style:opacity-0",
             className
           )}
         >
@@ -101,7 +101,7 @@ function AutocompleteItem({ className, children, ...props }: AutocompletePrimiti
   return (
     <AutocompletePrimitive.Item
       className={cn(
-        "flex min-h-7 cursor-default select-none items-center rounded-sm px-2 py-1 text-sm outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
+        "flex min-h-7 cursor-default select-none items-center rounded-2xl px-2 py-1 text-sm outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
         className
       )}
       data-slot="autocomplete-item"
@@ -184,7 +184,7 @@ function AutocompleteClear({ className, children, ...props }: AutocompletePrimit
   return (
     <AutocompletePrimitive.Clear
       className={cn(
-        "-translate-y-1/2 absolute end-0.5 top-1/2 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent opacity-80 outline-none transition-colors hover:opacity-100 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "-translate-y-1/2 absolute end-0.5 top-1/2 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-transparent opacity-80 outline-none transition-colors hover:opacity-100 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         className
       )}
       data-slot="autocomplete-clear"
