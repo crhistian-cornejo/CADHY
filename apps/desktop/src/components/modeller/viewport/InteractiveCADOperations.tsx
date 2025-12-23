@@ -11,7 +11,7 @@ import { useEffect } from "react"
 import { shapeIdMap } from "@/hooks/use-cad"
 import { useCADPreview } from "@/hooks/use-cad-preview"
 import { useEdgeDetection } from "@/hooks/use-edge-detection"
-import { useModellerStore, useSelectedObjects, useSelectionMode } from "@/stores/modeller"
+import { useSelectedObjects, useSelectionMode } from "@/stores/modeller"
 import { CADPreviewMesh } from "./CADPreviewMesh"
 import { EdgeGizmo } from "./EdgeGizmo"
 
