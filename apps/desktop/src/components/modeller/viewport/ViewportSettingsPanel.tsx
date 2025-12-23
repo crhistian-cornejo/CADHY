@@ -166,10 +166,10 @@ function CompactNumberInput({
         min={min}
         max={max}
         step={step}
-        className="h-6 w-16 rounded bg-black/20 text-right text-xs pr-1 focus:outline-none focus:ring-1 focus:ring-blue-500/50 hover:bg-black/30 transition-colors"
+        className="h-6 w-16 rounded-2xl bg-black/20 text-right text-xs pr-1 focus:outline-none focus:ring-1 focus:ring-blue-500/50 hover:bg-black/30 transition-colors"
       />
       {unit && (
-        <span className="absolute right-6 text-[10px] text-muted-foreground pointer-events-none">
+        <span className="absolute right-6 text-xs text-muted-foreground pointer-events-none">
           {unit}
         </span>
       )}
@@ -202,7 +202,7 @@ function Section({ title, icon, defaultOpen = true, children }: SectionProps) {
       className="border-b border-border/20 last:border-0"
     >
       <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 hover:bg-muted/5 transition-colors group">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-foreground/80 group-hover:text-foreground transition-colors">
+        <span className="text-xs font-bold uppercase tracking-wider text-foreground/80 group-hover:text-foreground transition-colors">
           {title}
         </span>
         <HugeiconsIcon
@@ -239,7 +239,7 @@ function ToggleRow({ label, checked, onCheckedChange, description, disabled }: T
         <Label className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
           {label}
         </Label>
-        {description && <span className="text-[9px] text-muted-foreground/70">{description}</span>}
+        {description && <span className="text-xs text-muted-foreground/70">{description}</span>}
       </div>
       <Switch
         checked={checked}
@@ -500,7 +500,7 @@ export function ViewportSettingsPanel({ className }: ViewportSettingsPanelProps)
                         type="button"
                         onClick={() => updateViewport({ backgroundColor: preset.color })}
                         className={cn(
-                          "w-6 h-6 rounded-md border transition-all",
+                          "w-6 h-6 rounded-2xl border transition-all",
                           (viewportSettings.backgroundColor ?? "#1a1a1a") === preset.color
                             ? "ring-2 ring-primary ring-offset-1 scale-110"
                             : "hover:scale-105 border-border/50"
@@ -520,14 +520,14 @@ export function ViewportSettingsPanel({ className }: ViewportSettingsPanelProps)
             <div className="flex items-center justify-between">
               <Label className="text-xs text-muted-foreground">Custom</Label>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wide">
+                <span className="text-xs text-muted-foreground font-mono uppercase tracking-wide">
                   {viewportSettings.backgroundColor ?? "#1a1a1a"}
                 </span>
                 <input
                   type="color"
                   value={viewportSettings.backgroundColor ?? "#1a1a1a"}
                   onChange={(e) => updateViewport({ backgroundColor: e.target.value })}
-                  className="size-5 rounded overflow-hidden border-0 cursor-pointer p-0"
+                  className="size-5 rounded-2xl overflow-hidden border-0 cursor-pointer p-0"
                 />
               </div>
             </div>
@@ -684,9 +684,7 @@ export function ViewportSettingsPanel({ className }: ViewportSettingsPanelProps)
                 XZ
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Select the active construction plane
-            </p>
+            <p className="text-xs text-muted-foreground">Select the active construction plane</p>
           </div>
         </Section>
       </div>

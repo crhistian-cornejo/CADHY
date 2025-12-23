@@ -20,7 +20,8 @@
     "yes": "Sí",
     "no": "No",
     "rename": "Renombrar",
-    "apply": "Aplicar"
+    "apply": "Aplicar",
+    "more": "Más"
   },
   "camera": {
     "savedViews": "Vistas Guardadas",
@@ -58,6 +59,7 @@
   "sidebar": {
     "home": "Inicio",
     "newProject": "Nuevo Proyecto",
+    "gallery": "Galería IA",
     "open": "Abrir",
     "examples": "Ejemplos",
     "workspace": "Espacio de Trabajo",
@@ -201,6 +203,35 @@
       "sceneTooltip": "Árbol de escena",
       "checks": "Checks",
       "checksTooltip": "Verificaciones de diseño"
+    },
+    "properties": {
+      "textures": {
+        "title": "Texturas PBR",
+        "enablePostProcessing": "Habilita el post-procesamiento en configuración del viewport para usar texturas PBR.",
+        "allMaterials": "Todos los materiales",
+        "noTextures": "No se encontraron texturas",
+        "uvTiling": "Mosaico UV",
+        "clear": "Limpiar selección",
+        "categories": {
+          "concrete": "Concreto",
+          "wood": "Madera",
+          "metal": "Metal",
+          "brick": "Ladrillo",
+          "stone": "Piedra",
+          "fabric": "Tela",
+          "plastic": "Plástico",
+          "ceramic": "Cerámica",
+          "marble": "Mármol",
+          "plaster": "Yeso",
+          "asphalt": "Asfalto",
+          "gravel": "Grava",
+          "sand": "Arena",
+          "grass": "Césped",
+          "soil": "Suelo",
+          "rock": "Roca",
+          "water": "Agua"
+        }
+      }
     }
   },
   "properties": {
@@ -270,7 +301,11 @@
       "bottomB": "Base (b)",
       "sideSlope": "Talud (z)",
       "diameterD": "Diámetro (D)"
-    }
+    },
+    "objects": "objetos",
+    "multipleEditInfo": "Los cambios se aplicarán a todos los objetos seleccionados",
+    "bimInformation": "Información BIM",
+    "showTable": "Ver Tabla"
   },
   "createPanel": {
     "primitives": "Primitivas 3D",
@@ -383,8 +418,39 @@
       "inlet": "Entrada",
       "inletDesc": "Expansión de entrada",
       "outlet": "Salida",
-      "outletDesc": "Contracción de salida"
-    }
+      "outletDesc": "Contración de salida"
+    },
+    "manning": "Manning n",
+    "freeboard": "Bordo Libre",
+    "wall": "Pared (e)",
+    "slopeSymbol": "Pendiente (S₀)",
+    "lengthSymbol": "Longitud (L)",
+    "widthSymbol": "Ancho (b)",
+    "depthSymbol": "Tirante (y)",
+    "bottomSymbol": "Ancho Fondo (b)",
+    "slopeZ": "Talud (z)",
+    "rectangular": "Rectangular",
+    "trapezoidal": "Trapezoidal",
+    "triangular": "Triangular",
+    "stationLabel": "Progresiva",
+    "elevLabel": "Elev.",
+    "endStationLabel": "Prog. Final:",
+    "endElevLabel": "Elev. Final:",
+    "chuteType": "Tipo de Rápida",
+    "stepHeight": "Altura Escalón",
+    "stepLength": "Longitud Escalón",
+    "baffleSpacing": "Espaciado Dados",
+    "baffleHeight": "Altura Dados",
+    "autoDesign": "Diseño Automático",
+    "discharge": "Caudal Q",
+    "recommended": "Recomendado",
+    "outletVelocity": "Velocidad Salida",
+    "froudeNumber": "Número Froude",
+    "dropH": "Desnivel (H)",
+    "inletL": "L Entrada",
+    "inletSlope": "Pend. Entrada",
+    "mainChute": "Cuerpo de Rápida",
+    "startPos": "Posición Inicial"
   },
   "layersPanel": {
     "title": "Capas",
@@ -409,6 +475,7 @@
   },
   "scenePanel": {
     "searchObjects": "Buscar objetos...",
+    "addArea": "Agregar Área",
     "filter": "Filtrar",
     "all": "Todo",
     "shapes": "Formas",
@@ -418,6 +485,30 @@
     "byName": "Por Nombre",
     "byType": "Por Tipo",
     "byCreated": "Por Creación",
+    "byArea": "Por Área",
+    "sortModes": {
+      "area": "área",
+      "name": "nombre",
+      "type": "tipo",
+      "created": "creación"
+    },
+    "types": {
+      "shape": "Forma",
+      "channel": "Canal",
+      "transition": "Transición",
+      "chute": "Rápida",
+      "structure": "Estructura",
+      "annotation": "Anotación",
+      "alignment": "Alineamiento"
+    },
+    "shapeTypes": {
+      "box": "Caja",
+      "sphere": "Esfera",
+      "cylinder": "Cilindro",
+      "cone": "Cono",
+      "torus": "Toro",
+      "plane": "Plano"
+    },
     "selectAll": "Todo",
     "selectNone": "Ninguno",
     "emptyScene": "Escena Vacía",
@@ -432,7 +523,13 @@
     "lock": "Bloquear",
     "unlock": "Desbloquear",
     "duplicate": "Duplicar",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "renameArea": "Renombrar Área",
+    "deleteArea": "Eliminar Área",
+    "material": "Material",
+    "materialColor": "Color de Material",
+    "unassigned": "Sin asignar",
+    "emptyArea": "No hay objetos en esta área"
   },
   "designChecks": {
     "title": "Verificaciones de Diseño",
@@ -815,5 +912,56 @@
     "tooltipPending": "Actualización disponible - Clic para ver cambios",
     "tooltipInstalled": "App actualizada exitosamente - Ver novedades",
     "clickToViewChangelog": "Clic para ver el changelog completo en GitHub"
+  },
+  "bim": {
+    "identification": "Identificación",
+    "objectId": "ID del Objeto",
+    "objectType": "Tipo",
+    "name": "Nombre",
+    "geometry": "Geometría",
+    "shapeType": "Tipo de Forma",
+    "sectionType": "Tipo de Sección",
+    "dimensions": "Dimensiones",
+    "width": "Ancho",
+    "height": "Alto",
+    "depth": "Profundidad",
+    "radius": "Radio",
+    "length": "Longitud",
+    "bottomWidth": "Ancho de Base",
+    "freeBoard": "Borde Libre",
+    "thickness": "Espesor de Pared",
+    "quantities": "Cantidades",
+    "volume": "Volumen",
+    "surfaceArea": "Área Superficial",
+    "waterVolume": "Volumen de Agua",
+    "crossSectionArea": "Área de Sección Transversal",
+    "wetSurfaceArea": "Área Superficial Mojada",
+    "concreteVolume": "Volumen de Concreto",
+    "costs": "Costos",
+    "materialCost": "Costo de Material",
+    "formworkCost": "Costo de Encofrado",
+    "concreteCost": "Costo del Concreto",
+    "totalEstimate": "Estimado Total",
+    "hydraulics": "Hidráulica",
+    "slope": "Pendiente",
+    "manningN": "Manning n",
+    "metadata": "Metadatos",
+    "created": "Creado",
+    "modified": "Modificado",
+    "state": "Estado",
+    "visible": "Visible",
+    "locked": "Bloqueado",
+    "fullTable": "Explorador de Datos BIM",
+    "properties": "Propiedades",
+    "categories": "Categorías",
+    "keyMetrics": "Métricas Clave",
+    "searchProperties": "Buscar propiedades...",
+    "allCategories": "Todo",
+    "items": "elementos",
+    "property": "Propiedad",
+    "value": "Valor",
+    "unit": "Unidad",
+    "noResults": "No se encontraron propiedades",
+    "clearFilters": "Limpiar filtros"
   }
 }

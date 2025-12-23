@@ -131,13 +131,11 @@ export function OpenProjectDialog({ open, onOpenChange }: OpenProjectDialogProps
         {/* Header */}
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+            <div className="flex items-center justify-center size-10 rounded-2xl bg-primary/10">
               <HugeiconsIcon icon={FolderOpenIcon} className="size-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-semibold">
-                {t("openProject.title")}
-              </DialogTitle>
+              <DialogTitle>{t("openProject.title")}</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 {t("openProject.description")}
               </DialogDescription>
@@ -153,12 +151,12 @@ export function OpenProjectDialog({ open, onOpenChange }: OpenProjectDialogProps
             onClick={handleBrowse}
             disabled={isBusy}
             className={cn(
-              "flex items-center gap-3 p-3 rounded-lg text-left w-full",
+              "flex items-center gap-3 p-3 rounded-2xl text-left w-full",
               "bg-muted/40 hover:bg-muted/60 transition-colors border border-border/50",
               "group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             )}
           >
-            <div className="flex items-center justify-center size-8 rounded-md bg-background border border-border/50 shrink-0 group-hover:border-primary/50 transition-colors">
+            <div className="flex items-center justify-center size-8 rounded-2xl bg-background border border-border/50 shrink-0 group-hover:border-primary/50 transition-colors">
               {isBusy ? (
                 <HugeiconsIcon icon={Loading01Icon} className="size-4 animate-spin text-primary" />
               ) : (
@@ -190,7 +188,7 @@ export function OpenProjectDialog({ open, onOpenChange }: OpenProjectDialogProps
               )}
             </div>
 
-            <ScrollArea className="h-[180px] rounded-md border border-border/50">
+            <ScrollArea className="h-[180px] rounded-2xl border border-border/50">
               {recentProjects.length > 0 ? (
                 <div className="p-1.5 space-y-0.5">
                   {recentProjects.map((project) => (
@@ -223,7 +221,7 @@ export function OpenProjectDialog({ open, onOpenChange }: OpenProjectDialogProps
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-2">
+            <div className="flex items-start gap-2 rounded-2xl bg-destructive/10 p-2">
               <HugeiconsIcon
                 icon={AlertCircleIcon}
                 className="size-4 text-destructive shrink-0 mt-0.5"
@@ -278,14 +276,14 @@ function RecentProjectRow({
         }
       }}
       className={cn(
-        "flex items-center gap-2.5 p-2 rounded-md text-left w-full",
+        "flex items-center gap-2.5 p-2 rounded-2xl text-left w-full",
         "hover:bg-muted/50 transition-colors",
         "group cursor-pointer",
         disabled && "opacity-50 cursor-not-allowed"
       )}
     >
       {/* Icon */}
-      <div className="flex items-center justify-center size-7 rounded bg-muted shrink-0">
+      <div className="flex items-center justify-center size-7 rounded-2xl bg-muted shrink-0">
         <HugeiconsIcon icon={File01Icon} className="size-3.5 text-muted-foreground" />
       </div>
 
@@ -293,18 +291,18 @@ function RecentProjectRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium truncate">{project.name}</span>
-          <span className="text-[10px] text-muted-foreground/70 shrink-0">
+          <span className="text-xs text-muted-foreground/70 shrink-0">
             {formatDate(project.lastOpened)}
           </span>
         </div>
-        <p className="text-[10px] text-muted-foreground/70 truncate">{project.path}</p>
+        <p className="text-xs text-muted-foreground/70 truncate">{project.path}</p>
       </div>
 
       {/* Remove Button */}
       <button
         type="button"
         onClick={(e) => onRemove(e, project.id)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded shrink-0"
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded-2xl shrink-0"
         title="Remove from recent"
       >
         <HugeiconsIcon

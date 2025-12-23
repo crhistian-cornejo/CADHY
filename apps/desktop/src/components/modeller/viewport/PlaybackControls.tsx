@@ -69,7 +69,7 @@ export function PlaybackControls({ className }: PlaybackControlsProps) {
       className={cn(
         "absolute top-4 left-1/2 -translate-x-1/2 z-10",
         "flex items-center gap-3 px-4 py-2.5",
-        "bg-background/80 backdrop-blur-md border border-border rounded-xl shadow-lg",
+        "bg-background/80 backdrop-blur-md border border-border rounded-2xl shadow-lg",
         "min-w-[400px]",
         "animate-in fade-in slide-in-from-top-2 duration-300",
         className

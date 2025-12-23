@@ -977,7 +977,7 @@ export function CommandPalette({
           {/* Mode indicator */}
           {mode !== "commands" && (
             <div className="flex items-center gap-2 border-b border-border/50 px-3 py-1.5 text-muted-foreground text-xs">
-              <span className="rounded bg-accent px-1.5 py-0.5 font-medium text-accent-foreground">
+              <span className="rounded-2xl bg-accent px-1.5 py-0.5 font-medium text-accent-foreground">
                 {mode === "create" && "> Add Object"}
                 {mode === "goto" && "# Go to Object"}
                 {mode === "search" && "@ Search Project"}

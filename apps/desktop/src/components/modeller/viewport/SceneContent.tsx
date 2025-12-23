@@ -25,6 +25,10 @@ import type {
   OrbitControls as OrbitControlsImpl,
   TransformControls as TransformControlsImpl,
 } from "three-stdlib"
+import { shapeIdMap } from "@/hooks/use-cad"
+import { useCADOperations } from "@/hooks/use-cad-operations"
+import { useTopologicalSelection } from "@/hooks/use-topological-selection"
+import { useTopology } from "@/hooks/use-topology"
 import { lodManager } from "@/services/lod-manager"
 import { registerCamera, registerRenderer, registerScene } from "@/services/viewport-registry"
 import {
@@ -48,8 +52,10 @@ import {
   useVisibleObjects,
 } from "@/stores/modeller"
 import { getCameraAtTime } from "@/utils/camera-interpolation"
+import { InteractiveCADOperations } from "./InteractiveCADOperations"
 import { SceneObjectMesh } from "./meshes"
 import { PostProcessing, type QualityPreset } from "./PostProcessing"
+import { TopologicalWireframe } from "./TopologicalWireframe"
 
 export interface SceneContentProps {
   showStats?: boolean
@@ -70,6 +76,52 @@ export function SceneContent({ showStats }: SceneContentProps) {
   const focusObjectId = useFocusObjectId()
   const clearFocus = useModellerStore((s) => s.clearFocus)
   const getObjectById = useModellerStore((s) => s.getObjectById)
+
+  // CAD Operations for interactive edge gizmos
+  const { dialogState, setDialogValue } = useCADOperations()
+
+  // Selection mode for topological selection
+  const selectionMode = useModellerStore((s) => s.selectionMode)
+
+  // Get backend shape ID for the first selected object
+  const backendShapeId =
+    selectedObjects.length > 0
+      ? shapeIdMap.get(selectedObjects[0].id) || selectedObjects[0].metadata?.backendShapeId
+      : null
+
+  // Load topology for selected shape
+  const { topology, isLoading: isLoadingTopology } = useTopology({
+    backendShapeId: backendShapeId as string | null,
+    edgeDeflection: 0.1,
+    enabled: selectedObjects.length > 0 && selectionMode !== "body",
+  })
+
+  // DEBUG: Log topology state
+  useEffect(() => {
+    console.log("[SceneContent] Topology Debug:", {
+      hasTopology: !!topology,
+      topologyEdgesCount: topology?.edges.length,
+      selectedObjectsCount: selectedObjects.length,
+      selectionMode,
+      backendShapeId,
+      isLoadingTopology,
+    })
+  }, [topology, selectedObjects.length, selectionMode, backendShapeId, isLoadingTopology])
+
+  // Topological selection (edges, faces, vertices)
+  const {
+    selectedElement: selectedTopologyElement,
+    hoveredElement: hoveredTopologyElement,
+    selectElement: selectTopologyElement,
+    clearSelection: clearTopologySelection,
+    handlePointerMove: handleTopologyPointerMove,
+    handlePointerClick: handleTopologyPointerClick,
+  } = useTopologicalSelection({
+    topology,
+    selectionMode,
+    objectTransform: selectedObjects.length > 0 ? undefined : undefined, // TODO: get transform matrix
+    enabled: selectedObjects.length > 0 && selectionMode !== "body",
+  })
 
   // Temporary and helper objects from new slices
   const temporaryObjects = useModellerStore((s) => s.temporaryObjects)
@@ -112,6 +164,16 @@ export function SceneContent({ showStats }: SceneContentProps) {
   const selectedMeshRef = useRef<THREE.Mesh | THREE.Group>(null)
   const transformControlsRef = useRef<TransformControlsImpl>(null)
   const orbitControlsRef = useRef<OrbitControlsImpl>(null)
+
+  // When toggling PBR/post-processing, force a render and ensure OrbitControls isn't left disabled.
+  useEffect(() => {
+    invalidate()
+
+    if (orbitControlsRef.current && !isBoxSelectMode && playbackState !== "playing") {
+      orbitControlsRef.current.enabled = true
+      orbitControlsRef.current.update()
+    }
+  }, [invalidate, isBoxSelectMode, playbackState, viewportSettings.enablePostProcessing])
 
   // Animation state for camera focus
   const focusAnimationRef = useRef<{
@@ -560,6 +622,27 @@ export function SceneContent({ showStats }: SceneContentProps) {
     }
   }, [_firstSelectedId])
 
+  // Add event listeners for topological selection
+  useEffect(() => {
+    if (selectionMode === "body" || selectedObjects.length === 0) return
+
+    const canvas = gl.domElement
+
+    canvas.addEventListener("pointermove", handleTopologyPointerMove)
+    canvas.addEventListener("click", handleTopologyPointerClick)
+
+    return () => {
+      canvas.removeEventListener("pointermove", handleTopologyPointerMove)
+      canvas.removeEventListener("click", handleTopologyPointerClick)
+    }
+  }, [
+    selectionMode,
+    selectedObjects.length,
+    gl,
+    handleTopologyPointerMove,
+    handleTopologyPointerClick,
+  ])
+
   // Convert store position to array for camera components with validation
   const safeVal = (n: number, fallback: number) => (Number.isFinite(n) ? n : fallback)
   const cameraPos: [number, number, number] = [
@@ -579,6 +662,7 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
       {/* Controls */}
       <OrbitControls
+        key={`orbit-${viewportSettings.enablePostProcessing ? "pbr" : "flat"}`}
         ref={orbitControlsRef}
         makeDefault
         enabled={!isBoxSelectMode}
@@ -604,6 +688,25 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
       {/* Fallback ambient light when environment is disabled */}
       {!viewportSettings.environmentEnabled && <ambientLight intensity={0.4} />}
+
+      {/* Main Directional Light for Shadows */}
+      {viewportSettings.shadows && (
+        <directionalLight
+          position={[15, 20, 10]}
+          intensity={1.2}
+          castShadow
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-near={0.5}
+          shadow-camera-far={100}
+          shadow-camera-left={-25}
+          shadow-camera-right={25}
+          shadow-camera-top={25}
+          shadow-camera-bottom={-25}
+          shadow-bias={-0.0001}
+          shadow-normalBias={0.02}
+        />
+      )}
 
       {/* Grid - Uses grid settings from store */}
       {viewportSettings.showGrid && (
@@ -698,6 +801,57 @@ export function SceneContent({ showStats }: SceneContentProps) {
         {/* For now, grid and axes are rendered separately below */}
       </group>
 
+      {/* Topological Wireframe - For selected objects in edge/face/vertex mode */}
+      {selectedObjects.length > 0 && topology && selectionMode !== "body" && (
+        <TopologicalWireframe
+          topology={topology}
+          position={[
+            selectedObjects[0].transform.position.x,
+            selectedObjects[0].transform.position.y,
+            selectedObjects[0].transform.position.z,
+          ]}
+          rotation={[
+            (selectedObjects[0].transform.rotation.x * Math.PI) / 180,
+            (selectedObjects[0].transform.rotation.y * Math.PI) / 180,
+            (selectedObjects[0].transform.rotation.z * Math.PI) / 180,
+          ]}
+          scale={[
+            selectedObjects[0].transform.scale.x,
+            selectedObjects[0].transform.scale.y,
+            selectedObjects[0].transform.scale.z,
+          ]}
+          color="#2dd4bf"
+          lineWidth={2}
+          selectedEdges={
+            selectedTopologyElement && selectedTopologyElement.type === "edge"
+              ? [selectedTopologyElement.index]
+              : []
+          }
+          hoveredEdge={
+            hoveredTopologyElement && hoveredTopologyElement.type === "edge"
+              ? hoveredTopologyElement.index
+              : null
+          }
+          onEdgeClick={(edgeIndex) => {
+            const edge = topology.edges.find((e) => e.index === edgeIndex)
+            if (edge) {
+              selectTopologyElement({ ...edge, type: "edge" })
+            }
+          }}
+          onEdgeHover={(edgeIndex) => {
+            if (edgeIndex !== null) {
+              const edge = topology.edges.find((e) => e.index === edgeIndex)
+              if (edge) {
+                selectTopologyElement({ ...edge, type: "edge" })
+              }
+            } else {
+              clearTopologySelection()
+            }
+          }}
+          visible={selectionMode !== "body"}
+        />
+      )}
+
       {/* Transform Gizmo - attached to selected mesh */}
       {transformMode !== "none" && firstSelectedObject && meshReady && selectedMeshRef.current && (
         <TransformControls
@@ -739,6 +893,18 @@ export function SceneContent({ showStats }: SceneContentProps) {
           enableSSAO={viewportSettings.ambientOcclusion ?? false}
           enableBloom
           enableAA={viewportSettings.antialiasing ?? true}
+        />
+      )}
+
+      {/* Interactive CAD Operations - Edge Gizmos */}
+      {dialogState.open && dialogState.interactiveMode && (
+        <InteractiveCADOperations
+          operation={dialogState.operation as "fillet" | "chamfer" | "shell" | null}
+          value={Number.parseFloat(dialogState.value) || 1.0}
+          min={0.01}
+          max={10}
+          onValueChange={(value) => setDialogValue(value.toFixed(2))}
+          enabled={dialogState.open && dialogState.interactiveMode}
         />
       )}
     </>

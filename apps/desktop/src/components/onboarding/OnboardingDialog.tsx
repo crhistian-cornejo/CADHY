@@ -154,7 +154,7 @@ function StepContent({ step }: { step: OnboardingStep }) {
       </div>
 
       {/* Title */}
-      <h2 className="text-xl font-semibold mb-2">{step.title}</h2>
+      <h3 className="mb-2">{step.title}</h3>
 
       {/* Description */}
       <p className="text-sm text-muted-foreground mb-8 max-w-md">{step.description}</p>
@@ -164,9 +164,9 @@ function StepContent({ step }: { step: OnboardingStep }) {
         {step.features.map((feature, index) => (
           <div
             key={index}
-            className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/40 text-left"
+            className="flex items-start gap-3 p-3 rounded-2xl bg-muted/30 border border-border/40 text-left"
           >
-            <div className="size-8 shrink-0 rounded-lg bg-card border border-border flex items-center justify-center">
+            <div className="size-8 shrink-0 rounded-2xl bg-card border border-border flex items-center justify-center">
               <HugeiconsIcon icon={feature.icon} className="size-4 text-muted-foreground" />
             </div>
             <p className="text-sm flex-1 pt-0.5">{feature.text}</p>

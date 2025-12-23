@@ -17,7 +17,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
   cn,
+  formatKbd,
   Input,
+  Kbd,
+  KbdSymbols,
   Label,
   NumberInput,
   ScrollArea,
@@ -33,22 +36,12 @@ import {
   TooltipTrigger,
   toast,
 } from "@cadhy/ui"
-import {
-  ArrowDown01Icon,
-  ArrowRight01Icon,
-  Building01Icon,
-  CircleIcon,
-  CubeIcon,
-  Cylinder01Icon,
-  Tick01Icon,
-  TriangleIcon,
-  WaterEnergyIcon,
-  WaterfallDown01Icon,
-} from "@hugeicons/core-free-icons"
+import { ArrowDown01Icon, ArrowRight01Icon, Tick01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { CadIcon } from "@/components/ui/cad-icon"
 import { useCAD } from "@/hooks/use-cad"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { useUnits } from "@/hooks/use-units"
@@ -83,7 +76,7 @@ type SectionType = "rectangular" | "trapezoidal" | "triangular"
 
 interface PrimitiveConfig {
   type: PrimitiveType
-  icon: typeof CubeIcon
+  icon: string
   labelKey: string
   descKey: string
   /** Single letter shortcut (used with Shift) */
@@ -99,7 +92,7 @@ const DEFAULT_SEGMENTS = 32
 const PRIMITIVES: PrimitiveConfig[] = [
   {
     type: "box",
-    icon: CubeIcon,
+    icon: "box",
     labelKey: "createPanel.box",
     descKey: "createPanel.boxDesc",
     shortcutKey: "B",
@@ -108,7 +101,7 @@ const PRIMITIVES: PrimitiveConfig[] = [
   },
   {
     type: "cylinder",
-    icon: Cylinder01Icon,
+    icon: "cylinder",
     labelKey: "createPanel.cylinder",
     descKey: "createPanel.cylinderDesc",
     shortcutKey: "Y",
@@ -117,7 +110,7 @@ const PRIMITIVES: PrimitiveConfig[] = [
   },
   {
     type: "sphere",
-    icon: CircleIcon,
+    icon: "sphere",
     labelKey: "createPanel.sphere",
     descKey: "createPanel.sphereDesc",
     shortcutKey: "P",
@@ -126,7 +119,7 @@ const PRIMITIVES: PrimitiveConfig[] = [
   },
   {
     type: "cone",
-    icon: TriangleIcon,
+    icon: "cone",
     labelKey: "createPanel.cone",
     descKey: "createPanel.coneDesc",
     shortcutKey: "O",
@@ -135,7 +128,7 @@ const PRIMITIVES: PrimitiveConfig[] = [
   },
   {
     type: "torus",
-    icon: CircleIcon,
+    icon: "torus",
     labelKey: "createPanel.torus",
     descKey: "createPanel.torusDesc",
     shortcutKey: "U",
@@ -151,7 +144,7 @@ const PARAM_CONFIGS: Record<
   PrimitiveType,
   {
     key: string
-    label: string
+    labelKey: string
     unitType?: UnitType
     isDetail?: boolean
     min?: number
@@ -160,30 +153,37 @@ const PARAM_CONFIGS: Record<
   }[]
 > = {
   box: [
-    { key: "width", label: "Width", unitType: "length" },
-    { key: "height", label: "Height", unitType: "length" },
-    { key: "depth", label: "Depth", unitType: "length" },
-    { key: "segments", label: "Subdivisions", isDetail: true, min: 1, max: 10, step: 1 },
+    { key: "width", labelKey: "properties.width", unitType: "length" },
+    { key: "height", labelKey: "properties.height", unitType: "length" },
+    { key: "depth", labelKey: "properties.depth", unitType: "length" },
+    {
+      key: "segments",
+      labelKey: "createPanel.subdivisions",
+      isDetail: true,
+      min: 1,
+      max: 10,
+      step: 1,
+    },
   ],
   cylinder: [
-    { key: "radius", label: "Radius", unitType: "length" },
-    { key: "height", label: "Height", unitType: "length" },
-    { key: "segments", label: "Detail", isDetail: true, min: 8, max: 128, step: 8 },
+    { key: "radius", labelKey: "properties.radius", unitType: "length" },
+    { key: "height", labelKey: "properties.height", unitType: "length" },
+    { key: "segments", labelKey: "createPanel.detail", isDetail: true, min: 8, max: 128, step: 8 },
   ],
   sphere: [
-    { key: "radius", label: "Radius", unitType: "length" },
-    { key: "segments", label: "Detail", isDetail: true, min: 8, max: 128, step: 8 },
+    { key: "radius", labelKey: "properties.radius", unitType: "length" },
+    { key: "segments", labelKey: "createPanel.detail", isDetail: true, min: 8, max: 128, step: 8 },
   ],
   cone: [
-    { key: "bottomRadius", label: "Bottom R", unitType: "length" },
-    { key: "topRadius", label: "Top R", unitType: "length" },
-    { key: "height", label: "Height", unitType: "length" },
-    { key: "segments", label: "Detail", isDetail: true, min: 8, max: 128, step: 8 },
+    { key: "bottomRadius", labelKey: "properties.bottomRadius", unitType: "length" },
+    { key: "topRadius", labelKey: "properties.topRadius", unitType: "length" },
+    { key: "height", labelKey: "properties.height", unitType: "length" },
+    { key: "segments", labelKey: "createPanel.detail", isDetail: true, min: 8, max: 128, step: 8 },
   ],
   torus: [
-    { key: "majorRadius", label: "Major R", unitType: "length" },
-    { key: "minorRadius", label: "Minor R", unitType: "length" },
-    { key: "segments", label: "Detail", isDetail: true, min: 8, max: 128, step: 8 },
+    { key: "majorRadius", labelKey: "properties.majorRadius", unitType: "length" },
+    { key: "minorRadius", labelKey: "properties.minorRadius", unitType: "length" },
+    { key: "segments", labelKey: "createPanel.detail", isDetail: true, min: 8, max: 128, step: 8 },
   ],
 }
 
@@ -249,7 +249,7 @@ function ParamInput({
   if (isDetail) {
     return (
       <div className="flex items-center gap-2">
-        <Label htmlFor={inputId} className="w-16 text-[10px] text-muted-foreground shrink-0">
+        <Label htmlFor={inputId} className="w-16 text-xs text-muted-foreground shrink-0">
           {label}
         </Label>
         <div className="flex-1 flex items-center gap-2">
@@ -264,9 +264,7 @@ function ParamInput({
             className="flex-1 h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
             aria-label={`${label} value`}
           />
-          <span className="text-[10px] text-muted-foreground font-mono w-8 text-right">
-            {value}
-          </span>
+          <span className="text-xs text-muted-foreground font-mono w-8 text-right">{value}</span>
         </div>
       </div>
     )
@@ -274,7 +272,7 @@ function ParamInput({
 
   return (
     <div className="flex items-center gap-2">
-      <Label htmlFor={inputId} className="w-16 text-[10px] text-muted-foreground shrink-0">
+      <Label htmlFor={inputId} className="w-16 text-xs text-muted-foreground shrink-0">
         {label}
       </Label>
       <div className="flex-1 flex items-center gap-1">
@@ -288,7 +286,7 @@ function ParamInput({
           className="h-7 text-xs"
           aria-label={`${label} value`}
         />
-        {unitLabel && <span className="text-[10px] text-muted-foreground w-6">{unitLabel}</span>}
+        {unitLabel && <span className="text-xs text-muted-foreground w-6">{unitLabel}</span>}
       </div>
     </div>
   )
@@ -328,33 +326,40 @@ function PrimitiveInlineForm({ config, onClose, onCreated }: PrimitiveInlineForm
       // Call appropriate CAD function based on shape type
       switch (config.type) {
         case "box":
-          _sceneId = await cad.createBoxShape(
-            params.width || 2,
-            params.depth || 2,
-            params.height || 2,
-            name
-          )
+          _sceneId = await cad.createBoxShape({
+            width: params.width || 2,
+            depth: params.depth || 2,
+            height: params.height || 2,
+            name,
+          })
           break
         case "cylinder":
-          _sceneId = await cad.createCylinderShape(params.radius || 1, params.height || 2, name)
+          _sceneId = await cad.createCylinderShape({
+            radius: params.radius || 1,
+            height: params.height || 2,
+            name,
+          })
           break
         case "sphere":
-          _sceneId = await cad.createSphereShape(params.radius || 1, name)
+          _sceneId = await cad.createSphereShape({
+            radius: params.radius || 1,
+            name,
+          })
           break
         case "cone":
-          _sceneId = await cad.createConeShape(
-            params.baseRadius || 1,
-            params.topRadius || 0,
-            params.height || 2,
-            name
-          )
+          _sceneId = await cad.createConeShape({
+            baseRadius: params.bottomRadius || 1,
+            topRadius: params.topRadius || 0,
+            height: params.height || 2,
+            name,
+          })
           break
         case "torus":
-          _sceneId = await cad.createTorusShape(
-            params.majorRadius || 2,
-            params.minorRadius || 0.5,
-            name
-          )
+          _sceneId = await cad.createTorusShape({
+            majorRadius: params.majorRadius || 2,
+            minorRadius: params.minorRadius || 0.5,
+            name,
+          })
           break
         default: {
           logger.warn(`Unsupported shape type: ${config.type}`)
@@ -409,7 +414,17 @@ function PrimitiveInlineForm({ config, onClose, onCreated }: PrimitiveInlineForm
   }
 
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
-  const submitShortcut = isMac ? "⌘↵" : "Ctrl+↵"
+  const submitShortcut = isMac ? (
+    <>
+      <Kbd>{KbdSymbols.command}</Kbd>
+      <Kbd>{KbdSymbols.enter}</Kbd>
+    </>
+  ) : (
+    <>
+      <Kbd>Ctrl</Kbd>
+      <Kbd>{KbdSymbols.enter}</Kbd>
+    </>
+  )
 
   return (
     <motion.div
@@ -420,7 +435,7 @@ function PrimitiveInlineForm({ config, onClose, onCreated }: PrimitiveInlineForm
       className="overflow-hidden"
     >
       <div
-        className="mx-1 mt-1 mb-2 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-3"
+        className="mx-1 mt-1 mb-2 p-3 rounded-2xl border border-primary/20 bg-primary/5 space-y-3"
         role="form"
         aria-label={`Create ${config.type} form`}
         onKeyDown={handleKeyDown}
@@ -429,7 +444,7 @@ function PrimitiveInlineForm({ config, onClose, onCreated }: PrimitiveInlineForm
         <div className="flex items-center gap-2">
           <Label
             htmlFor={`${config.type}-name`}
-            className="w-16 text-[10px] text-muted-foreground shrink-0"
+            className="w-16 text-xs text-muted-foreground shrink-0"
           >
             {t("createPanel.name")}
           </Label>
@@ -444,11 +459,11 @@ function PrimitiveInlineForm({ config, onClose, onCreated }: PrimitiveInlineForm
         </div>
 
         {/* Parameters */}
-        {PARAM_CONFIGS[config.type].map(({ key, label, unitType, isDetail, min, max, step }) => (
+        {PARAM_CONFIGS[config.type].map(({ key, labelKey, unitType, isDetail, min, max, step }) => (
           <ParamInput
             key={key}
             id={`${config.type}-${key}`}
-            label={label}
+            label={t(labelKey)}
             value={params[key]}
             onChange={(v) => updateParam(key, v)}
             unitType={unitType}
@@ -467,7 +482,9 @@ function PrimitiveInlineForm({ config, onClose, onCreated }: PrimitiveInlineForm
           <Button size="sm" onClick={handleCreate} className="flex-1 h-7 text-xs gap-1">
             <HugeiconsIcon icon={Tick01Icon} className="size-3" />
             {t("createPanel.create")}
-            <span className="text-[9px] opacity-60 ml-1">{submitShortcut}</span>
+            <div className="flex items-center gap-0.5 ml-1 opacity-70 scale-90">
+              {submitShortcut}
+            </div>
           </Button>
         </div>
       </div>
@@ -530,7 +547,7 @@ function PrimitiveItemWithForm({
               aria-expanded={isActive}
               aria-label={`${t(config.labelKey)}. ${t(config.descKey)}`}
               className={cn(
-                "group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all duration-150",
+                "group w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl border transition-all duration-150",
                 "hover:border-primary/40 hover:bg-primary/5",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
                 isActive ? "border-primary/50 bg-primary/10" : "border-border/40 bg-card/30"
@@ -539,14 +556,14 @@ function PrimitiveItemWithForm({
               {/* Icon */}
               <div
                 className={cn(
-                  "size-8 rounded-md flex items-center justify-center shrink-0 transition-colors",
+                  "size-8 rounded-2xl flex items-center justify-center shrink-0 transition-colors",
                   isActive ? "bg-primary/20" : "bg-muted/40 group-hover:bg-primary/10"
                 )}
               >
-                <HugeiconsIcon
-                  icon={config.icon}
+                <CadIcon
+                  name={config.icon}
+                  size={16}
                   className={cn(
-                    "size-4",
                     isActive ? "text-primary" : "text-muted-foreground group-hover:text-primary"
                   )}
                 />
@@ -562,23 +579,23 @@ function PrimitiveItemWithForm({
                 >
                   {t(config.labelKey)}
                 </div>
-                <div className="text-[10px] text-muted-foreground/70 truncate leading-tight">
+                <div className="text-xs text-muted-foreground/70 truncate leading-tight">
                   {t(config.descKey)}
                 </div>
               </div>
 
               {/* Shortcut - minimal, professional style */}
               {showHints && (
-                <span
+                <Kbd
                   className={cn(
-                    "text-[10px] font-medium shrink-0 transition-colors",
+                    "shrink-0 transition-colors",
                     isActive
-                      ? "text-primary/70"
+                      ? "text-primary/70 border-primary/30 bg-primary/10"
                       : "text-muted-foreground/40 group-hover:text-muted-foreground/60"
                   )}
                 >
-                  ⇧{config.shortcutKey}
-                </span>
+                  {formatKbd(`Shift+${config.shortcutKey}`)}
+                </Kbd>
               )}
 
               {/* Expand indicator */}
@@ -595,7 +612,7 @@ function PrimitiveItemWithForm({
           </TooltipTrigger>
           <TooltipContent side="right" className="max-w-[180px]">
             <p className="text-xs">{t(config.descKey)}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Shift+Click for quick create</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("createPanel.shiftClickHint")}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -811,7 +828,17 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
   }
 
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
-  const submitShortcut = isMac ? "⌘↵" : "Ctrl+↵"
+  const submitShortcut = isMac ? (
+    <>
+      <Kbd>{KbdSymbols.command}</Kbd>
+      <Kbd>{KbdSymbols.enter}</Kbd>
+    </>
+  ) : (
+    <>
+      <Kbd>Ctrl</Kbd>
+      <Kbd>{KbdSymbols.enter}</Kbd>
+    </>
+  )
 
   return (
     <motion.div
@@ -822,7 +849,7 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
       className="overflow-hidden"
     >
       <div
-        className="mx-1 mt-1 mb-2 p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5 space-y-3"
+        className="mx-1 mt-1 mb-2 p-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 space-y-3"
         role="form"
         aria-label="Create channel form"
         onKeyDown={handleKeyDown}
@@ -837,7 +864,7 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
               aria-checked={sectionType === st}
               onClick={() => setSectionType(st)}
               className={cn(
-                "flex flex-col items-center p-1.5 rounded border transition-all",
+                "flex flex-col items-center p-1.5 rounded-2xl border transition-all",
                 "focus:outline-none focus-visible:ring-1 focus-visible:ring-cyan-500",
                 sectionType === st
                   ? "border-cyan-500/50 bg-cyan-500/10"
@@ -845,8 +872,8 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
               )}
             >
               <SectionMiniPreview type={st} />
-              <span className="text-[8px] text-muted-foreground mt-0.5 capitalize">
-                {st.slice(0, 4)}
+              <span className="text-xs text-muted-foreground mt-0.5 capitalize">
+                {t(`createPanel.${st}`)}
               </span>
             </button>
           ))}
@@ -854,7 +881,7 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
 
         {/* Name */}
         <div className="flex items-center gap-2">
-          <Label htmlFor="channel-name" className="w-16 text-[10px] text-muted-foreground shrink-0">
+          <Label htmlFor="channel-name" className="w-16 text-xs text-muted-foreground shrink-0">
             {t("createPanel.name")}
           </Label>
           <Input
@@ -869,7 +896,7 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
         {/* Connection */}
         {existingChannels.length > 0 && (
           <div className="flex items-center gap-2">
-            <Label className="w-16 text-[10px] text-muted-foreground shrink-0">
+            <Label className="w-16 text-xs text-muted-foreground shrink-0">
               {t("createPanel.connectTo")}
             </Label>
             <Select value={connectTo} onValueChange={handleConnectionChange}>
@@ -894,25 +921,35 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
         {sectionType === "rectangular" && (
           <>
             <ParamInput
-              label="Width (b)"
+              label={t("createPanel.widthSymbol")}
               value={rectWidth}
               onChange={setRectWidth}
               unitType="length"
             />
-            <ParamInput label="Depth (y)" value={depth} onChange={setDepth} unitType="length" />
+            <ParamInput
+              label={t("createPanel.depthSymbol")}
+              value={depth}
+              onChange={setDepth}
+              unitType="length"
+            />
           </>
         )}
         {sectionType === "trapezoidal" && (
           <>
             <ParamInput
-              label="Bottom (b)"
+              label={t("createPanel.bottomSymbol")}
               value={trapBottom}
               onChange={setTrapBottom}
               unitType="length"
             />
-            <ParamInput label="Depth (y)" value={depth} onChange={setDepth} unitType="length" />
             <ParamInput
-              label="Slope (z)"
+              label={t("createPanel.depthSymbol")}
+              value={depth}
+              onChange={setDepth}
+              unitType="length"
+            />
+            <ParamInput
+              label={t("createPanel.slopeZ")}
               value={trapSlope}
               onChange={setTrapSlope}
               step={0.1}
@@ -922,9 +959,14 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
         )}
         {sectionType === "triangular" && (
           <>
-            <ParamInput label="Depth (y)" value={depth} onChange={setDepth} unitType="length" />
             <ParamInput
-              label="Slope (z)"
+              label={t("createPanel.depthSymbol")}
+              value={depth}
+              onChange={setDepth}
+              unitType="length"
+            />
+            <ParamInput
+              label={t("createPanel.slopeZ")}
               value={triSlope}
               onChange={setTriSlope}
               step={0.1}
@@ -936,7 +978,7 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
         {/* Structure */}
         <div className="grid grid-cols-2 gap-2">
           <ParamInput
-            label="Wall (e)"
+            label={t("createPanel.wall")}
             value={thickness}
             onChange={setThickness}
             min={0.05}
@@ -944,7 +986,7 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
             unitType="length"
           />
           <ParamInput
-            label="Freeboard"
+            label={t("createPanel.freeboard")}
             value={freeBoard}
             onChange={setFreeBoard}
             min={0.1}
@@ -955,15 +997,21 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
 
         {/* Hydraulics */}
         <ParamInput
-          label="Manning n"
+          label={t("createPanel.manning")}
           value={manningN}
           onChange={setManningN}
           min={0.001}
           step={0.001}
         />
-        <ParamInput label="Slope (S₀)" value={slope} onChange={setSlope} min={0} step={0.0001} />
         <ParamInput
-          label="Length (L)"
+          label={t("createPanel.slopeSymbol")}
+          value={slope}
+          onChange={setSlope}
+          min={0}
+          step={0.0001}
+        />
+        <ParamInput
+          label={t("createPanel.lengthSymbol")}
           value={length}
           onChange={setLength}
           min={1}
@@ -974,10 +1022,12 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
         {/* Start position */}
         {connectTo === "none" && (
           <>
-            <div className="text-[9px] text-muted-foreground font-medium pt-1">Start Position</div>
+            <div className="text-xs text-muted-foreground font-medium pt-1">
+              {t("createPanel.startPos")}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <ParamInput
-                label="Station"
+                label={t("createPanel.stationLabel")}
                 value={startStation}
                 onChange={setStartStation}
                 min={0}
@@ -985,7 +1035,7 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
                 unitType="length"
               />
               <ParamInput
-                label="Elev."
+                label={t("createPanel.elevLabel")}
                 value={startElevation}
                 onChange={setStartElevation}
                 step={0.1}
@@ -996,13 +1046,13 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
         )}
 
         {/* Computed values */}
-        <div className="p-2 rounded bg-muted/20 text-[9px] space-y-0.5">
+        <div className="p-2 rounded-2xl bg-muted/20 text-xs space-y-0.5">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">End Station:</span>
+            <span className="text-muted-foreground">{t("createPanel.endStationLabel")}</span>
             <span className="font-mono">{formatLength(startStation + length)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">End Elevation:</span>
+            <span className="text-muted-foreground">{t("createPanel.endElevLabel")}</span>
             <span className="font-mono">{formatLength(startElevation - length * slope)}</span>
           </div>
         </div>
@@ -1019,7 +1069,9 @@ function ChannelCreator({ onClose, onCreated }: ChannelCreatorProps) {
           >
             <HugeiconsIcon icon={Tick01Icon} className="size-3" />
             {t("createPanel.create")}
-            <span className="text-[9px] opacity-60 ml-1">{submitShortcut}</span>
+            <div className="flex items-center gap-0.5 ml-1 opacity-70 scale-90">
+              {submitShortcut}
+            </div>
           </Button>
         </div>
       </div>
@@ -1063,7 +1115,7 @@ const HYDRAULIC_COLORS = {
 type HydraulicColor = keyof typeof HYDRAULIC_COLORS
 
 interface HydraulicButtonProps {
-  icon: typeof WaterEnergyIcon
+  icon: string
   label: string
   description: string
   shortcut: string
@@ -1094,7 +1146,7 @@ function HydraulicButton({
         onClick={onToggle}
         aria-expanded={isActive}
         className={cn(
-          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all duration-150",
+          "w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl border transition-all duration-150",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
           isActive
             ? cn(colors.border, colors.bg, "focus-visible:ring-primary")
@@ -1103,11 +1155,11 @@ function HydraulicButton({
       >
         <div
           className={cn(
-            "size-8 rounded-md flex items-center justify-center shrink-0",
+            "size-8 rounded-2xl flex items-center justify-center shrink-0",
             isActive ? colors.iconBg : "bg-muted/40"
           )}
         >
-          <HugeiconsIcon icon={icon} className={cn("size-4", colors.icon)} />
+          <CadIcon name={icon} size={16} className={cn(colors.icon)} />
         </div>
 
         <div className="flex-1 text-left min-w-0">
@@ -1116,20 +1168,20 @@ function HydraulicButton({
           >
             {label}
           </div>
-          <div className="text-[10px] text-muted-foreground/70 truncate leading-tight">
+          <div className="text-xs text-muted-foreground/70 truncate leading-tight">
             {description}
           </div>
         </div>
 
         {showHints && (
-          <span
+          <Kbd
             className={cn(
-              "text-[10px] font-medium shrink-0",
-              isActive ? colors.hint : "text-muted-foreground/40"
+              "shrink-0 transition-colors border-current/30",
+              isActive ? cn(colors.hint, colors.bg) : "text-muted-foreground/40"
             )}
           >
-            ⇧{shortcut}
-          </span>
+            {formatKbd(`Shift+${shortcut}`)}
+          </Kbd>
         )}
 
         <HugeiconsIcon
@@ -1333,7 +1385,7 @@ export function CreatePanel({ className }: CreatePanelProps) {
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
-                    className="w-full flex items-center gap-2 py-1.5 group hover:bg-muted/30 rounded-md px-1 -mx-1 transition-colors"
+                    className="w-full flex items-center gap-2 py-1.5 group hover:bg-muted/30 rounded-2xl px-1 -mx-1 transition-colors"
                   >
                     <HugeiconsIcon
                       icon={ArrowRight01Icon}
@@ -1342,10 +1394,7 @@ export function CreatePanel({ className }: CreatePanelProps) {
                         primitivesOpen && "rotate-90"
                       )}
                     />
-                    <div className="size-4 rounded bg-muted/50 flex items-center justify-center">
-                      <HugeiconsIcon icon={CubeIcon} className="size-2.5 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-[11px] font-medium text-muted-foreground">
+                    <h3 className="text-xs font-medium text-muted-foreground">
                       {t("createPanel.primitives")}
                     </h3>
                   </button>
@@ -1383,7 +1432,7 @@ export function CreatePanel({ className }: CreatePanelProps) {
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
-                    className="w-full flex items-center gap-2 py-1.5 group hover:bg-muted/30 rounded-md px-1 -mx-1 transition-colors"
+                    className="w-full flex items-center gap-2 py-1.5 group hover:bg-muted/30 rounded-2xl px-1 -mx-1 transition-colors"
                   >
                     <HugeiconsIcon
                       icon={ArrowRight01Icon}
@@ -1392,15 +1441,12 @@ export function CreatePanel({ className }: CreatePanelProps) {
                         hydraulicsOpen && "rotate-90"
                       )}
                     />
-                    <div className="size-4 rounded bg-cyan-500/20 flex items-center justify-center">
-                      <HugeiconsIcon icon={WaterEnergyIcon} className="size-2.5 text-cyan-500" />
-                    </div>
-                    <h3 className="text-[11px] font-medium text-muted-foreground">
+                    <h3 className="flex-1 text-left text-xs font-medium text-muted-foreground">
                       {t("createPanel.hydraulicElements")}
                     </h3>
                     <Badge
                       variant="outline"
-                      className="text-[8px] ml-auto text-cyan-500 border-cyan-500/30 h-4 px-1"
+                      className="text-xs ml-auto text-cyan-500 border-cyan-500/30 h-4 px-1"
                     >
                       CAD
                     </Badge>
@@ -1417,7 +1463,7 @@ export function CreatePanel({ className }: CreatePanelProps) {
               <div className="space-y-1 mt-2">
                 {/* Channel */}
                 <HydraulicButton
-                  icon={WaterEnergyIcon}
+                  icon="channel"
                   label={t("createPanel.openChannel")}
                   description={t("createPanel.openChannelDesc")}
                   shortcut="C"
@@ -1439,7 +1485,7 @@ export function CreatePanel({ className }: CreatePanelProps) {
 
                 {/* Transition */}
                 <HydraulicButton
-                  icon={WaterfallDown01Icon}
+                  icon="transition"
                   label={t("createPanel.transition", "Transition")}
                   description={t("createPanel.transitionDesc", "Connect channels")}
                   shortcut="T"
@@ -1461,7 +1507,7 @@ export function CreatePanel({ className }: CreatePanelProps) {
 
                 {/* Chute */}
                 <HydraulicButton
-                  icon={ArrowDown01Icon}
+                  icon="chute"
                   label={t("createPanel.chute", "Chute")}
                   description={t("createPanel.chuteDesc", "High-slope channel")}
                   shortcut="R"
@@ -1493,7 +1539,7 @@ export function CreatePanel({ className }: CreatePanelProps) {
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
-                    className="w-full flex items-center gap-2 py-1.5 group hover:bg-muted/30 rounded-md px-1 -mx-1 transition-colors"
+                    className="w-full flex items-center gap-2 py-1.5 group hover:bg-muted/30 rounded-2xl px-1 -mx-1 transition-colors"
                   >
                     <HugeiconsIcon
                       icon={ArrowRight01Icon}
@@ -1502,16 +1548,10 @@ export function CreatePanel({ className }: CreatePanelProps) {
                         structuresOpen && "rotate-90"
                       )}
                     />
-                    <div className="size-4 rounded bg-muted/30 flex items-center justify-center">
-                      <HugeiconsIcon
-                        icon={Building01Icon}
-                        className="size-2.5 text-muted-foreground/50"
-                      />
-                    </div>
-                    <h3 className="text-[11px] font-medium text-muted-foreground/50">
+                    <h3 className="text-xs font-medium text-muted-foreground/50">
                       {t("createPanel.structures")}
                     </h3>
-                    <Badge variant="outline" className="text-[8px] ml-auto h-4 px-1 opacity-50">
+                    <Badge variant="outline" className="text-xs ml-auto h-4 px-1 opacity-50">
                       {t("createPanel.soon")}
                     </Badge>
                   </button>
@@ -1535,19 +1575,14 @@ export function CreatePanel({ className }: CreatePanelProps) {
                 ].map((item) => (
                   <div
                     key={item.name}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border/20 bg-muted/10"
+                    className="flex items-center gap-3 px-3 py-2 rounded-2xl border border-border/20 bg-muted/10"
                   >
-                    <div className="size-8 rounded-md bg-muted/20 flex items-center justify-center">
-                      <HugeiconsIcon
-                        icon={Building01Icon}
-                        className="size-4 text-muted-foreground/40"
-                      />
+                    <div className="size-8 rounded-2xl bg-muted/20 flex items-center justify-center">
+                      <CadIcon name="settings" size={16} className="text-muted-foreground/40" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs text-muted-foreground/60 truncate">{item.name}</div>
-                      <div className="text-[10px] text-muted-foreground/40 truncate">
-                        {item.desc}
-                      </div>
+                      <div className="text-xs text-muted-foreground/40 truncate">{item.desc}</div>
                     </div>
                   </div>
                 ))}

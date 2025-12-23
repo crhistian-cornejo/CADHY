@@ -86,7 +86,7 @@ export function Reasoning({
         data-streaming={isStreaming}
         open={isOpen}
         onOpenChange={setIsOpen}
-        className={cn("rounded-lg border border-primary/20 bg-primary/5", className)}
+        className={cn("rounded-2xl border border-primary/20 bg-primary/5", className)}
         {...props}
       >
         {children}

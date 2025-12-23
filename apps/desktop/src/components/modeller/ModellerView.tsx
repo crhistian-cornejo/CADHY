@@ -10,6 +10,8 @@
 import {
   Button,
   cn,
+  formatKbd,
+  Kbd,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -25,15 +27,29 @@ import { motion, useAnimationFrame, useMotionTemplate, useMotionValue } from "mo
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { PanelErrorBoundary, ViewerErrorBoundary } from "@/components/common"
-import { useGlobalHotkeyHandler } from "@/hooks"
+import { useCADOperationHotkeys, useGlobalHotkeyHandler } from "@/hooks"
 import { useLayoutActions, useShowModellerLeft, useShowModellerRight } from "@/stores/layout-store"
 import { useModellerStore, useObjects, useSelectedIds } from "@/stores/modeller"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
-import { BoxLoader, ChuteCreator, TransitionCreator } from "./creators"
+import { BoxLoader, ChuteCreator, CreatePanel, TransitionCreator } from "./creators"
+import { CADOperationsProvider } from "./dialogs"
 import { CameraAnimationPanel } from "./panels"
 import { PropertiesPanel } from "./properties"
 import { ScenePanel } from "./scene"
 import { Viewport3D, ViewportSettingsPanel } from "./viewport"
+
+// ============================================================================
+// CAD HOTKEYS REGISTRATION
+// ============================================================================
+
+/**
+ * Component that registers CAD operation hotkeys.
+ * Must be inside CADOperationsProvider to access context.
+ */
+function CADHotkeysRegistration() {
+  useCADOperationHotkeys()
+  return null
+}
 
 // ============================================================================
 // TYPES
@@ -46,7 +62,7 @@ interface ModellerViewProps {
 }
 
 // Plasticity-style: OUTLINER + ASSETS (we use Scene + Props)
-type LeftPanelTab = "scene" | "props"
+type LeftPanelTab = "scene" | "create" | "props"
 
 // ============================================================================
 // ANIMATED GRID BACKGROUND
@@ -163,13 +179,13 @@ function NoProjectSelected({ onNewProject, onOpenProject }: NoProjectSelectedPro
           <div className="size-20 rounded-2xl bg-muted/50 flex items-center justify-center border border-border/40 backdrop-blur-sm">
             <HugeiconsIcon icon={CubeIcon} className="size-10 text-muted-foreground" />
           </div>
-          <div className="absolute -bottom-1 -right-1 size-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 backdrop-blur-sm">
+          <div className="absolute -bottom-1 -right-1 size-8 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 backdrop-blur-sm">
             <HugeiconsIcon icon={File01Icon} className="size-4 text-primary" />
           </div>
         </div>
 
         {/* Title */}
-        <h2 className="text-xl font-semibold mb-2">{t("modeller.noProjectSelected")}</h2>
+        <h3 className="mb-2">{t("modeller.noProjectSelected")}</h3>
 
         {/* Description */}
         <p className="text-sm text-muted-foreground mb-6">{t("modeller.noProjectSelectedDesc")}</p>
@@ -194,15 +210,11 @@ function NoProjectSelected({ onNewProject, onOpenProject }: NoProjectSelectedPro
         {/* Keyboard shortcuts hint */}
         <div className="mt-8 flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded bg-muted/80 backdrop-blur-sm border border-border text-[10px]">
-              Cmd+N
-            </kbd>
+            <Kbd>{formatKbd("Cmd+N")}</Kbd>
             <span>{t("modeller.new")}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded bg-muted/80 backdrop-blur-sm border border-border text-[10px]">
-              Cmd+O
-            </kbd>
+            <Kbd>{formatKbd("Cmd+O")}</Kbd>
             <span>{t("modeller.open")}</span>
           </div>
         </div>
@@ -268,8 +280,32 @@ function useKeyboardShortcuts(onToggleLeftPanel?: () => void) {
 export function ModellerView({ className, onNewProject, onOpenProject }: ModellerViewProps) {
   const { t } = useTranslation()
   // Plasticity-style: OUTLINER first (scene), then ASSETS (props)
-  const [activeTab, setActiveTab] = useState<LeftPanelTab>("scene")
+  const [activeTab, setActiveTab] = useState<LeftPanelTab>("create")
   const [showAnimationPanel, setShowAnimationPanel] = useState(false)
+  const isCreatePanelOpen = useModellerStore((state) => state.isCreatePanelOpen)
+  const { openCreatePanel, closeCreatePanel } = useModellerStore()
+
+  // Sync activeTab with isCreatePanelOpen store state
+  useEffect(() => {
+    if (isCreatePanelOpen) {
+      setActiveTab("create")
+    } else if (activeTab === "create" && !isCreatePanelOpen) {
+      // If we manually switched away from create tab, or store said close
+      // But if we are just here, we might want to default back to scene
+      setActiveTab("scene")
+    }
+  }, [isCreatePanelOpen])
+
+  // Sync store state when manually clicking tabs
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as LeftPanelTab)
+    if (value === "create") {
+      openCreatePanel()
+    } else {
+      closeCreatePanel()
+    }
+  }
+
   const _selectedIds = useSelectedIds()
   const _objects = useObjects()
   const currentProject = useCurrentProject()
@@ -331,125 +367,149 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
   }
 
   return (
-    <div className={cn("flex h-full flex-row bg-background", className)}>
-      {/* Main Content Area - Plasticity layout: Left sidebar + Full Viewport */}
-      <ResizablePanelGroup
-        direction="horizontal"
-        className="flex-1"
-        autoSaveId="cadhy-modeller-layout-v5"
-      >
-        {/* Left Panel - OUTLINER + ASSETS (Scene + Props) */}
-        {showLeftPanel && (
-          <>
-            <ResizablePanel id="left-panel" order={1} defaultSize={15} minSize={9} maxSize={30}>
-              <div className="flex h-full flex-col bg-background">
-                {/* Tab Header */}
-                <Tabs
-                  value={activeTab}
-                  onValueChange={(v) => setActiveTab(v as LeftPanelTab)}
-                  className="flex flex-col h-full"
-                >
-                  <div className="flex items-center bg-background">
-                    <TabsList className="flex-1 h-11 p-1.5 bg-muted/20 rounded-full border-0 grid grid-cols-2 gap-1.5">
-                      <TabsTrigger
-                        value="scene"
-                        className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
-                        title={t("modeller.tabs.sceneTooltip")}
+    <CADOperationsProvider>
+      <CADHotkeysRegistration />
+      <div className={cn("flex h-full flex-row bg-background", className)}>
+        {/* Main Content Area - Plasticity layout: Left sidebar + Full Viewport */}
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="flex-1"
+          autoSaveId="cadhy-modeller-layout-v5"
+        >
+          {/* Left Panel - OUTLINER + ASSETS (Scene + Props) */}
+          {showLeftPanel && (
+            <>
+              <ResizablePanel id="left-panel" order={1} defaultSize={15} minSize={9} maxSize={30}>
+                <div className="flex h-full flex-col bg-background">
+                  {/* Tab Header */}
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={handleTabChange}
+                    className="flex flex-col h-full"
+                  >
+                    <div className="flex items-center bg-background">
+                      <TabsList className="flex-1 h-11 p-1.5 bg-muted/20 rounded-full border-0 grid grid-cols-3 gap-1.5">
+                        <TabsTrigger
+                          value="create"
+                          className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                          title="Create primitives, channels and hydraulic structures"
+                        >
+                          Create
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="props"
+                          className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                          title={t("modeller.tabs.propsTooltip")}
+                        >
+                          {t("modeller.tabs.props", "Properties")}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="scene"
+                          className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                          title={t("modeller.tabs.sceneTooltip")}
+                        >
+                          {t("modeller.tabs.scene", "Scene")}
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
+
+                    {/* Tab Contents */}
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <TabsContent
+                        value="create"
+                        className="h-full m-0 data-[state=inactive]:hidden"
                       >
-                        {t("modeller.tabs.scene", "Scene")}
-                      </TabsTrigger>
-                      <TabsTrigger
+                        <PanelErrorBoundary context="Create Panel">
+                          <CreatePanel />
+                        </PanelErrorBoundary>
+                      </TabsContent>
+                      <TabsContent
                         value="props"
-                        className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
-                        title={t("modeller.tabs.propsTooltip")}
+                        className="h-full m-0 data-[state=inactive]:hidden"
                       >
-                        {t("modeller.tabs.props", "Properties")}
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
+                        <PanelErrorBoundary context="Properties Panel">
+                          <PropertiesPanel />
+                        </PanelErrorBoundary>
+                      </TabsContent>
+                      <TabsContent
+                        value="scene"
+                        className="h-full m-0 data-[state=inactive]:hidden"
+                      >
+                        <PanelErrorBoundary context="Scene Panel">
+                          <ScenePanel />
+                        </PanelErrorBoundary>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </div>
+              </ResizablePanel>
 
-                  {/* Tab Contents */}
-                  <div className="flex-1 min-h-0 overflow-hidden">
-                    <TabsContent value="scene" className="h-full m-0 data-[state=inactive]:hidden">
-                      <PanelErrorBoundary context="Scene Panel">
-                        <ScenePanel />
-                      </PanelErrorBoundary>
-                    </TabsContent>
-                    <TabsContent value="props" className="h-full m-0 data-[state=inactive]:hidden">
-                      <PanelErrorBoundary context="Properties Panel">
-                        <PropertiesPanel />
-                      </PanelErrorBoundary>
-                    </TabsContent>
-                  </div>
-                </Tabs>
-              </div>
-            </ResizablePanel>
+              <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
+            </>
+          )}
 
-            <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
-          </>
-        )}
+          {/* Center - Full Viewport (all toolbars are floating overlays inside) */}
+          <ResizablePanel id="viewport" order={2} defaultSize={64} minSize={40}>
+            <ViewerErrorBoundary>
+              <Viewport3D
+                showAnimationPanel={showAnimationPanel}
+                onToggleAnimationPanel={handleToggleAnimationPanel}
+              />
+            </ViewerErrorBoundary>
+          </ResizablePanel>
 
-        {/* Center - Full Viewport (all toolbars are floating overlays inside) */}
-        <ResizablePanel id="viewport" order={2} defaultSize={64} minSize={40}>
-          <ViewerErrorBoundary>
-            <Viewport3D
-              showAnimationPanel={showAnimationPanel}
-              onToggleAnimationPanel={handleToggleAnimationPanel}
-            />
-          </ViewerErrorBoundary>
-        </ResizablePanel>
+          {/* Right Panel - Viewport Settings */}
+          {showRightPanel && (
+            <>
+              <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
+              <ResizablePanel id="right-panel" order={3} defaultSize={15} minSize={9} maxSize={25}>
+                <PanelErrorBoundary context="Viewport Settings Panel">
+                  <ViewportSettingsPanel />
+                </PanelErrorBoundary>
+              </ResizablePanel>
+            </>
+          )}
 
-        {/* Right Panel - Viewport Settings */}
-        {showRightPanel && (
-          <>
-            <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
-            <ResizablePanel id="right-panel" order={3} defaultSize={15} minSize={9} maxSize={25}>
-              <PanelErrorBoundary context="Viewport Settings Panel">
-                <ViewportSettingsPanel />
-              </PanelErrorBoundary>
-            </ResizablePanel>
-          </>
-        )}
+          {/* Animation Panel (optional, shown when needed) */}
+          {showAnimationPanel && (
+            <>
+              <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
+              <ResizablePanel
+                id="animation-panel"
+                order={4}
+                defaultSize={18}
+                minSize={15}
+                maxSize={30}
+              >
+                <PanelErrorBoundary context="Camera Animation Panel">
+                  <CameraAnimationPanel onClose={handleToggleAnimationPanel} />
+                </PanelErrorBoundary>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
 
-        {/* Animation Panel (optional, shown when needed) */}
-        {showAnimationPanel && (
-          <>
-            <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
-            <ResizablePanel
-              id="animation-panel"
-              order={4}
-              defaultSize={18}
-              minSize={15}
-              maxSize={30}
-            >
-              <PanelErrorBoundary context="Camera Animation Panel">
-                <CameraAnimationPanel onClose={handleToggleAnimationPanel} />
-              </PanelErrorBoundary>
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
-
-      {/* Hydraulic Creation Dialogs */}
-      {isChuteCreatorOpen && (
-        <div className="absolute inset-0 z-50 pointer-events-none">
-          <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
-            <ChuteCreator onClose={closeChuteCreator} onCreated={handleChuteCreated} />
+        {/* Hydraulic Creation Dialogs */}
+        {isChuteCreatorOpen && (
+          <div className="absolute inset-0 z-50 pointer-events-none">
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
+              <ChuteCreator onClose={closeChuteCreator} onCreated={handleChuteCreated} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {isTransitionCreatorOpen && (
-        <div className="absolute inset-0 z-50 pointer-events-none">
-          <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
-            <TransitionCreator
-              onClose={closeTransitionCreator}
-              onCreated={handleTransitionCreated}
-            />
+        {isTransitionCreatorOpen && (
+          <div className="absolute inset-0 z-50 pointer-events-none">
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-auto">
+              <TransitionCreator
+                onClose={closeTransitionCreator}
+                onCreated={handleTransitionCreated}
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </CADOperationsProvider>
   )
 }
 

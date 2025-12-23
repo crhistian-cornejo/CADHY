@@ -595,18 +595,16 @@ export function ViewportToolbar({
               </Button>
             }
           />
-          <TooltipContent side="bottom" className="flex items-center gap-2">
-            <span>{showLeftPanel ? t("toolbar.hidePanel") : t("toolbar.showPanel")}</span>
-            <kbd className="rounded bg-background/20 px-1.5 py-0.5 text-[10px] font-mono text-inherit">
-              P
-            </kbd>
+          <TooltipContent side="bottom">
+            {showLeftPanel ? t("toolbar.hidePanel") : t("toolbar.showPanel")}
+            <span className="ml-1.5 opacity-70">(P)</span>
           </TooltipContent>
         </Tooltip>
 
         <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
 
         {/* Transform Tools - Always visible */}
-        <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+        <div className="flex items-center gap-0.5 rounded-2xl border bg-muted/30 p-0.5 shrink-0">
           <ToolButton
             icon={Cursor01Icon}
             label={t("toolbar.select")}
@@ -658,7 +656,7 @@ export function ViewportToolbar({
 
         {/* CAD Operations - Boolean, Modify, Measure */}
         <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
-        <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+        <div className="flex items-center gap-0.5 rounded-2xl border bg-muted/30 p-0.5 shrink-0">
           {/* Boolean Operations */}
           <DropdownMenu>
             <Tooltip>
@@ -667,7 +665,7 @@ export function ViewportToolbar({
                   <DropdownMenuTrigger
                     disabled={!canBooleanOp}
                     className={cn(
-                      "inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-colors",
+                      "inline-flex h-7 w-7 items-center justify-center rounded-2xl text-sm font-medium transition-colors",
                       "hover:bg-accent hover:text-accent-foreground",
                       "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                       "disabled:pointer-events-none disabled:opacity-50"
@@ -712,7 +710,7 @@ export function ViewportToolbar({
                   <DropdownMenuTrigger
                     disabled={!hasSelectedShapes}
                     className={cn(
-                      "inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-colors",
+                      "inline-flex h-7 w-7 items-center justify-center rounded-2xl text-sm font-medium transition-colors",
                       "hover:bg-accent hover:text-accent-foreground",
                       "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                       "disabled:pointer-events-none disabled:opacity-50"
@@ -753,7 +751,7 @@ export function ViewportToolbar({
                   <DropdownMenuTrigger
                     disabled={!hasSelectedShapes}
                     className={cn(
-                      "inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium transition-colors",
+                      "inline-flex h-7 w-7 items-center justify-center rounded-2xl text-sm font-medium transition-colors",
                       "hover:bg-accent hover:text-accent-foreground",
                       "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                       "disabled:pointer-events-none disabled:opacity-50"
@@ -786,7 +784,7 @@ export function ViewportToolbar({
         {showSnapGrid && (
           <>
             <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
-            <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+            <div className="flex items-center gap-0.5 rounded-2xl border bg-muted/30 p-0.5 shrink-0">
               <ToolButton
                 icon={GridIcon}
                 label={t("toolbar.toggleGrid")}
@@ -809,7 +807,7 @@ export function ViewportToolbar({
         {showViewModes && (
           <>
             <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
-            <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+            <div className="flex items-center gap-0.5 rounded-2xl border bg-muted/30 p-0.5 shrink-0">
               <ToolButton
                 icon={CubeIcon}
                 label={t("toolbar.solidView")}
@@ -853,7 +851,7 @@ export function ViewportToolbar({
         {showCameraViews && (
           <>
             <Separator orientation="vertical" className="h-6 mx-1 shrink-0" />
-            <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+            <div className="flex items-center gap-0.5 rounded-2xl border bg-muted/30 p-0.5 shrink-0">
               <ViewButton
                 view="perspective"
                 icon={CubeIcon}
@@ -895,7 +893,7 @@ export function ViewportToolbar({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <DropdownMenuTrigger className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                  <DropdownMenuTrigger className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-2xl text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                     <HugeiconsIcon icon={MoreHorizontalIcon} className="size-4" />
                   </DropdownMenuTrigger>
                 }
@@ -1141,7 +1139,7 @@ export function ViewportToolbar({
         {/* Right-side tools - Hideable (Undo/Redo, Export, Settings) */}
         {showRightTools && (
           <>
-            <div className="flex items-center gap-0.5 rounded-md border bg-muted/30 p-0.5 shrink-0">
+            <div className="flex items-center gap-0.5 rounded-2xl border bg-muted/30 p-0.5 shrink-0">
               <ToolButton
                 icon={ArrowTurnBackwardIcon}
                 label={t("toolbar.undo")}
@@ -1168,7 +1166,7 @@ export function ViewportToolbar({
                     <DropdownMenuTrigger
                       disabled={(!canExport && !canExportScene) || isExporting}
                       className={cn(
-                        "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm font-medium transition-colors",
+                        "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-2xl text-sm font-medium transition-colors",
                         "hover:bg-accent hover:text-accent-foreground",
                         "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                         "disabled:pointer-events-none disabled:opacity-50",
@@ -1266,7 +1264,7 @@ export function ViewportToolbar({
               </Tooltip>
               <PopoverContent align="end" className="w-52 p-2.5">
                 <div className="space-y-2">
-                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     {t("toolbar.viewportSettings")}
                   </p>
 
@@ -1345,7 +1343,7 @@ export function ViewportToolbar({
                       <Label htmlFor="postprocessing" className="text-xs font-normal">
                         {t("toolbar.pbrTextures", "Texturas PBR")}
                       </Label>
-                      <p className="text-[9px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {t(
                           "toolbar.pbrTexturesDesc",
                           "Si está desactivado, solo se muestra el color del material"
@@ -1364,13 +1362,13 @@ export function ViewportToolbar({
                   <Separator className="my-2" />
 
                   {/* Environment Lighting */}
-                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     {t("toolbar.environmentLighting", "Environment Lighting")}
                   </p>
 
                   {/* Environment Preset Grid with Previews */}
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] text-muted-foreground">
+                    <Label className="text-xs text-muted-foreground">
                       {t("toolbar.preset", "Preset")}
                     </Label>
                     <div className="grid grid-cols-5 gap-1">
@@ -1381,7 +1379,7 @@ export function ViewportToolbar({
                               type="button"
                               onClick={() => setViewportSettings({ environmentPreset: preset.id })}
                               className={cn(
-                                "relative w-8 h-8 rounded overflow-hidden border-2 transition-all",
+                                "relative w-8 h-8 rounded-2xl overflow-hidden border-2 transition-all",
                                 "hover:scale-110 hover:z-10",
                                 (viewportSettings.environmentPreset ?? "apartment") === preset.id
                                   ? "border-primary ring-1 ring-primary/50"
@@ -1407,10 +1405,10 @@ export function ViewportToolbar({
                   {/* Environment Intensity Slider */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <Label className="text-[10px] text-muted-foreground">
+                      <Label className="text-xs text-muted-foreground">
                         {t("toolbar.intensity", "Intensity")}
                       </Label>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {(viewportSettings.environmentIntensity ?? 1).toFixed(1)}
                       </span>
                     </div>
@@ -1444,10 +1442,10 @@ export function ViewportToolbar({
                   {(viewportSettings.environmentBackground ?? false) && (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <Label className="text-[10px] text-muted-foreground">
+                        <Label className="text-xs text-muted-foreground">
                           {t("toolbar.backgroundBlur", "Background Blur")}
                         </Label>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {(viewportSettings.backgroundBlurriness ?? 0.5).toFixed(1)}
                         </span>
                       </div>

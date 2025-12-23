@@ -9,6 +9,7 @@ import type { Transform } from "@cadhy/types"
 import type { CameraAnimation, PlaybackState, SavedCameraView } from "./camera-slice"
 import type { HelpersSlice } from "./helpers-slice"
 import type { TemporarySlice } from "./temporary-slice"
+import type { TopologySlice } from "./topology-slice"
 import type {
   AnySceneObject,
   CameraView,
@@ -35,7 +36,7 @@ export type { Vec3 } from "@cadhy/types"
  * This interface combines all slice states and actions.
  * Each slice uses this type to access other slices' state/actions.
  */
-export interface ModellerStore extends TemporarySlice, HelpersSlice {
+export interface ModellerStore extends TemporarySlice, HelpersSlice, TopologySlice {
   // ========== STATE ==========
 
   // Objects (objects-slice)

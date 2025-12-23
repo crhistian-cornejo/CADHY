@@ -35,40 +35,82 @@ import {
   useObjects,
 } from "@/stores/modeller"
 
-// ============================================================================
-// TYPES
-// ============================================================================
+import { createSimpleBasinConfig } from "@/utils/stilling-basin-design"
 
 interface TransitionCreatorProps {
   onClose: () => void
   onCreated: () => void
 }
 
-type SectionType = "rectangular" | "trapezoidal" | "triangular"
+// type SectionType = "rectangular" | "trapezoidal" | "triangular"
 
 // ============================================================================
 // TRANSITION TYPE OPTIONS
 // ============================================================================
 
-const TRANSITION_TYPES: { value: TransitionTypeEnum; label: string; description: string }[] = [
-  { value: "linear", label: "Linear", description: "Simple linear change" },
-  { value: "warped", label: "Warped", description: "S-curve (better hydraulics)" },
-  { value: "cylindrical", label: "Cylindrical", description: "Quarter-circle walls" },
-  { value: "inlet", label: "Inlet", description: "Expansion entrance" },
-  { value: "outlet", label: "Outlet", description: "Contraction exit" },
+const TRANSITION_TYPES: { value: TransitionTypeEnum; labelKey: string; descKey: string }[] = [
+  {
+    value: "linear",
+    labelKey: "createPanel.transitionTypes.linear",
+    descKey: "createPanel.transitionTypes.linearDesc",
+  },
+  {
+    value: "warped",
+    labelKey: "createPanel.transitionTypes.warped",
+    descKey: "createPanel.transitionTypes.warpedDesc",
+  },
+  {
+    value: "cylindrical",
+    labelKey: "createPanel.transitionTypes.cylindrical",
+    descKey: "createPanel.transitionTypes.cylindricalDesc",
+  },
+  {
+    value: "inlet",
+    labelKey: "createPanel.transitionTypes.inlet",
+    descKey: "createPanel.transitionTypes.inletDesc",
+  },
+  {
+    value: "outlet",
+    labelKey: "createPanel.transitionTypes.outlet",
+    descKey: "createPanel.transitionTypes.outletDesc",
+  },
 ]
 
 // ============================================================================
 // STILLING BASIN OPTIONS
 // ============================================================================
 
-const STILLING_BASIN_TYPES: { value: StillingBasinType; label: string; description: string }[] = [
-  { value: "none", label: "None", description: "No stilling basin" },
-  { value: "type-i", label: "Type I", description: "Low Froude (1.7-2.5)" },
-  { value: "type-ii", label: "Type II", description: "High dam spillways (Fr > 4.5)" },
-  { value: "type-iii", label: "Type III", description: "Small dams (Fr 4.5-17)" },
-  { value: "type-iv", label: "Type IV", description: "Wave suppression (Fr 2.5-4.5)" },
-  { value: "saf", label: "SAF", description: "Small structures (Fr 1.7-17)" },
+const STILLING_BASIN_TYPES: { value: StillingBasinType; labelKey: string; descKey: string }[] = [
+  {
+    value: "none",
+    labelKey: "createPanel.stillingBasinTypes.none",
+    descKey: "createPanel.stillingBasinTypes.noneDesc",
+  },
+  {
+    value: "type-i",
+    labelKey: "createPanel.stillingBasinTypes.typeI",
+    descKey: "createPanel.stillingBasinTypes.typeIDesc",
+  },
+  {
+    value: "type-ii",
+    labelKey: "createPanel.stillingBasinTypes.typeII",
+    descKey: "createPanel.stillingBasinTypes.typeIIDesc",
+  },
+  {
+    value: "type-iii",
+    labelKey: "createPanel.stillingBasinTypes.typeIII",
+    descKey: "createPanel.stillingBasinTypes.typeIIIDesc",
+  },
+  {
+    value: "type-iv",
+    labelKey: "createPanel.stillingBasinTypes.typeIV",
+    descKey: "createPanel.stillingBasinTypes.typeIVDesc",
+  },
+  {
+    value: "saf",
+    labelKey: "createPanel.stillingBasinTypes.saf",
+    descKey: "createPanel.stillingBasinTypes.safDesc",
+  },
 ]
 
 // ============================================================================
@@ -118,7 +160,7 @@ function ParamInput({
 
   return (
     <div className="flex items-center gap-2">
-      <Label className="w-20 text-[10px] text-muted-foreground shrink-0">{label}</Label>
+      <Label className="w-20 text-xs text-muted-foreground shrink-0">{label}</Label>
       <div className="flex-1 flex items-center gap-1">
         <NumberInput
           value={Number(displayValue.toFixed(4))}
@@ -127,7 +169,7 @@ function ParamInput({
           step={step}
           className="h-7 text-xs"
         />
-        {unitLabel && <span className="text-[10px] text-muted-foreground w-6">{unitLabel}</span>}
+        {unitLabel && <span className="text-xs text-muted-foreground w-6">{unitLabel}</span>}
       </div>
     </div>
   )
@@ -343,15 +385,20 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
 
     // Build stilling basin config if enabled
     const stillingBasin: StillingBasinConfig | null = enableStillingBasin
-      ? {
-          type: basinType,
-          length: basinLength,
-          depth: basinDepth,
-          baffleRows: basinType === "type-iii" ? baffleRows : 0,
-          hasEndSill,
-          endSillHeight: hasEndSill ? endSillHeight : 0,
-        }
+      ? createSimpleBasinConfig(basinType, basinLength, basinDepth, hasEndSill ? endSillHeight : 0)
       : null
+
+    if (stillingBasin && basinType === "type-iii" && baffleRows > 0) {
+      stillingBasin.baffleBlocks = {
+        rows: baffleRows,
+        blocksPerRow: 5, // Default
+        width: 0.3,
+        height: 0.3,
+        thickness: 0.2,
+        distanceFromInlet: basinLength / 3,
+        rowSpacing: 1,
+      }
+    }
 
     const newTransitionId = addObject({
       name,
@@ -383,7 +430,7 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
         metalness: 0.1,
         roughness: 0.6,
       },
-    })
+    } as any)
 
     // Update channel connections and propagate positions
     if (upstreamChannelId !== "none") {
@@ -425,7 +472,7 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
     <Card className="mx-3 mb-3 p-3 space-y-3 border-green-500/30 bg-green-500/5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="size-6 rounded bg-green-500/20 flex items-center justify-center">
+          <div className="size-6 rounded-2xl bg-green-500/20 flex items-center justify-center">
             <HugeiconsIcon icon={WaterfallDown01Icon} className="size-3.5 text-green-500" />
           </div>
           <span className="text-xs font-medium">{t("createPanel.transition", "Transition")}</span>
@@ -438,14 +485,14 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
       <div className="space-y-2">
         {/* Name */}
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("createPanel.name")}
           </Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="h-7 text-xs"
-            placeholder="Transition name"
+            placeholder={t("createPanel.objectName")}
           />
         </div>
 
@@ -453,7 +500,7 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
 
         {/* Transition Type */}
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("createPanel.type", "Type")}
           </Label>
           <Select
@@ -467,8 +514,8 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
               {TRANSITION_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value} className="text-xs">
                   <div className="flex flex-col">
-                    <span>{type.label}</span>
-                    <span className="text-[9px] text-muted-foreground">{type.description}</span>
+                    <span>{t(type.labelKey)}</span>
+                    <span className="text-xs text-muted-foreground">{t(type.descKey)}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -480,19 +527,22 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
 
         {/* Connections */}
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t("createPanel.connections", "Connections")}
           </span>
         </div>
 
         {/* Upstream (Inlet) */}
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("createPanel.upstream", "Upstream")}
           </Label>
-          <Select value={upstreamChannelId} onValueChange={setUpstreamChannelId}>
+          <Select
+            value={upstreamChannelId}
+            onValueChange={(v) => setUpstreamChannelId(v ?? "none")}
+          >
             <SelectTrigger className="h-7 text-xs">
-              <SelectValue placeholder="Select channel" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none" className="text-xs">
@@ -509,12 +559,15 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
 
         {/* Downstream (Outlet) */}
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("createPanel.downstream", "Downstream")}
           </Label>
-          <Select value={downstreamChannelId} onValueChange={handleDownstreamChange}>
+          <Select
+            value={downstreamChannelId}
+            onValueChange={(v) => handleDownstreamChange(v ?? "none")}
+          >
             <SelectTrigger className="h-7 text-xs">
-              <SelectValue placeholder="Select channel" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none" className="text-xs">
@@ -535,7 +588,7 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
 
         {/* Geometry */}
         <ParamInput
-          label="Length"
+          label={t("createPanel.height")}
           value={length}
           onChange={setLength}
           min={1}
@@ -548,25 +601,25 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
           <>
             <Separator className="my-2" />
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 {t("createPanel.outletSection", "Outlet Section")}
               </span>
             </div>
             <ParamInput
-              label="Width"
+              label={t("createPanel.width")}
               value={outletWidth}
               onChange={setOutletWidth}
               unitType="length"
             />
             <ParamInput
-              label="Depth"
+              label={t("createPanel.depth")}
               value={outletDepth}
               onChange={setOutletDepth}
               unitType="length"
             />
             {inletSection.sectionType !== "rectangular" && (
               <ParamInput
-                label="Side Slope"
+                label={t("createPanel.sideSlope")}
                 value={outletSideSlope}
                 onChange={setOutletSideSlope}
                 step={0.1}
@@ -581,16 +634,16 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
           <>
             <Separator className="my-2" />
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 {t("createPanel.stillingBasin", "Stilling Basin")}
               </span>
-              <span className="text-[9px] text-amber-500 ml-auto">
+              <span className="text-xs text-amber-500 ml-auto">
                 Drop: {formatLength(startElevation - endElevation)}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+              <Label className="w-20 text-xs text-muted-foreground shrink-0">
                 {t("createPanel.enabled", "Enabled")}
               </Label>
               <Switch checked={enableStillingBasin} onCheckedChange={setEnableStillingBasin} />
@@ -599,33 +652,35 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
             {enableStillingBasin && (
               <div className="space-y-2 pl-2 border-l-2 border-green-500/20">
                 <div className="flex items-center gap-2">
-                  <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+                  <Label className="w-20 text-xs text-muted-foreground shrink-0">
                     {t("createPanel.type", "Type")}
                   </Label>
                   <Select
                     value={basinType}
-                    onValueChange={(v) => setBasinType(v as StillingBasinType)}
+                    onValueChange={(v) => setBasinType((v as StillingBasinType) ?? "none")}
                   >
                     <SelectTrigger className="h-7 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {STILLING_BASIN_TYPES.filter((t) => t.value !== "none").map((type) => (
-                        <SelectItem key={type.value} value={type.value} className="text-xs">
-                          <div className="flex flex-col">
-                            <span>{type.label}</span>
-                            <span className="text-[9px] text-muted-foreground">
-                              {type.description}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {STILLING_BASIN_TYPES.filter((t_opt) => t_opt.value !== "none").map(
+                        (type) => (
+                          <SelectItem key={type.value} value={type.value} className="text-xs">
+                            <div className="flex flex-col">
+                              <span>{t(type.labelKey)}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {t(type.descKey)}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <ParamInput
-                  label="Basin L"
+                  label={t("createPanel.basinLength")}
                   value={basinLength}
                   onChange={setBasinLength}
                   min={2}
@@ -633,7 +688,7 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
                   unitType="length"
                 />
                 <ParamInput
-                  label="Basin D"
+                  label={t("createPanel.basinDepth")}
                   value={basinDepth}
                   onChange={setBasinDepth}
                   min={0.3}
@@ -652,7 +707,7 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
                 )}
 
                 <div className="flex items-center gap-2">
-                  <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+                  <Label className="w-20 text-xs text-muted-foreground shrink-0">
                     {t("createPanel.endSill", "End Sill")}
                   </Label>
                   <Switch checked={hasEndSill} onCheckedChange={setHasEndSill} />
@@ -676,14 +731,14 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
         {/* Material */}
         <Separator className="my-2" />
         <div className="flex items-center gap-2">
-          <Label className="w-20 text-[10px] text-muted-foreground shrink-0">
+          <Label className="w-20 text-xs text-muted-foreground shrink-0">
             {t("layersPanel.color", "Color")}
           </Label>
           <input
             type="color"
             value={transitionColor}
             onChange={(e) => setTransitionColor(e.target.value)}
-            className="w-8 h-7 rounded border border-border cursor-pointer"
+            className="w-8 h-7 rounded-2xl border border-border cursor-pointer"
           />
           <Input
             value={transitionColor}
@@ -693,24 +748,24 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
         </div>
 
         {/* Computed Values */}
-        <div className="mt-2 p-2 rounded bg-muted/30 space-y-1">
-          <div className="flex justify-between text-[10px]">
+        <div className="mt-2 p-2 rounded-2xl bg-muted/30 space-y-1">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">
               {t("createPanel.startStation", "Start Station")}:
             </span>
             <span className="font-mono">{formatLength(startStation)}</span>
           </div>
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">
               {t("createPanel.endStation", "End Station")}:
             </span>
             <span className="font-mono">{formatLength(startStation + length)}</span>
           </div>
-          <div className="flex justify-between text-[10px]">
-            <span className="text-muted-foreground">{t("createPanel.invert", "Invert Drop")}:</span>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">{t("createPanel.invert")}:</span>
             <span className="font-mono">{formatLength(startElevation - endElevation)}</span>
           </div>
-          <div className="flex justify-between text-[10px]">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">
               {t("createPanel.widthChange", "Width Change")}:
             </span>

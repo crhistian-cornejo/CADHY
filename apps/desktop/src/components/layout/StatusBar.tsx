@@ -5,7 +5,7 @@
  * Adapted from GraphCAD design patterns.
  */
 
-import { Button, cn, Kbd, Tooltip, TooltipContent, TooltipTrigger } from "@cadhy/ui"
+import { Button, cn, formatKbd, Kbd, Tooltip, TooltipContent, TooltipTrigger } from "@cadhy/ui"
 import {
   CheckmarkCircle02Icon,
   CpuIcon,
@@ -157,7 +157,7 @@ export function StatusBar() {
   return (
     <footer
       className={cn(
-        "flex h-7 shrink-0 items-center px-3 text-[10px] text-muted-foreground select-none transition-all duration-300",
+        "flex h-7 shrink-0 items-center px-3 text-xs text-muted-foreground select-none transition-all duration-300",
         isMacOS ? "bg-background/60 backdrop-blur-md" : "bg-card/80 backdrop-blur-sm"
       )}
       role="status"
@@ -168,7 +168,7 @@ export function StatusBar() {
         {/* Status Indicator */}
         <div className="flex items-center gap-2">
           {isLoadingProject ? (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-500">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500">
               <HugeiconsIcon icon={Loading01Icon} className="size-3 animate-spin" />
               <span className="font-medium">{t("common.loading", "Loading...")}</span>
             </div>
@@ -176,7 +176,7 @@ export function StatusBar() {
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-500">
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500">
                     <div className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
                     <span className="font-medium">{t("statusBar.modified", "Modified")}</span>
                   </div>
@@ -187,7 +187,7 @@ export function StatusBar() {
               </TooltipContent>
             </Tooltip>
           ) : (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-500/80">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500/80">
               <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-3" />
               <span className="font-medium">{t("statusBar.ready", "Ready")}</span>
             </div>
@@ -197,7 +197,7 @@ export function StatusBar() {
         {notification && (
           <div
             className={cn(
-              "flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 animate-in fade-in slide-in-from-left-2 duration-300"
+              "flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 animate-in fade-in slide-in-from-left-2 duration-300"
             )}
             role="alert"
             aria-live="polite"
@@ -227,7 +227,7 @@ export function StatusBar() {
             />
             <TooltipContent side="top">
               {t("statusBar.selectionMode", "Selection Mode")}: {selectionMode}
-              <div className="text-[9px] text-muted-foreground mt-1">Keys 1, 2, 3, 4 to switch</div>
+              <div className="text-xs text-muted-foreground mt-1">Keys 1, 2, 3, 4 to switch</div>
             </TooltipContent>
           </Tooltip>
 
@@ -244,8 +244,8 @@ export function StatusBar() {
               key={hint.kbd}
               className="flex items-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-200"
             >
-              <Kbd className="bg-muted px-1 py-0.5 text-[9px] min-w-[16px] flex justify-center">
-                {hint.kbd}
+              <Kbd className="bg-muted px-1 py-0.5 text-xs min-w-[16px] flex justify-center">
+                {formatKbd(hint.kbd)}
               </Kbd>
               <span className="text-muted-foreground/80">{hint.label}</span>
             </div>
@@ -272,11 +272,9 @@ export function StatusBar() {
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-muted/50 transition-colors cursor-default rounded border border-transparent hover:border-border/30">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-muted/50 transition-colors cursor-default rounded-2xl border border-transparent hover:border-border/30">
                 <HugeiconsIcon icon={ViewIcon} className="size-3 text-muted-foreground" />
-                <span className="font-medium uppercase tracking-wider text-[9px]">
-                  {cameraView}
-                </span>
+                <span className="font-medium uppercase tracking-wider text-xs">{cameraView}</span>
               </div>
             }
           />
@@ -291,7 +289,7 @@ export function StatusBar() {
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-muted/50 transition-colors cursor-default rounded border border-transparent hover:border-border/30">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-muted/50 transition-colors cursor-default rounded-2xl border border-transparent hover:border-border/30">
                 <HugeiconsIcon icon={GridIcon} className="size-3 text-muted-foreground" />
                 <span className="tabular-nums">{gridSettings.size}m</span>
                 {gridSettings.snapEnabled && (
@@ -303,7 +301,7 @@ export function StatusBar() {
           <TooltipContent side="top">
             {t("statusBar.gridSize", "Grid Size")}: {gridSettings.size}m
             {gridSettings.snapEnabled && (
-              <div className="text-primary text-[9px]">Snap active ({gridSettings.snapSize}m)</div>
+              <div className="text-primary text-xs">Snap active ({gridSettings.snapSize}m)</div>
             )}
           </TooltipContent>
         </Tooltip>
@@ -314,7 +312,7 @@ export function StatusBar() {
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/40 cursor-default font-mono text-muted-foreground transition-all hover:bg-muted/60">
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-2xl bg-muted/40 cursor-default font-mono text-muted-foreground transition-all hover:bg-muted/60">
                 <HugeiconsIcon icon={Target01Icon} className="size-3 text-primary/70 mr-1" />
                 <span className="text-foreground/50">X</span>
                 <span className="text-foreground/90 tabular-nums">{coordinates.x.toFixed(2)}</span>
@@ -338,7 +336,7 @@ export function StatusBar() {
                 variant="ghost"
                 size="sm"
                 onClick={toggleUnitSystem}
-                className="h-5 px-1.5 text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground"
+                className="h-5 px-1.5 text-xs uppercase font-bold text-muted-foreground hover:text-foreground"
               >
                 {unitSystem}
               </Button>

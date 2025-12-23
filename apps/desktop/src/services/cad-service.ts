@@ -797,6 +797,87 @@ export async function tessellate(shapeId: string, deflection = 0.1): Promise<Cad
 }
 
 // ============================================================================
+// TOPOLOGY (B-Rep)
+// ============================================================================
+
+/**
+ * A single point along a tessellated edge
+ */
+export interface EdgePoint {
+  x: number
+  y: number
+  z: number
+  parameter: number
+}
+
+/**
+ * Tessellated edge for wireframe rendering
+ */
+export interface EdgeTessellation {
+  index: number
+  curve_type: string
+  start_vertex: number
+  end_vertex: number
+  length: number
+  is_degenerated: boolean
+  points: EdgePoint[]
+  adjacent_faces: number[]
+}
+
+/**
+ * Information about a topological vertex
+ */
+export interface VertexInfo {
+  index: number
+  x: number
+  y: number
+  z: number
+  tolerance: number
+  num_edges: number
+}
+
+/**
+ * Information about a topological face
+ */
+export interface FaceInfo {
+  index: number
+  surface_type: string
+  area: number
+  is_reversed: boolean
+  num_edges: number
+  boundary_edges: number[]
+  center: [number, number, number]
+  normal: [number, number, number]
+}
+
+/**
+ * Complete topology data with adjacency information
+ */
+export interface TopologyData {
+  vertices: VertexInfo[]
+  edges: EdgeTessellation[]
+  faces: FaceInfo[]
+  vertex_to_edges: number[]
+  vertex_to_edges_offset: number[]
+  edge_to_faces: number[]
+  edge_to_faces_offset: number[]
+}
+
+/**
+ * Get complete topology information from a shape (B-Rep)
+ * Returns vertices, edges (tessellated), faces, and adjacency maps
+ * @param shapeId - Shape to extract topology from
+ * @param edgeDeflection - Edge tessellation quality (smaller = more points, default 0.1)
+ */
+export async function getTopology(shapeId: string, edgeDeflection = 0.1): Promise<TopologyData> {
+  logger.log("[cad-service] getTopology called with shapeId:", shapeId)
+  return invoke<TopologyData>("cad_get_topology", {
+    shape_id: shapeId,
+    edge_deflection: edgeDeflection,
+  })
+}
+
+// ============================================================================
 // IMPORT / EXPORT
 // ============================================================================
 
@@ -1031,6 +1112,9 @@ export class CadService {
 
   // Tessellation
   tessellate = tessellate
+
+  // Topology
+  getTopology = getTopology
 
   // Import/Export
   importStep = importStep

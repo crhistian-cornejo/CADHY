@@ -102,38 +102,42 @@
    ============================================ */
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.97 0.014 254.604);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
+  /* Light theme using Tailwind neutral palette */
+  --background: #fafafa;                    /* neutral-50 - Base background */
+  --foreground: #171717;                    /* neutral-900 - Main text */
+  --card: #ffffff;                          /* white - Card surfaces */
+  --card-foreground: #171717;               /* neutral-900 */
+  --popover: #ffffff;                       /* white - Popover bg */
+  --popover-foreground: #171717;            /* neutral-900 */
+  --primary: oklch(0.488 0.243 264.376);    /* Violet accent */
+  --primary-foreground: #fafafa;            /* neutral-50 */
+  --secondary: #f5f5f5;                     /* neutral-100 - Secondary surfaces */
+  --secondary-foreground: #171717;          /* neutral-900 */
+  --muted: #f5f5f5;                         /* neutral-100 - Muted backgrounds */
+  --muted-foreground: #737373;              /* neutral-500 - Muted text */
+  --accent: #e5e5e5;                        /* neutral-200 - Accent/hover surfaces */
+  --accent-foreground: #171717;             /* neutral-900 */
+  --destructive: #ef4444;                   /* red-500 */
+  --border: #e5e5e5;                        /* neutral-200 - Borders */
+  --input: #f5f5f5;                         /* neutral-100 - Input backgrounds */
+  --ring: #a3a3a3;                          /* neutral-400 */
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
   --radius: 1rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar: #fafafa;                       /* neutral-50 - Sidebar bg */
+  --sidebar-foreground: #171717;            /* neutral-900 */
   --sidebar-primary: oklch(0.546 0.245 262.881);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
+  --sidebar-primary-foreground: #fafafa;    /* neutral-50 */
+  --sidebar-accent: #e5e5e5;                /* neutral-200 */
+  --sidebar-accent-foreground: #171717;     /* neutral-900 */
+  --sidebar-border: #e5e5e5;                /* neutral-200 */
+  --sidebar-ring: #a3a3a3;                  /* neutral-400 */
+  /* Tooltip colors - consistent with theme surfaces */
+  --tooltip: #ffffff;                       /* white - Light tooltip bg */
+  --tooltip-foreground: #171717;            /* neutral-900 - Dark tooltip text */
 }
 
 /* ============================================
@@ -141,39 +145,44 @@
    ============================================ */
 
 .dark {
-  --background: oklch(0.129 0.006 74);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.15 0.006 74);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.15 0.006 74);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.42 0.18 266);
-  --primary-foreground: oklch(0.97 0.014 254.604);
-  --secondary: oklch(0.20 0.006 74);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.18 0.006 74);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.20 0.006 74);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
+  /* Cursor/VSCode-style dark theme using Tailwind neutral palette */
+  /* No pure blacks - comfortable neutral grays */
+  --background: #171717;                    /* neutral-900 - Base background */
+  --foreground: #e5e5e5;                    /* neutral-200 - Main text */
+  --card: #262626;                          /* neutral-800 - Card surfaces */
+  --card-foreground: #e5e5e5;               /* neutral-200 */
+  --popover: #262626;                       /* neutral-800 - Popover bg */
+  --popover-foreground: #e5e5e5;            /* neutral-200 */
+  --primary: oklch(0.42 0.18 266);          /* Violet accent */
+  --primary-foreground: #fafafa;            /* neutral-50 */
+  --secondary: #262626;                     /* neutral-800 - Secondary surfaces */
+  --secondary-foreground: #e5e5e5;          /* neutral-200 */
+  --muted: #262626;                         /* neutral-800 - Muted backgrounds */
+  --muted-foreground: #a3a3a3;              /* neutral-400 - Muted text */
+  --accent: #404040;                        /* neutral-700 - Accent/hover surfaces */
+  --accent-foreground: #e5e5e5;             /* neutral-200 */
+  --destructive: #ef4444;                   /* red-500 */
+  --border: #404040;                        /* neutral-700 - Visible borders */
+  --input: #262626;                         /* neutral-800 - Input backgrounds */
+  --ring: #a3a3a3;                          /* neutral-400 */
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.15 0.006 74);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar: #171717;                       /* neutral-900 - Sidebar bg */
+  --sidebar-foreground: #e5e5e5;            /* neutral-200 */
   --sidebar-primary: oklch(0.623 0.214 259.815);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.20 0.006 74);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.552 0.016 285.938);
-  /* Custom toolbar background - #1C1A15 */
-  --toolbar-bg: oklch(0.13 0.01 60);
+  --sidebar-primary-foreground: #fafafa;    /* neutral-50 */
+  --sidebar-accent: #404040;                /* neutral-700 */
+  --sidebar-accent-foreground: #e5e5e5;     /* neutral-200 */
+  --sidebar-border: #404040;                /* neutral-700 - Solid borders */
+  --sidebar-ring: #a3a3a3;                  /* neutral-400 */
+  /* Custom toolbar background */
+  --toolbar-bg: #262626;                    /* neutral-800 - Elevated toolbar */
+  /* Tooltip colors - consistent with dark theme */
+  --tooltip: #404040;                       /* neutral-700 - Dark tooltip bg */
+  --tooltip-foreground: #e5e5e5;            /* neutral-200 - Light tooltip text */
 }
 
 /* ============================================
@@ -184,6 +193,8 @@
   --font-sans: "Noto Sans Variable", sans-serif;
   --font-heading: "Chillax", "Noto Sans Variable", sans-serif;
   --color-toolbar-bg: var(--toolbar-bg);
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-foreground: var(--tooltip-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -291,8 +302,8 @@ textarea,
    ============================================ */
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -302,7 +313,7 @@ textarea,
 ::-webkit-scrollbar-thumb {
   background: var(--muted);
   border-radius: 9999px;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -375,6 +386,7 @@ input[type="number"]::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* ============================================
@@ -432,6 +444,30 @@ h6 {
 
 .muted {
   @apply text-sm text-muted-foreground;
+}
+
+/* ============================================
+   CADHY TYPOGRAPHY UTILITIES
+   ============================================ */
+
+/* Section headers with uppercase styling */
+.section-label {
+  @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
+}
+
+/* Form labels and UI labels */
+.ui-label {
+  @apply text-xs font-medium;
+}
+
+/* Standard UI text size */
+.ui-text {
+  @apply text-sm;
+}
+
+/* Captions and secondary information */
+.ui-caption {
+  @apply text-xs text-muted-foreground;
 }
 
 blockquote {

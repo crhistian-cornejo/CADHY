@@ -1,4 +1,4 @@
-import { useVirtualizer } from "@tanstack/react-virtual"
+import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual"
 import { type RefObject, useRef } from "react"
 
 export interface UseVirtualListOptions<T> {
@@ -40,7 +40,7 @@ export interface UseVirtualListReturn {
   /**
    * Virtual items to render (subset of full list)
    */
-  virtualItems: ReturnType<typeof useVirtualizer>["getVirtualItems"]
+  virtualItems: VirtualItem[]
 
   /**
    * Total height of virtual list (for container sizing)
