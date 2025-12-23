@@ -35,7 +35,7 @@ function CustomTooltip({ active, payload, label, lengthLabel, precision }: Custo
   if (!active || !payload || payload.length === 0) return null
 
   return (
-    <div className="bg-popover border border-border rounded-lg p-2 shadow-lg text-xs">
+    <div className="bg-popover border border-border rounded-2xl p-2 shadow-lg text-xs">
       <p className="font-medium mb-1">
         Station: {label?.toFixed(precision)} {lengthLabel}
       </p>
@@ -80,9 +80,9 @@ export function WseProfileChart({ stations, summary }: WseProfileChartProps) {
             value: `Station (${lengthLabel})`,
             position: "bottom",
             offset: 15,
-            className: "fill-muted-foreground text-[10px]",
+            className: "fill-muted-foreground text-xs",
           }}
-          className="text-[10px]"
+          className="text-xs"
           tick={{ fill: "hsl(var(--muted-foreground))" }}
         />
 
@@ -94,9 +94,9 @@ export function WseProfileChart({ stations, summary }: WseProfileChartProps) {
             value: `Elevation (${lengthLabel})`,
             angle: -90,
             position: "insideLeft",
-            className: "fill-muted-foreground text-[10px]",
+            className: "fill-muted-foreground text-xs",
           }}
-          className="text-[10px]"
+          className="text-xs"
           tick={{ fill: "hsl(var(--muted-foreground))" }}
         />
 

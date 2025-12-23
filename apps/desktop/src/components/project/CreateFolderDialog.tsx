@@ -109,7 +109,7 @@ export function CreateFolderDialog({
                   type="button"
                   onClick={() => setSelectedColor(color.id)}
                   className={cn(
-                    "size-8 rounded-lg transition-all",
+                    "size-8 rounded-2xl transition-all",
                     "hover:scale-110 hover:shadow-md",
                     "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
                     selectedColor === color.id && "ring-2 ring-primary ring-offset-2"
@@ -117,7 +117,7 @@ export function CreateFolderDialog({
                   data-folder-color={color.id}
                   title={color.label}
                 >
-                  <div className="size-full rounded-lg bg-folder-front" />
+                  <div className="size-full rounded-2xl bg-folder-front" />
                 </button>
               ))}
             </div>
@@ -127,14 +127,14 @@ export function CreateFolderDialog({
           <div className="grid gap-2">
             <Label>Preview</Label>
             <div
-              className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+              className="flex items-center gap-3 p-3 rounded-2xl border bg-card"
               data-folder-color={selectedColor}
             >
               {/* Mini folder icon */}
               <div className="relative w-10 h-7">
-                <div className="absolute w-full h-full bg-folder-back rounded" />
+                <div className="absolute w-full h-full bg-folder-back rounded-2xl" />
                 <div className="absolute w-4 h-1.5 bg-folder-tab rounded-t top-[-4px] left-1" />
-                <div className="absolute w-full h-full bg-folder-front rounded translate-y-0.5" />
+                <div className="absolute w-full h-full bg-folder-front rounded-2xl translate-y-0.5" />
               </div>
               <span className="text-sm font-medium">{folderName || "Folder Name"}</span>
             </div>
@@ -142,7 +142,9 @@ export function CreateFolderDialog({
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
+            <div className="rounded-2xl bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
           )}
         </div>
 

@@ -197,6 +197,40 @@ export const DEFAULT_HOTKEYS: DefaultHotkeyCategory[] = [
     ],
   },
   {
+    category: "selection",
+    label: "Selection",
+    hotkeys: [
+      {
+        id: "selection.vertexMode",
+        name: "Vertex Selection Mode",
+        description: "Switch to vertex selection mode",
+        keys: ["Shift+1"],
+        context: "modeller",
+      },
+      {
+        id: "selection.edgeMode",
+        name: "Edge Selection Mode",
+        description: "Switch to edge selection mode",
+        keys: ["Shift+2"],
+        context: "modeller",
+      },
+      {
+        id: "selection.faceMode",
+        name: "Face Selection Mode",
+        description: "Switch to face selection mode",
+        keys: ["Shift+3"],
+        context: "modeller",
+      },
+      {
+        id: "selection.bodyMode",
+        name: "Body/Solid Selection Mode",
+        description: "Switch to body/solid selection mode",
+        keys: ["Shift+4"],
+        context: "modeller",
+      },
+    ],
+  },
+  {
     category: "transform",
     label: "Transform",
     hotkeys: [

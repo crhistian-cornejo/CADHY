@@ -66,11 +66,11 @@ export function HelpDialog({ open, onOpenChange, onOpenShortcuts }: HelpDialogPr
         {/* Header */}
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+            <div className="flex items-center justify-center size-10 rounded-2xl bg-primary/10">
               <HugeiconsIcon icon={BubbleChatQuestionIcon} className="size-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-semibold">{t("help.title")}</DialogTitle>
+              <DialogTitle>{t("help.title")}</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 {t("help.description")}
               </DialogDescription>
@@ -197,7 +197,7 @@ export function HelpDialog({ open, onOpenChange, onOpenShortcuts }: HelpDialogPr
             </HelpSection>
 
             {/* Version Info */}
-            <div className="pt-2 flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
+            <div className="pt-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <span>CADHY v{version}</span>
               <span>-</span>
               <button
@@ -264,24 +264,24 @@ function HelpLink({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2.5 p-2 rounded-md text-left w-full",
+        "flex items-center gap-2.5 p-2 rounded-2xl text-left w-full",
         "hover:bg-muted/50 transition-colors",
         "group cursor-pointer"
       )}
     >
-      <div className="flex items-center justify-center size-7 rounded bg-muted shrink-0 group-hover:bg-muted/80 transition-colors">
+      <div className="flex items-center justify-center size-7 rounded-2xl bg-muted shrink-0 group-hover:bg-muted/80 transition-colors">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-medium">{title}</span>
           {badge && (
-            <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
+            <Badge variant="secondary" className="text-xs px-1 py-0 h-4">
               {badge}
             </Badge>
           )}
         </div>
-        <p className="text-[10px] text-muted-foreground line-clamp-1">{description}</p>
+        <p className="text-xs text-muted-foreground line-clamp-1">{description}</p>
       </div>
     </button>
   )

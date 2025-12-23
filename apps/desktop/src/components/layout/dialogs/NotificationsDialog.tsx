@@ -69,13 +69,11 @@ export function NotificationsDialog({ open, onOpenChange }: NotificationsDialogP
         {/* Header */}
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+            <div className="flex items-center justify-center size-10 rounded-2xl bg-primary/10">
               <HugeiconsIcon icon={Notification01Icon} className="size-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-semibold">
-                {t("notifications.title")}
-              </DialogTitle>
+              <DialogTitle>{t("notifications.title")}</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 {t("notifications.description")}
               </DialogDescription>
@@ -204,13 +202,13 @@ function NotificationToggle({
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-start gap-2">
         {icon && (
-          <div className="flex items-center justify-center size-6 rounded bg-muted/50 shrink-0 mt-0.5">
+          <div className="flex items-center justify-center size-6 rounded-2xl bg-muted/50 shrink-0 mt-0.5">
             {icon}
           </div>
         )}
         <div className="space-y-0">
           <Label className="text-xs font-medium">{label}</Label>
-          <p className="text-[10px] text-muted-foreground">{description}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         </div>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} className="scale-90" />

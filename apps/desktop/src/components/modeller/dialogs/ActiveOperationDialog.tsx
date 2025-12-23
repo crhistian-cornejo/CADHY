@@ -111,7 +111,7 @@ function StatusIndicator({
   const Icon = icons[type]
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-md">
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-2xl">
       <HugeiconsIcon icon={Icon} className={cn("size-4", colors[type])} />
       <span className="text-xs text-muted-foreground">{message}</span>
     </div>
@@ -143,7 +143,7 @@ function ParameterInput({ param, onChange }: ParameterInputProps) {
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1.5 min-w-[80px]">
         {param.shortcut && (
-          <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+          <span className="text-xs font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-2xl">
             {param.shortcut}
           </span>
         )}
@@ -159,7 +159,7 @@ function ParameterInput({ param, onChange }: ParameterInputProps) {
           step={param.step ?? 0.01}
           className="h-7 text-xs text-center"
         />
-        {param.unit && <span className="text-[10px] text-muted-foreground w-6">{param.unit}</span>}
+        {param.unit && <span className="text-xs text-muted-foreground w-6">{param.unit}</span>}
       </div>
     </div>
   )
@@ -179,9 +179,9 @@ function GrowModeSelector({ value, onChange }: GrowModeSelectorProps) {
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+      <Label className="text-xs text-muted-foreground flex items-center gap-1">
         {t("operation.growMode", "Grow mode")}
-        <InformationCircleIcon className="size-3" />
+        <HugeiconsIcon icon={InformationCircleIcon} className="size-3" />
       </Label>
       <RadioGroup
         value={value}
@@ -194,7 +194,7 @@ function GrowModeSelector({ value, onChange }: GrowModeSelectorProps) {
             <Label
               htmlFor={`grow-${mode}`}
               className={cn(
-                "px-3 py-1.5 text-xs rounded-md cursor-pointer transition-colors border",
+                "px-3 py-1.5 text-xs rounded-2xl cursor-pointer transition-colors border",
                 value === mode
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50"
@@ -271,7 +271,10 @@ export function ActiveOperationDialog({
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-muted/20">
             <div className="flex items-center gap-2">
-              <InformationCircleIcon className="size-4 text-muted-foreground" />
+              <HugeiconsIcon
+                icon={InformationCircleIcon}
+                className="size-4 text-muted-foreground"
+              />
               <span className="text-sm font-medium uppercase tracking-wider">{title}</span>
             </div>
             <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={onCancel}>
@@ -306,8 +309,8 @@ export function ActiveOperationDialog({
 
           {/* Footer */}
           <div className="flex items-center justify-between px-4 py-2.5 border-t border-border/40 bg-muted/20">
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <span className="px-1.5 py-0.5 bg-muted rounded text-[9px]">Esc</span>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="px-1.5 py-0.5 bg-muted rounded-2xl text-xs">Esc</span>
               <span>{t("operation.cancel", "Cancel")}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -316,7 +319,7 @@ export function ActiveOperationDialog({
               </Button>
               <Button size="sm" className="h-7 text-xs gap-1" onClick={onConfirm}>
                 {t("operation.ok", "OK")}
-                <span className="text-[9px] opacity-70">↵</span>
+                <span className="text-xs opacity-70">↵</span>
               </Button>
             </div>
           </div>

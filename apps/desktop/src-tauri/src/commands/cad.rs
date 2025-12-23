@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
-use cadhy_cad::{Analysis, Export, Operations, Primitives, Shape, ShapeAnalysis, StepIO};
+use cadhy_cad::{Analysis, Export, Operations, Primitives, Shape, ShapeAnalysis, StepIO, Topology};
 
 // =============================================================================
 // SHAPE REGISTRY
@@ -131,6 +131,68 @@ pub struct CadMeshResult {
     pub vertex_count: usize,
     /// Number of triangles
     pub triangle_count: usize,
+}
+
+// =============================================================================
+// TOPOLOGY TYPES (B-Rep)
+// =============================================================================
+
+/// A single point along a tessellated edge
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EdgePoint {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub parameter: f64,
+}
+
+/// Tessellated edge for wireframe rendering
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EdgeTessellationResult {
+    pub index: u32,
+    pub curve_type: String,
+    pub start_vertex: u32,
+    pub end_vertex: u32,
+    pub length: f64,
+    pub is_degenerated: bool,
+    pub points: Vec<EdgePoint>,
+    pub adjacent_faces: Vec<u32>,
+}
+
+/// Information about a topological vertex
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VertexInfoResult {
+    pub index: u32,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub tolerance: f64,
+    pub num_edges: i32,
+}
+
+/// Information about a topological face
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FaceInfoResult {
+    pub index: u32,
+    pub surface_type: String,
+    pub area: f64,
+    pub is_reversed: bool,
+    pub num_edges: i32,
+    pub boundary_edges: Vec<u32>,
+    pub center: [f64; 3],
+    pub normal: [f64; 3],
+}
+
+/// Complete topology result with adjacency information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TopologyDataResult {
+    pub vertices: Vec<VertexInfoResult>,
+    pub edges: Vec<EdgeTessellationResult>,
+    pub faces: Vec<FaceInfoResult>,
+    pub vertex_to_edges: Vec<u32>,
+    pub vertex_to_edges_offset: Vec<u32>,
+    pub edge_to_faces: Vec<u32>,
+    pub edge_to_faces_offset: Vec<u32>,
 }
 
 // =============================================================================
@@ -916,5 +978,107 @@ pub fn cad_combine(shape_ids: Vec<String>) -> Result<ShapeResult, String> {
     Ok(ShapeResult {
         id,
         analysis: analysis.into(),
+    })
+}
+
+// =============================================================================
+// TOPOLOGY COMMANDS (B-Rep)
+// =============================================================================
+
+/// Get complete topology information from a shape
+/// Returns vertices, edges (tessellated), faces, and adjacency maps
+#[tauri::command]
+pub fn cad_get_topology(
+    shape_id: String,
+    edge_deflection: f64,
+) -> Result<TopologyDataResult, String> {
+    let shape = get_shape(&shape_id)?;
+    let topology = Topology::get_full(&shape, edge_deflection);
+
+    // Convert CurveType and SurfaceType to strings
+    let curve_type_to_string = |ct: &cadhy_cad::topology::CurveType| -> String {
+        match ct {
+            cadhy_cad::topology::CurveType::Line => "Line".to_string(),
+            cadhy_cad::topology::CurveType::Circle => "Circle".to_string(),
+            cadhy_cad::topology::CurveType::Ellipse => "Ellipse".to_string(),
+            cadhy_cad::topology::CurveType::Hyperbola => "Hyperbola".to_string(),
+            cadhy_cad::topology::CurveType::Parabola => "Parabola".to_string(),
+            cadhy_cad::topology::CurveType::BezierCurve => "BezierCurve".to_string(),
+            cadhy_cad::topology::CurveType::BSplineCurve => "BSplineCurve".to_string(),
+            cadhy_cad::topology::CurveType::OffsetCurve => "OffsetCurve".to_string(),
+            cadhy_cad::topology::CurveType::Other => "Other".to_string(),
+        }
+    };
+
+    let surface_type_to_string = |st: &cadhy_cad::topology::SurfaceType| -> String {
+        match st {
+            cadhy_cad::topology::SurfaceType::Plane => "Plane".to_string(),
+            cadhy_cad::topology::SurfaceType::Cylinder => "Cylinder".to_string(),
+            cadhy_cad::topology::SurfaceType::Cone => "Cone".to_string(),
+            cadhy_cad::topology::SurfaceType::Sphere => "Sphere".to_string(),
+            cadhy_cad::topology::SurfaceType::Torus => "Torus".to_string(),
+            cadhy_cad::topology::SurfaceType::BezierSurface => "BezierSurface".to_string(),
+            cadhy_cad::topology::SurfaceType::BSplineSurface => "BSplineSurface".to_string(),
+            cadhy_cad::topology::SurfaceType::RevolutionSurface => "RevolutionSurface".to_string(),
+            cadhy_cad::topology::SurfaceType::ExtrusionSurface => "ExtrusionSurface".to_string(),
+            cadhy_cad::topology::SurfaceType::OffsetSurface => "OffsetSurface".to_string(),
+            cadhy_cad::topology::SurfaceType::Other => "Other".to_string(),
+        }
+    };
+
+    Ok(TopologyDataResult {
+        vertices: topology
+            .vertices
+            .iter()
+            .map(|v| VertexInfoResult {
+                index: v.index,
+                x: v.x,
+                y: v.y,
+                z: v.z,
+                tolerance: v.tolerance,
+                num_edges: v.num_edges,
+            })
+            .collect(),
+        edges: topology
+            .edges
+            .iter()
+            .map(|e| EdgeTessellationResult {
+                index: e.index,
+                curve_type: curve_type_to_string(&e.curve_type),
+                start_vertex: e.start_vertex,
+                end_vertex: e.end_vertex,
+                length: e.length,
+                is_degenerated: e.is_degenerated,
+                points: e
+                    .points
+                    .iter()
+                    .map(|p| EdgePoint {
+                        x: p.x,
+                        y: p.y,
+                        z: p.z,
+                        parameter: p.parameter,
+                    })
+                    .collect(),
+                adjacent_faces: e.adjacent_faces.clone(),
+            })
+            .collect(),
+        faces: topology
+            .faces
+            .iter()
+            .map(|f| FaceInfoResult {
+                index: f.index,
+                surface_type: surface_type_to_string(&f.surface_type),
+                area: f.area,
+                is_reversed: f.is_reversed,
+                num_edges: f.num_edges,
+                boundary_edges: f.boundary_edges.clone(),
+                center: [f.center.0, f.center.1, f.center.2],
+                normal: [f.normal.0, f.normal.1, f.normal.2],
+            })
+            .collect(),
+        vertex_to_edges: topology.vertex_to_edges.clone(),
+        vertex_to_edges_offset: topology.vertex_to_edges_offset.clone(),
+        edge_to_faces: topology.edge_to_faces.clone(),
+        edge_to_faces_offset: topology.edge_to_faces_offset.clone(),
     })
 }

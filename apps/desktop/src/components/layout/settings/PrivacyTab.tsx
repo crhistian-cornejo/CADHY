@@ -27,7 +27,7 @@ function PrivacyToggle({
     <div className="flex items-start justify-between gap-3">
       <div className="space-y-0">
         <span className="text-xs font-medium">{label}</span>
-        <p className="text-[10px] text-muted-foreground">{description}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} className="scale-90" />
     </div>
@@ -114,11 +114,11 @@ export function PrivacyTab() {
           <HugeiconsIcon icon={Delete01Icon} className="size-3.5" />
           {t("privacy.dataManagement", "Data Management")}
         </h3>
-        <div className="p-3 rounded-md border border-destructive/30 bg-destructive/5">
+        <div className="p-3 rounded-2xl border border-destructive/30 bg-destructive/5">
           <h4 className="text-xs font-medium text-destructive mb-1">
             {t("privacy.clearData", "Clear Local Data")}
           </h4>
-          <p className="text-[10px] text-muted-foreground mb-2">
+          <p className="text-xs text-muted-foreground mb-2">
             {t("privacy.clearDataDesc", "Remove all local settings and cached data")}
           </p>
           {showDeleteConfirm ? (

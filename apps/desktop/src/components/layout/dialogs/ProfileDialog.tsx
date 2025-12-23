@@ -101,11 +101,11 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         {/* Header */}
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+            <div className="flex items-center justify-center size-10 rounded-2xl bg-primary/10">
               <HugeiconsIcon icon={UserIcon} className="size-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-semibold">{t("profile.title")}</DialogTitle>
+              <DialogTitle>{t("profile.title")}</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 {t("profile.description")}
               </DialogDescription>
@@ -128,12 +128,12 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
             {/* Avatar Section */}
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Avatar className="size-14 rounded-lg">
+                <Avatar className="size-14 rounded-2xl">
                   <AvatarImage
                     src={isEditing ? editedProfile.avatar : profile.avatar}
                     alt={isEditing ? editedProfile.name : profile.name}
                   />
-                  <AvatarFallback className="rounded-lg text-base">
+                  <AvatarFallback className="rounded-2xl text-base">
                     {(isEditing ? editedProfile.name : profile.name).slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -174,7 +174,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     className="h-8 text-xs"
                   />
                 ) : (
-                  <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-md">{profile.name}</p>
+                  <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">{profile.name}</p>
                 )}
               </div>
 
@@ -192,7 +192,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     className="h-8 text-xs"
                   />
                 ) : (
-                  <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-md">{profile.email}</p>
+                  <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">{profile.email}</p>
                 )}
               </div>
 
@@ -210,7 +210,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     className="h-8 text-xs"
                   />
                 ) : (
-                  <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-md">
+                  <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">
                     {profile.company || t("profile.notSet")}
                   </p>
                 )}
@@ -228,7 +228,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     className="h-8 text-xs"
                   />
                 ) : (
-                  <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-md">
+                  <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">
                     {profile.role || t("profile.notSet")}
                   </p>
                 )}

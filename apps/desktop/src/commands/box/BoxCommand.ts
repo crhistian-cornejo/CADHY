@@ -169,24 +169,17 @@ export class BoxCommand {
   }
 
   private async confirm() {
-    try {
-      this.state = "completed"
-      console.log("[BoxCommand] Confirming box creation...")
+    this.state = "completed"
+    console.log("[BoxCommand] Confirming box creation...")
 
-      const shapeId = await this.factory.commit()
-      console.log("[BoxCommand] Box created with ID:", shapeId)
+    const shapeId = await this.factory.commit()
+    console.log("[BoxCommand] Box created with ID:", shapeId)
 
-      this.onHideDialog()
-      this.cleanup()
+    this.onHideDialog()
+    this.cleanup()
 
-      if (this.resolvePromise) {
-        this.resolvePromise(shapeId)
-      }
-    } catch (error) {
-      console.error("[BoxCommand] Failed to create box:", error)
-      if (this.rejectPromise) {
-        this.rejectPromise(error as Error)
-      }
+    if (this.resolvePromise) {
+      this.resolvePromise(shapeId)
     }
   }
 

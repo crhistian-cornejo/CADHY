@@ -22,37 +22,37 @@ export function MeshCacheStats() {
 
   return (
     <div
-      className="absolute top-12 left-4 bg-black/80 text-white p-3 rounded-lg font-mono text-xs z-50"
+      className="absolute top-12 left-4 bg-popover text-popover-foreground p-3 rounded-2xl font-mono text-xs z-50 border border-border shadow-lg"
       style={{ pointerEvents: "none" }}
     >
-      <div className="font-bold mb-2 text-green-400">Mesh Cache Stats</div>
+      <div className="font-bold mb-2 text-primary">Mesh Cache Stats</div>
 
       <div className="space-y-1">
         <div>
-          <span className="text-gray-400">Geometries:</span>{" "}
-          <span className="text-white">{stats.geometries.total}</span>
-          <span className="text-gray-500">
+          <span className="text-muted-foreground">Geometries:</span>{" "}
+          <span className="text-foreground">{stats.geometries.total}</span>
+          <span className="text-muted-foreground/70">
             {" "}
             (active: {stats.geometries.active}, unused: {stats.geometries.unused})
           </span>
         </div>
 
         <div>
-          <span className="text-gray-400">Materials:</span>{" "}
-          <span className="text-white">{stats.materials.total}</span>
-          <span className="text-gray-500">
+          <span className="text-muted-foreground">Materials:</span>{" "}
+          <span className="text-foreground">{stats.materials.total}</span>
+          <span className="text-muted-foreground/70">
             {" "}
             (active: {stats.materials.active}, unused: {stats.materials.unused})
           </span>
         </div>
 
         <div>
-          <span className="text-gray-400">Memory:</span>{" "}
-          <span className="text-green-400 font-bold">{stats.memoryEstimate}</span>
+          <span className="text-muted-foreground">Memory:</span>{" "}
+          <span className="text-primary font-bold">{stats.memoryEstimate}</span>
         </div>
 
         {stats.geometries.total > stats.geometries.active && (
-          <div className="text-yellow-400 text-[10px] mt-1">
+          <div className="text-yellow-400 text-xs mt-1">
             💡 {stats.geometries.total - stats.geometries.active} geometries will be cleaned up
           </div>
         )}

@@ -10,6 +10,8 @@
 import {
   Button,
   cn,
+  formatKbd,
+  Kbd,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -29,7 +31,7 @@ import { useCADOperationHotkeys, useGlobalHotkeyHandler } from "@/hooks"
 import { useLayoutActions, useShowModellerLeft, useShowModellerRight } from "@/stores/layout-store"
 import { useModellerStore, useObjects, useSelectedIds } from "@/stores/modeller"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
-import { BoxLoader, ChuteCreator, TransitionCreator } from "./creators"
+import { BoxLoader, ChuteCreator, CreatePanel, TransitionCreator } from "./creators"
 import { CADOperationsProvider } from "./dialogs"
 import { CameraAnimationPanel } from "./panels"
 import { PropertiesPanel } from "./properties"
@@ -60,7 +62,7 @@ interface ModellerViewProps {
 }
 
 // Plasticity-style: OUTLINER + ASSETS (we use Scene + Props)
-type LeftPanelTab = "scene" | "props"
+type LeftPanelTab = "scene" | "create" | "props"
 
 // ============================================================================
 // ANIMATED GRID BACKGROUND
@@ -177,13 +179,13 @@ function NoProjectSelected({ onNewProject, onOpenProject }: NoProjectSelectedPro
           <div className="size-20 rounded-2xl bg-muted/50 flex items-center justify-center border border-border/40 backdrop-blur-sm">
             <HugeiconsIcon icon={CubeIcon} className="size-10 text-muted-foreground" />
           </div>
-          <div className="absolute -bottom-1 -right-1 size-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 backdrop-blur-sm">
+          <div className="absolute -bottom-1 -right-1 size-8 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 backdrop-blur-sm">
             <HugeiconsIcon icon={File01Icon} className="size-4 text-primary" />
           </div>
         </div>
 
         {/* Title */}
-        <h2 className="text-xl font-semibold mb-2">{t("modeller.noProjectSelected")}</h2>
+        <h3 className="mb-2">{t("modeller.noProjectSelected")}</h3>
 
         {/* Description */}
         <p className="text-sm text-muted-foreground mb-6">{t("modeller.noProjectSelectedDesc")}</p>
@@ -208,15 +210,11 @@ function NoProjectSelected({ onNewProject, onOpenProject }: NoProjectSelectedPro
         {/* Keyboard shortcuts hint */}
         <div className="mt-8 flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded bg-muted/80 backdrop-blur-sm border border-border text-[10px]">
-              Cmd+N
-            </kbd>
+            <Kbd>{formatKbd("Cmd+N")}</Kbd>
             <span>{t("modeller.new")}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded bg-muted/80 backdrop-blur-sm border border-border text-[10px]">
-              Cmd+O
-            </kbd>
+            <Kbd>{formatKbd("Cmd+O")}</Kbd>
             <span>{t("modeller.open")}</span>
           </div>
         </div>
@@ -282,8 +280,32 @@ function useKeyboardShortcuts(onToggleLeftPanel?: () => void) {
 export function ModellerView({ className, onNewProject, onOpenProject }: ModellerViewProps) {
   const { t } = useTranslation()
   // Plasticity-style: OUTLINER first (scene), then ASSETS (props)
-  const [activeTab, setActiveTab] = useState<LeftPanelTab>("scene")
+  const [activeTab, setActiveTab] = useState<LeftPanelTab>("create")
   const [showAnimationPanel, setShowAnimationPanel] = useState(false)
+  const isCreatePanelOpen = useModellerStore((state) => state.isCreatePanelOpen)
+  const { openCreatePanel, closeCreatePanel } = useModellerStore()
+
+  // Sync activeTab with isCreatePanelOpen store state
+  useEffect(() => {
+    if (isCreatePanelOpen) {
+      setActiveTab("create")
+    } else if (activeTab === "create" && !isCreatePanelOpen) {
+      // If we manually switched away from create tab, or store said close
+      // But if we are just here, we might want to default back to scene
+      setActiveTab("scene")
+    }
+  }, [isCreatePanelOpen])
+
+  // Sync store state when manually clicking tabs
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as LeftPanelTab)
+    if (value === "create") {
+      openCreatePanel()
+    } else {
+      closeCreatePanel()
+    }
+  }
+
   const _selectedIds = useSelectedIds()
   const _objects = useObjects()
   const currentProject = useCurrentProject()
@@ -362,17 +384,17 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
                   {/* Tab Header */}
                   <Tabs
                     value={activeTab}
-                    onValueChange={(v) => setActiveTab(v as LeftPanelTab)}
+                    onValueChange={handleTabChange}
                     className="flex flex-col h-full"
                   >
                     <div className="flex items-center bg-background">
-                      <TabsList className="flex-1 h-11 p-1.5 bg-muted/20 rounded-full border-0 grid grid-cols-2 gap-1.5">
+                      <TabsList className="flex-1 h-11 p-1.5 bg-muted/20 rounded-full border-0 grid grid-cols-3 gap-1.5">
                         <TabsTrigger
-                          value="scene"
+                          value="create"
                           className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
-                          title={t("modeller.tabs.sceneTooltip")}
+                          title="Create primitives, channels and hydraulic structures"
                         >
-                          {t("modeller.tabs.scene", "Scene")}
+                          Create
                         </TabsTrigger>
                         <TabsTrigger
                           value="props"
@@ -381,17 +403,24 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
                         >
                           {t("modeller.tabs.props", "Properties")}
                         </TabsTrigger>
+                        <TabsTrigger
+                          value="scene"
+                          className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                          title={t("modeller.tabs.sceneTooltip")}
+                        >
+                          {t("modeller.tabs.scene", "Scene")}
+                        </TabsTrigger>
                       </TabsList>
                     </div>
 
                     {/* Tab Contents */}
                     <div className="flex-1 min-h-0 overflow-hidden">
                       <TabsContent
-                        value="scene"
+                        value="create"
                         className="h-full m-0 data-[state=inactive]:hidden"
                       >
-                        <PanelErrorBoundary context="Scene Panel">
-                          <ScenePanel />
+                        <PanelErrorBoundary context="Create Panel">
+                          <CreatePanel />
                         </PanelErrorBoundary>
                       </TabsContent>
                       <TabsContent
@@ -400,6 +429,14 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
                       >
                         <PanelErrorBoundary context="Properties Panel">
                           <PropertiesPanel />
+                        </PanelErrorBoundary>
+                      </TabsContent>
+                      <TabsContent
+                        value="scene"
+                        className="h-full m-0 data-[state=inactive]:hidden"
+                      >
+                        <PanelErrorBoundary context="Scene Panel">
+                          <ScenePanel />
                         </PanelErrorBoundary>
                       </TabsContent>
                     </div>

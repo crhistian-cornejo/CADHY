@@ -82,7 +82,7 @@ function ToolButton({
           onClick={onClick}
           disabled={disabled}
           className={cn(
-            "h-8 w-8 rounded-md transition-all duration-200",
+            "h-8 w-8 rounded-2xl transition-all duration-200",
             active && "bg-primary/20 text-primary ring-1 ring-primary/40 shadow-sm",
             !active && "hover:bg-muted/50"
           )}
@@ -93,7 +93,7 @@ function ToolButton({
       <TooltipContent side="top" className="flex items-center gap-2">
         <span className="font-medium">{label}</span>
         {shortcut && (
-          <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono opacity-80">
+          <kbd className="rounded-2xl bg-muted px-1.5 py-0.5 text-xs font-mono opacity-80">
             {shortcut
               .replace("Alt+", isMac ? "\u2325" : "Alt+")
               .replace("Ctrl+", isMac ? "\u2318" : "Ctrl+")}
@@ -173,7 +173,7 @@ export function ViewportBottomToolbar({
       )}
     >
       {/* 1. Selection Filters */}
-      <div className="flex items-center gap-0.5 rounded-lg bg-muted/20 p-0.5 border border-border/10">
+      <div className="flex items-center gap-0.5 rounded-2xl bg-muted/20 p-0.5 border border-border/10">
         <ToolButton
           icon={SolidIcon}
           label={t("selection.body", "Body")}
@@ -207,7 +207,7 @@ export function ViewportBottomToolbar({
       <Separator orientation="vertical" className="h-4 mx-0.5 opacity-50" />
 
       {/* 2. Visualisation Tools */}
-      <div className="flex items-center gap-0.5 rounded-lg bg-muted/20 p-0.5 border border-border/10">
+      <div className="flex items-center gap-0.5 rounded-2xl bg-muted/20 p-0.5 border border-border/10">
         <ToolButton
           icon={GridIcon}
           label={t("toolbar.toggleGrid", "Toggle Grid")}
@@ -257,7 +257,7 @@ export function ViewportBottomToolbar({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="h-8 w-8 rounded-md hover:bg-muted/50"
+                  className="h-8 w-8 rounded-2xl hover:bg-muted/50"
                 >
                   <HugeiconsIcon icon={MoreHorizontalIcon} className="size-4" />
                 </Button>

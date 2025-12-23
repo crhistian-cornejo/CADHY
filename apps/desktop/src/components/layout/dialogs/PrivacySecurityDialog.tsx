@@ -79,11 +79,11 @@ export function PrivacySecurityDialog({ open, onOpenChange }: PrivacySecurityDia
         {/* Header */}
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+            <div className="flex items-center justify-center size-10 rounded-2xl bg-primary/10">
               <HugeiconsIcon icon={ShieldKeyIcon} className="size-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-semibold">{t("privacy.title")}</DialogTitle>
+              <DialogTitle>{t("privacy.title")}</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 {t("privacy.description")}
               </DialogDescription>
@@ -156,13 +156,11 @@ export function PrivacySecurityDialog({ open, onOpenChange }: PrivacySecurityDia
               title={t("privacy.dataManagement")}
               icon={<HugeiconsIcon icon={Delete01Icon} className="size-3.5" />}
             >
-              <div className="p-3 rounded-md border border-destructive/30 bg-destructive/5">
+              <div className="p-3 rounded-2xl border border-destructive/30 bg-destructive/5">
                 <h4 className="text-xs font-medium text-destructive mb-1">
                   {t("privacy.clearData")}
                 </h4>
-                <p className="text-[10px] text-muted-foreground mb-2">
-                  {t("privacy.clearDataDesc")}
-                </p>
+                <p className="text-xs text-muted-foreground mb-2">{t("privacy.clearDataDesc")}</p>
                 {showDeleteConfirm ? (
                   <div className="flex items-center gap-2">
                     <Button
@@ -253,13 +251,13 @@ function PrivacyToggle({
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-start gap-2">
         {icon && (
-          <div className="flex items-center justify-center size-6 rounded bg-muted/50 shrink-0 mt-0.5">
+          <div className="flex items-center justify-center size-6 rounded-2xl bg-muted/50 shrink-0 mt-0.5">
             {icon}
           </div>
         )}
         <div className="space-y-0">
           <Label className="text-xs font-medium">{label}</Label>
-          <p className="text-[10px] text-muted-foreground">{description}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         </div>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} className="scale-90" />

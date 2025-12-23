@@ -117,7 +117,7 @@ export function DebugStatsPanel() {
       {/* Frame Rate */}
       <div className="space-y-2">
         <Label className="text-xs font-medium">Frame Rate</Label>
-        <div className="rounded-md bg-muted/30 p-3 space-y-2">
+        <div className="rounded-2xl bg-muted/30 p-3 space-y-2">
           <div className="flex justify-between items-baseline">
             <span className="text-xs text-muted-foreground">FPS:</span>
             <span className={`text-2xl font-mono font-bold ${getFpsColor(perfStats.fps)}`}>
@@ -136,7 +136,7 @@ export function DebugStatsPanel() {
       {/* Render Stats */}
       <div className="space-y-2">
         <Label className="text-xs font-medium">Renderer</Label>
-        <div className="rounded-md bg-muted/30 p-2 space-y-1">
+        <div className="rounded-2xl bg-muted/30 p-2 space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Draw Calls:</span>
             <span className="font-mono">{perfStats.drawCalls}</span>
@@ -161,7 +161,7 @@ export function DebugStatsPanel() {
       {/* Scene Stats */}
       <div className="space-y-2">
         <Label className="text-xs font-medium">Scene</Label>
-        <div className="rounded-md bg-muted/30 p-2 space-y-1">
+        <div className="rounded-2xl bg-muted/30 p-2 space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Total Objects:</span>
             <span className="font-mono">{objects.length}</span>
@@ -178,7 +178,7 @@ export function DebugStatsPanel() {
       {/* LOD Stats */}
       <div className="space-y-2">
         <Label className="text-xs font-medium">Level of Detail</Label>
-        <div className="rounded-md bg-muted/30 p-2 space-y-1">
+        <div className="rounded-2xl bg-muted/30 p-2 space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Cached Objects:</span>
             <span className="font-mono">{lodStats.cachedObjects}</span>
@@ -199,7 +199,7 @@ export function DebugStatsPanel() {
       {/* Instancing Stats */}
       <div className="space-y-2">
         <Label className="text-xs font-medium">Geometry Instancing</Label>
-        <div className="rounded-md bg-muted/30 p-2 space-y-1">
+        <div className="rounded-2xl bg-muted/30 p-2 space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Instanced Meshes:</span>
             <span className="font-mono">{instancingStats.instancedMeshCount}</span>
@@ -220,7 +220,7 @@ export function DebugStatsPanel() {
       {/* Texture Cache Stats */}
       <div className="space-y-2">
         <Label className="text-xs font-medium">Texture Cache</Label>
-        <div className="rounded-md bg-muted/30 p-2 space-y-1">
+        <div className="rounded-2xl bg-muted/30 p-2 space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Cache Size:</span>
             <span className="font-mono">{textureCacheStats.cacheSize}</span>
@@ -236,7 +236,7 @@ export function DebugStatsPanel() {
       {perfStats.fps < 30 && (
         <>
           <Separator />
-          <div className="rounded-md bg-yellow-500/10 border border-yellow-500/20 p-3">
+          <div className="rounded-2xl bg-yellow-500/10 border border-yellow-500/20 p-3">
             <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium mb-1">
               ⚠ Low FPS Detected
             </p>
@@ -250,7 +250,7 @@ export function DebugStatsPanel() {
       {perfStats.drawCalls > 100 && (
         <>
           <Separator />
-          <div className="rounded-md bg-orange-500/10 border border-orange-500/20 p-3">
+          <div className="rounded-2xl bg-orange-500/10 border border-orange-500/20 p-3">
             <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mb-1">
               ⚠ High Draw Calls
             </p>
@@ -264,7 +264,7 @@ export function DebugStatsPanel() {
       {perfStats.fps >= 55 && perfStats.drawCalls < 50 && (
         <>
           <Separator />
-          <div className="rounded-md bg-green-500/10 border border-green-500/20 p-3">
+          <div className="rounded-2xl bg-green-500/10 border border-green-500/20 p-3">
             <p className="text-xs text-green-600 dark:text-green-400">✓ Excellent performance</p>
           </div>
         </>

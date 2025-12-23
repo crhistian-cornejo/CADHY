@@ -63,7 +63,7 @@ const FolderCard = forwardRef<HTMLDivElement, FolderCardProps>(
       <div
         ref={ref}
         className={cn(
-          "absolute w-16 h-24 rounded-lg overflow-hidden shadow-xl cursor-pointer",
+          "absolute w-16 h-24 rounded-2xl overflow-hidden shadow-xl cursor-pointer",
           "bg-card border border-border/20 transition-all duration-500",
           "hover:ring-2 hover:ring-primary/50"
         )}
@@ -91,7 +91,7 @@ const FolderCard = forwardRef<HTMLDivElement, FolderCardProps>(
           </div>
         )}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
-          <p className="text-[9px] text-white truncate font-medium">{project.name}</p>
+          <p className="text-xs text-white truncate font-medium">{project.name}</p>
         </div>
       </div>
     )
@@ -137,10 +137,10 @@ export const AnimatedFolder = memo(function AnimatedFolder({
       <ContextMenuTrigger asChild>
         <div
           className={cn(
-            "relative flex flex-col items-center justify-center p-6 rounded-xl cursor-pointer",
+            "relative flex flex-col items-center justify-center p-6 rounded-2xl cursor-pointer",
             "bg-card border border-border/40 hover:border-border/60 transition-all duration-300",
             "hover:shadow-lg group",
-            isHovered && "z-[100]", // Ensure folder is on top when hovered
+            isHovered && "z-[200]", // Ensure folder is on top when hovered (above header)
             className
           )}
           style={{
@@ -158,7 +158,7 @@ export const AnimatedFolder = memo(function AnimatedFolder({
           <div className="relative w-32 h-24 flex items-center justify-center">
             {/* Back layer */}
             <div
-              className="absolute w-full h-full bg-folder-back rounded-lg shadow-md"
+              className="absolute w-full h-full bg-folder-back rounded-2xl shadow-md"
               style={{
                 transform: isHovered ? "rotateX(-15deg)" : "rotateX(0deg)",
                 transition: "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)",
@@ -193,7 +193,7 @@ export const AnimatedFolder = memo(function AnimatedFolder({
 
             {/* Front layer */}
             <div
-              className="absolute w-full h-full bg-folder-front rounded-lg shadow-lg"
+              className="absolute w-full h-full bg-folder-front rounded-2xl shadow-lg"
               style={{
                 transform: isHovered ? "rotateX(25deg) translateY(8px)" : "rotateX(0deg)",
                 transition: "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)",
@@ -206,7 +206,7 @@ export const AnimatedFolder = memo(function AnimatedFolder({
           {/* Folder info */}
           <div className="mt-4 text-center z-40">
             <h3 className="text-sm font-medium truncate max-w-[160px]">{title}</h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {projects.length} {projects.length === 1 ? "project" : "projects"}
             </p>
           </div>
@@ -214,7 +214,7 @@ export const AnimatedFolder = memo(function AnimatedFolder({
           {/* Hover hint */}
           {!isHovered && projects.length > 0 && (
             <div className="absolute bottom-1.5 left-0 right-0 text-center">
-              <span className="text-[9px] text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-xs text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity">
                 Hover to preview
               </span>
             </div>

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://charm.land/crush.json",
+  "permissions": {
+    "allowed_tools": ["view", "ls", "grep", "edit", "mcp_context7_get-library-doc"]
+  },
+  "mcp": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/Users/corx/Developer/Tauri/CADHY/node_modules/.bin/mcp-server.js"],
+      "timeout": 120,
+      "disabled": false,
+      "disabled_tools": ["some-tool-name"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "timeout": 120,
+      "disabled": false,
+      "disabled_tools": ["create_issue", "create_pull_request"],
+      "headers": {
+        "Authorization": "Bearer $GH_PAT"
+      }
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-60f7988a-171a-40a5-84d6-5cae5b8e74b3"
+      }
+    }
+  }
+}

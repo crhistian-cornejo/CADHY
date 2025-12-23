@@ -83,7 +83,7 @@ export function MaterialSection({ object, onUpdate }: MaterialSectionProps) {
             />
           </label>
           {/* Hex value display */}
-          <span className="text-[10px] text-muted-foreground font-mono uppercase">
+          <span className="text-xs text-muted-foreground font-mono uppercase">
             {object.material.color}
           </span>
         </div>
@@ -98,7 +98,7 @@ export function MaterialSection({ object, onUpdate }: MaterialSectionProps) {
             step={0.1}
             className="flex-1"
           />
-          <span className="w-8 text-[10px] text-muted-foreground text-right">
+          <span className="w-8 text-xs text-muted-foreground text-right">
             {Math.round(object.material.opacity * 100)}%
           </span>
         </div>
@@ -113,7 +113,7 @@ export function MaterialSection({ object, onUpdate }: MaterialSectionProps) {
             step={0.1}
             className="flex-1"
           />
-          <span className="w-8 text-[10px] text-muted-foreground text-right">
+          <span className="w-8 text-xs text-muted-foreground text-right">
             {Math.round(object.material.metalness * 100)}%
           </span>
         </div>
@@ -128,7 +128,7 @@ export function MaterialSection({ object, onUpdate }: MaterialSectionProps) {
             step={0.1}
             className="flex-1"
           />
-          <span className="w-8 text-[10px] text-muted-foreground text-right">
+          <span className="w-8 text-xs text-muted-foreground text-right">
             {Math.round(object.material.roughness * 100)}%
           </span>
         </div>

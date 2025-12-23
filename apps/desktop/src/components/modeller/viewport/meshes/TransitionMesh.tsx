@@ -375,12 +375,14 @@ export const TransitionMesh = React.memo(function TransitionMesh({
     side: THREE.DoubleSide,
     metalness,
     roughness,
-    // PBR Texture Maps (only include if they exist)
-    ...(pbrTextures?.albedo && { map: pbrTextures.albedo }),
-    ...(pbrTextures?.normal && { normalMap: pbrTextures.normal }),
-    ...(pbrTextures?.roughness && { roughnessMap: pbrTextures.roughness }),
-    ...(pbrTextures?.metalness && { metalnessMap: pbrTextures.metalness }),
-    ...(pbrTextures?.ao && { aoMap: pbrTextures.ao, aoMapIntensity: 1 }),
+    map: pbrTextures?.albedo ?? null,
+    normalMap: pbrTextures?.normal ?? null,
+    roughnessMap: pbrTextures?.roughness ?? null,
+    metalnessMap: pbrTextures?.metalness ?? null,
+    aoMap: pbrTextures?.ao ?? null,
+    aoMapIntensity: pbrTextures?.ao ? 1 : 0,
+    // Prevent overexposure from environment lighting when using textures
+    envMapIntensity: pbrTextures?.albedo ? 0.5 : 1,
   }
 
   // If we have a stilling basin, wrap everything in a group
@@ -394,13 +396,41 @@ export const TransitionMesh = React.memo(function TransitionMesh({
         onPointerOut={onPointerOut}
       >
         {/* Main transition mesh */}
-        <mesh ref={internalMeshRef} geometry={geometry}>
-          <meshStandardMaterial {...materialProps} />
+        <mesh ref={internalMeshRef} geometry={geometry} castShadow receiveShadow>
+          {viewportSettings.enablePostProcessing ? (
+            <meshStandardMaterial
+              key={`mat-pbr-${pbrTextures?.albedo?.uuid ?? "none"}`}
+              {...materialProps}
+            />
+          ) : (
+            <meshBasicMaterial
+              key="mat-basic"
+              color={materialProps.color}
+              wireframe={materialProps.wireframe}
+              transparent={materialProps.transparent}
+              opacity={materialProps.opacity}
+              side={materialProps.side}
+            />
+          )}
         </mesh>
 
         {/* Stilling basin mesh */}
-        <mesh geometry={basinGeometry}>
-          <meshStandardMaterial {...materialProps} />
+        <mesh geometry={basinGeometry} castShadow receiveShadow>
+          {viewportSettings.enablePostProcessing ? (
+            <meshStandardMaterial
+              key={`mat-pbr-${pbrTextures?.albedo?.uuid ?? "none"}`}
+              {...materialProps}
+            />
+          ) : (
+            <meshBasicMaterial
+              key="mat-basic"
+              color={materialProps.color}
+              wireframe={materialProps.wireframe}
+              transparent={materialProps.transparent}
+              opacity={materialProps.opacity}
+              side={materialProps.side}
+            />
+          )}
         </mesh>
       </group>
     )
@@ -411,12 +441,28 @@ export const TransitionMesh = React.memo(function TransitionMesh({
     <mesh
       ref={internalMeshRef}
       geometry={geometry}
+      castShadow
+      receiveShadow
       position={[worldPositionX, 0, 0]}
       onClick={onClick}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
     >
-      <meshStandardMaterial {...materialProps} />
+      {viewportSettings.enablePostProcessing ? (
+        <meshStandardMaterial
+          key={`mat-pbr-${pbrTextures?.albedo?.uuid ?? "none"}`}
+          {...materialProps}
+        />
+      ) : (
+        <meshBasicMaterial
+          key="mat-basic"
+          color={materialProps.color}
+          wireframe={materialProps.wireframe}
+          transparent={materialProps.transparent}
+          opacity={materialProps.opacity}
+          side={materialProps.side}
+        />
+      )}
     </mesh>
   )
 })

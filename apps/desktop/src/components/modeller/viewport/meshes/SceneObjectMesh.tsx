@@ -352,7 +352,7 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
 
         // Set indices
         if (shapeObj.mesh.indices && shapeObj.mesh.indices.length > 0) {
-          geo.setIndex(shapeObj.mesh.indices)
+          geo.setIndex(Array.from(shapeObj.mesh.indices))
         }
 
         // Set normals if available, otherwise compute them
@@ -480,6 +480,8 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
     <mesh
       ref={internalMeshRef}
       geometry={geometry}
+      castShadow
+      receiveShadow
       position={[
         object.transform.position.x,
         object.transform.position.y,
@@ -495,31 +497,46 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
     >
-      <meshStandardMaterial
-        color={
-          isSelected
-            ? "#10b981" // Selected: green
-            : isHovered
-              ? "#3b82f6" // Hovered: blue
-              : pbrTextures?.albedo
-                ? "#ffffff"
-                : color
-        }
-        wireframe={viewMode === "wireframe"}
-        transparent={opacity < 1 || viewMode === "xray"}
-        opacity={opacity}
-        side={THREE.DoubleSide}
-        metalness={materialProps.metalness}
-        roughness={materialProps.roughness}
-        // Selection glow effect - emissive for selected objects
-        emissive={isSelected ? "#10b981" : isHovered ? "#3b82f6" : "#000000"}
-        emissiveIntensity={isSelected ? 0.3 : isHovered ? 0.15 : 0}
-        {...(pbrTextures?.albedo && { map: pbrTextures.albedo })}
-        {...(pbrTextures?.normal && { normalMap: pbrTextures.normal })}
-        {...(pbrTextures?.roughness && { roughnessMap: pbrTextures.roughness })}
-        {...(pbrTextures?.metalness && { metalnessMap: pbrTextures.metalness })}
-        {...(pbrTextures?.ao && { aoMap: pbrTextures.ao, aoMapIntensity: 1 })}
-      />
+      {viewportSettings.enablePostProcessing ? (
+        <meshStandardMaterial
+          key={`mat-pbr-${pbrTextures?.albedo?.uuid ?? "none"}`}
+          color={
+            isSelected
+              ? "#10b981" // Selected: green
+              : isHovered
+                ? "#3b82f6" // Hovered: blue
+                : pbrTextures?.albedo
+                  ? "#ffffff"
+                  : color
+          }
+          wireframe={viewMode === "wireframe"}
+          transparent={opacity < 1 || viewMode === "xray"}
+          opacity={opacity}
+          side={THREE.DoubleSide}
+          metalness={materialProps.metalness}
+          roughness={materialProps.roughness}
+          // Selection glow effect - emissive for selected objects
+          emissive={isSelected ? "#10b981" : isHovered ? "#3b82f6" : "#000000"}
+          emissiveIntensity={isSelected ? 0.3 : isHovered ? 0.15 : 0}
+          map={pbrTextures?.albedo ?? null}
+          normalMap={pbrTextures?.normal ?? null}
+          roughnessMap={pbrTextures?.roughness ?? null}
+          metalnessMap={pbrTextures?.metalness ?? null}
+          aoMap={pbrTextures?.ao ?? null}
+          aoMapIntensity={pbrTextures?.ao ? 1 : 0}
+          // Prevent overexposure from environment lighting when using textures
+          envMapIntensity={pbrTextures?.albedo ? 0.5 : 1}
+        />
+      ) : (
+        <meshBasicMaterial
+          key="mat-basic"
+          color={isSelected ? "#10b981" : isHovered ? "#3b82f6" : color}
+          wireframe={viewMode === "wireframe"}
+          transparent={opacity < 1 || viewMode === "xray"}
+          opacity={opacity}
+          side={THREE.DoubleSide}
+        />
+      )}
     </mesh>
   )
 })

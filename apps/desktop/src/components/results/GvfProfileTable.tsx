@@ -49,7 +49,7 @@ export function GvfProfileTable({ stations, summary }: GvfProfileTableProps) {
 
   return (
     <div className="overflow-auto h-full">
-      <table className="w-full text-[11px] font-mono">
+      <table className="w-full text-xs font-mono">
         <thead className="sticky top-0 bg-background border-b border-border">
           <tr className="text-left text-muted-foreground">
             <th className="px-2 py-1.5 font-medium">Station</th>
@@ -62,7 +62,7 @@ export function GvfProfileTable({ stations, summary }: GvfProfileTableProps) {
             <th className="px-2 py-1.5 font-medium">A</th>
             <th className="px-2 py-1.5 font-medium">R</th>
           </tr>
-          <tr className="text-[9px] text-muted-foreground/70">
+          <tr className="text-xs text-muted-foreground/70">
             <th className="px-2 pb-1">({lengthLabel})</th>
             <th className="px-2 pb-1">({lengthLabel})</th>
             <th className="px-2 pb-1">({lengthLabel})</th>
@@ -96,7 +96,7 @@ export function GvfProfileTable({ stations, summary }: GvfProfileTableProps) {
                   <span className={depthIndicator.color || ""}>
                     {convertLengthToDisplay(station.waterDepth).toFixed(precision)}
                     {depthIndicator.symbol && (
-                      <span className="ml-1 text-[9px]">{depthIndicator.symbol}</span>
+                      <span className="ml-1 text-xs">{depthIndicator.symbol}</span>
                     )}
                   </span>
                 </td>

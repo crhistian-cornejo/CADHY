@@ -46,6 +46,7 @@ export function CADOperationsProvider({ children }: CADOperationsProviderProps) 
     closeDialog,
     applyOperation,
     setDialogValue,
+    toggleInteractiveMode,
     executeFillet,
     executeChamfer,
     executeShell,
@@ -69,9 +70,11 @@ export function CADOperationsProvider({ children }: CADOperationsProviderProps) 
         description={dialogState.description}
         label={dialogState.label}
         value={dialogState.value}
+        interactiveMode={dialogState.interactiveMode}
         onValueChange={setDialogValue}
         onApply={applyOperation}
         onCancel={closeDialog}
+        onToggleInteractiveMode={toggleInteractiveMode}
       />
     </CADOperationsContext.Provider>
   )

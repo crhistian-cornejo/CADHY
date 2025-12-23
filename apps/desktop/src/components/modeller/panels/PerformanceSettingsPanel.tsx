@@ -101,7 +101,7 @@ export function PerformanceSettingsPanel() {
             </div>
 
             {/* LOD Stats */}
-            <div className="rounded-md bg-muted/30 p-2 space-y-1">
+            <div className="rounded-2xl bg-muted/30 p-2 space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Cached Objects:</span>
                 <span className="font-mono">{stats.lod.cachedObjects}</span>
@@ -155,7 +155,7 @@ export function PerformanceSettingsPanel() {
         </div>
 
         {/* Texture Cache Stats */}
-        <div className="rounded-md bg-muted/30 p-2 space-y-1">
+        <div className="rounded-2xl bg-muted/30 p-2 space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Current Size:</span>
             <span className="font-mono">{stats.textureCache.cacheSize}</span>
@@ -185,7 +185,7 @@ export function PerformanceSettingsPanel() {
           <p className="text-xs text-muted-foreground">GPU instancing for repeated objects</p>
         </div>
 
-        <div className="rounded-md bg-muted/30 p-2 space-y-1">
+        <div className="rounded-2xl bg-muted/30 p-2 space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Instanced Meshes:</span>
             <span className="font-mono">{stats.instancing.instancedMeshCount}</span>
@@ -201,7 +201,7 @@ export function PerformanceSettingsPanel() {
         </div>
 
         {stats.instancing.totalInstances > 0 && (
-          <div className="rounded-md bg-green-500/10 border border-green-500/20 p-2">
+          <div className="rounded-2xl bg-green-500/10 border border-green-500/20 p-2">
             <p className="text-xs text-green-600 dark:text-green-400">
               ✓ Instancing active: {stats.instancing.instancedMeshCount} mesh
               {stats.instancing.instancedMeshCount !== 1 ? "es" : ""} optimized

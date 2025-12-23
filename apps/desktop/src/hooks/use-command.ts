@@ -98,8 +98,28 @@ export function useCommand(context: CommandContext) {
               step: 0.1,
             },
           ],
-          onParameterChange: params.onParameterChange,
-          onConfirm: params.onConfirm,
+          onParameterChange: (id: string, value: number | string) => {
+            params.onParameterChange(id, value as number)
+            // Clear error when user changes parameters
+            setActiveOperation((prev) => ({
+              ...prev,
+              status: undefined,
+              statusType: undefined,
+            }))
+          },
+          onConfirm: async () => {
+            try {
+              await params.onConfirm()
+            } catch (error) {
+              // Show error in dialog
+              const message = error instanceof Error ? error.message : String(error)
+              setActiveOperation((prev) => ({
+                ...prev,
+                status: message,
+                statusType: "error" as const,
+              }))
+            }
+          },
           onCancel: params.onCancel,
         })
       },
@@ -115,7 +135,10 @@ export function useCommand(context: CommandContext) {
       return shapeId
     } catch (error) {
       console.error("[useCommand] Box command failed:", error)
-      throw error
+      const message = error instanceof Error ? error.message : String(error)
+      console.error("[useCommand] Error message:", message)
+      // Don't throw - let the command handle the error
+      return null
     }
   }, [camera, scene, domElement])
 

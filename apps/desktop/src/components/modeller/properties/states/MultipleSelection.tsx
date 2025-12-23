@@ -88,7 +88,7 @@ export function MultipleSelection({
             </Button>
           </div>
         </div>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {t("properties.multipleEditInfo", "Changes will apply to all selected objects")}
         </p>
       </div>

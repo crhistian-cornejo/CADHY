@@ -104,15 +104,10 @@ export const ChannelSectionPreview = React.memo(function ChannelSectionPreview({
             {/* Dimensions */}
             {showDimensions && (
               <>
-                <text
-                  x={50}
-                  y={58}
-                  textAnchor="middle"
-                  className="fill-muted-foreground text-[8px]"
-                >
+                <text x={50} y={58} textAnchor="middle" className="fill-muted-foreground text-xs">
                   b={s.width?.toFixed(2)}m
                 </text>
-                <text x={92} y={30} textAnchor="start" className="fill-muted-foreground text-[8px]">
+                <text x={92} y={30} textAnchor="start" className="fill-muted-foreground text-xs">
                   y={s.depth?.toFixed(2)}m
                 </text>
               </>
@@ -186,15 +181,10 @@ export const ChannelSectionPreview = React.memo(function ChannelSectionPreview({
             {/* Dimensions */}
             {showDimensions && (
               <>
-                <text
-                  x={50}
-                  y={58}
-                  textAnchor="middle"
-                  className="fill-muted-foreground text-[8px]"
-                >
+                <text x={50} y={58} textAnchor="middle" className="fill-muted-foreground text-xs">
                   b={s.bottomWidth?.toFixed(2)}m, z={s.sideSlope}
                 </text>
-                <text x={95} y={30} textAnchor="start" className="fill-muted-foreground text-[8px]">
+                <text x={95} y={30} textAnchor="start" className="fill-muted-foreground text-xs">
                   y={s.depth?.toFixed(2)}m
                 </text>
               </>
@@ -254,15 +244,10 @@ export const ChannelSectionPreview = React.memo(function ChannelSectionPreview({
             {/* Dimensions */}
             {showDimensions && (
               <>
-                <text
-                  x={50}
-                  y={58}
-                  textAnchor="middle"
-                  className="fill-muted-foreground text-[8px]"
-                >
+                <text x={50} y={58} textAnchor="middle" className="fill-muted-foreground text-xs">
                   z={s.sideSlope}
                 </text>
-                <text x={95} y={30} textAnchor="start" className="fill-muted-foreground text-[8px]">
+                <text x={95} y={30} textAnchor="start" className="fill-muted-foreground text-xs">
                   y={s.depth?.toFixed(2)}m
                 </text>
               </>

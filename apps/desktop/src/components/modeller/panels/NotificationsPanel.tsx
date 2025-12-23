@@ -131,7 +131,7 @@ function NotificationItem({
             {notification.objectName && (
               <Badge
                 variant="outline"
-                className="text-[9px] px-1 py-0 h-4 shrink-0 cursor-pointer hover:bg-muted"
+                className="text-xs px-1 py-0 h-4 shrink-0 cursor-pointer hover:bg-muted"
                 onClick={() => notification.objectId && onFocusObject(notification.objectId)}
               >
                 {notification.objectName}
@@ -141,21 +141,17 @@ function NotificationItem({
 
           {/* Message */}
           {!compact && (
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              {notification.message}
-            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{notification.message}</p>
           )}
 
           {/* Recommendation */}
           {!compact && notification.recommendation && (
-            <div className="flex items-start gap-1.5 mt-1.5 p-1.5 rounded bg-muted/30">
+            <div className="flex items-start gap-1.5 mt-1.5 p-1.5 rounded-2xl bg-muted/30">
               <HugeiconsIcon
                 icon={ArrowRight01Icon}
                 className="size-3 shrink-0 mt-0.5 text-muted-foreground"
               />
-              <p className="text-[9px] text-muted-foreground italic">
-                {notification.recommendation}
-              </p>
+              <p className="text-xs text-muted-foreground italic">{notification.recommendation}</p>
             </div>
           )}
 
@@ -165,7 +161,7 @@ function NotificationItem({
               <Button
                 variant="secondary"
                 size="sm"
-                className="h-6 text-[10px] gap-1.5"
+                className="h-6 text-xs gap-1.5"
                 onClick={() => onExecuteAction(notification.id)}
               >
                 <HugeiconsIcon icon={Add01Icon} className="size-3" />
@@ -233,17 +229,17 @@ function SummaryBar({ summary, onDismissAll, onRefresh }: SummaryBarProps) {
         <span className="text-xs font-medium">{t("designChecks.title")}</span>
         <div className="flex items-center gap-1.5">
           {summary.error > 0 && (
-            <Badge variant="destructive" className="text-[9px] px-1.5 py-0 h-4">
+            <Badge variant="destructive" className="text-xs px-1.5 py-0 h-4">
               {summary.error}
             </Badge>
           )}
           {summary.warning > 0 && (
-            <Badge className="text-[9px] px-1.5 py-0 h-4 bg-amber-500 hover:bg-amber-600">
+            <Badge className="text-xs px-1.5 py-0 h-4 bg-amber-500 hover:bg-amber-600">
               {summary.warning}
             </Badge>
           )}
           {summary.info > 0 && (
-            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+            <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4">
               {summary.info}
             </Badge>
           )}
@@ -265,12 +261,7 @@ function SummaryBar({ summary, onDismissAll, onRefresh }: SummaryBarProps) {
         {summary.total > 0 && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-[10px] px-2"
-                onClick={onDismissAll}
-              >
+              <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={onDismissAll}>
                 {t("designChecks.dismissAll")}
               </Button>
             </TooltipTrigger>
@@ -429,7 +420,7 @@ export function NotificationIndicator({ onClick }: NotificationIndicatorProps) {
           onClick={onClick}
         >
           <HugeiconsIcon icon={Icon} className="size-4" />
-          <span className="absolute -top-0.5 -right-0.5 size-3.5 text-[8px] bg-primary text-primary-foreground rounded-full flex items-center justify-center font-medium">
+          <span className="absolute -top-0.5 -right-0.5 size-3.5 text-xs bg-primary text-primary-foreground rounded-full flex items-center justify-center font-medium">
             {summary.total > 9 ? "9+" : summary.total}
           </span>
         </Button>

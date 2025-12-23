@@ -69,7 +69,7 @@ export function LayerStateSection({ object, layers, onUpdate }: LayerStateSectio
       {/* Layer selector */}
       <PropertyRow label={t("properties.layer")}>
         <Select value={object.layerId} onValueChange={handleLayerChange}>
-          <SelectTrigger className="h-6 text-[10px]">
+          <SelectTrigger className="h-6 text-xs">
             <SelectValue>
               <div className="flex items-center gap-2">
                 <div
@@ -82,7 +82,7 @@ export function LayerStateSection({ object, layers, onUpdate }: LayerStateSectio
           </SelectTrigger>
           <SelectContent>
             {layers.map((layer) => (
-              <SelectItem key={layer.id} value={layer.id} className="text-[10px]">
+              <SelectItem key={layer.id} value={layer.id} className="text-xs">
                 <div className="flex items-center gap-2">
                   <div
                     className="size-2.5 rounded-full shrink-0"
@@ -90,7 +90,7 @@ export function LayerStateSection({ object, layers, onUpdate }: LayerStateSectio
                   />
                   <span>{layer.name}</span>
                   {layer.id === object.layerId && (
-                    <Badge variant="secondary" className="ml-auto h-4 px-1 text-[8px]">
+                    <Badge variant="secondary" className="ml-auto h-4 px-1 text-xs">
                       {t("properties.current")}
                     </Badge>
                   )}
@@ -106,7 +106,7 @@ export function LayerStateSection({ object, layers, onUpdate }: LayerStateSectio
         <Button
           variant={object.visible ? "secondary" : "outline"}
           size="sm"
-          className="flex-1 h-7 text-[10px] gap-1.5"
+          className="flex-1 h-7 text-xs gap-1.5"
           onClick={handleToggleVisibility}
         >
           <HugeiconsIcon icon={object.visible ? ViewIcon : ViewOffIcon} className="size-3" />
@@ -115,7 +115,7 @@ export function LayerStateSection({ object, layers, onUpdate }: LayerStateSectio
         <Button
           variant={object.locked ? "secondary" : "outline"}
           size="sm"
-          className="flex-1 h-7 text-[10px] gap-1.5"
+          className="flex-1 h-7 text-xs gap-1.5"
           onClick={handleToggleLock}
         >
           <HugeiconsIcon icon={object.locked ? LockIcon : SquareUnlock02Icon} className="size-3" />

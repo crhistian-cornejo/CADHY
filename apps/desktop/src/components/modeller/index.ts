@@ -11,6 +11,6 @@ export { LayersPanel } from "./panels"
 // Properties
 export { PropertiesPanel } from "./properties"
 // Toolbars
-export { VerticalToolbar, ViewportBottomToolbar, ViewportToolbar } from "./toolbars"
+export { ViewportBottomToolbar, ViewportToolbar } from "./toolbars"
 // Viewport
 export { Viewport3D, ViewportSettingsPanel } from "./viewport"

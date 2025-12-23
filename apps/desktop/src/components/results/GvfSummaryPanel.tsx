@@ -33,9 +33,7 @@ export function GvfSummaryPanel({ summary }: GvfSummaryPanelProps) {
     <div className="space-y-4 p-4">
       {/* Depths */}
       <div>
-        <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-          Depths
-        </h3>
+        <div className="section-label mb-2">Depths</div>
         <div className="grid grid-cols-2 gap-2">
           <SummaryCard label="Normal Depth (yn)" value={summary.normalDepth} unitType="length" />
           <SummaryCard
@@ -48,9 +46,7 @@ export function GvfSummaryPanel({ summary }: GvfSummaryPanelProps) {
 
       {/* Flow Parameters */}
       <div>
-        <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-          Flow Parameters
-        </h3>
+        <div className="section-label mb-2">Flow Parameters</div>
         <div className="grid grid-cols-2 gap-2">
           <SummaryCard label="Discharge (Q)" value={summary.discharge} unitType="flowRate" />
           <SummaryCard label="Slope (S₀)" value={summary.slope} />
@@ -67,9 +63,7 @@ export function GvfSummaryPanel({ summary }: GvfSummaryPanelProps) {
 
       {/* Velocity */}
       <div>
-        <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-          Velocity
-        </h3>
+        <div className="section-label mb-2">Velocity</div>
         <div className="grid grid-cols-3 gap-2">
           <SummaryCard
             label="Min"
@@ -89,9 +83,7 @@ export function GvfSummaryPanel({ summary }: GvfSummaryPanelProps) {
 
       {/* Froude Number */}
       <div>
-        <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-          Froude Number
-        </h3>
+        <div className="section-label mb-2">Froude Number</div>
         <div className="grid grid-cols-2 gap-2">
           <SummaryCard
             label="Min Fr"
@@ -109,10 +101,8 @@ export function GvfSummaryPanel({ summary }: GvfSummaryPanelProps) {
       {/* Hydraulic Jump */}
       {summary.hasHydraulicJump && (
         <div>
-          <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-            Hydraulic Jump
-          </h3>
-          <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
+          <div className="section-label mb-2">Hydraulic Jump</div>
+          <div className="rounded-2xl border border-amber-500/50 bg-amber-500/10 p-3">
             <p className="text-xs text-amber-500 font-medium">
               Jump detected at station {formatLength(summary.jumpStation ?? 0)}
             </p>

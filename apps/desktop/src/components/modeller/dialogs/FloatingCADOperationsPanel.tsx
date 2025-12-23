@@ -26,9 +26,11 @@ interface FloatingCADOperationsPanelProps {
   min?: number
   max?: number
   step?: number
+  interactiveMode?: boolean
   onValueChange: (value: string) => void
   onApply: () => void
   onCancel: () => void
+  onToggleInteractiveMode?: () => void
 }
 
 export function FloatingCADOperationsPanel({
@@ -41,9 +43,11 @@ export function FloatingCADOperationsPanel({
   min = 0.01,
   max = 10,
   step = 0.1,
+  interactiveMode = true,
   onValueChange,
   onApply,
   onCancel,
+  onToggleInteractiveMode,
 }: FloatingCADOperationsPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [inputValue, setInputValue] = useState(value)
@@ -112,7 +116,7 @@ export function FloatingCADOperationsPanel({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.15 }}
-          className="absolute bottom-3 left-[280px] w-[280px] rounded-lg bg-background/95 backdrop-blur-md border border-border/40 shadow-2xl pointer-events-auto z-[100] overflow-hidden"
+          className="absolute bottom-3 left-3 w-[280px] rounded-2xl bg-background/95 backdrop-blur-md border border-border/40 shadow-2xl pointer-events-auto z-[100] overflow-hidden"
         >
           {/* Header */}
           <button
@@ -131,7 +135,7 @@ export function FloatingCADOperationsPanel({
           >
             <div className="flex items-center gap-1.5">
               <HugeiconsIcon icon={Settings01Icon} className="size-3 text-primary/80" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80">
                 {title}
               </span>
             </div>
@@ -158,38 +162,73 @@ export function FloatingCADOperationsPanel({
                 className="overflow-hidden"
               >
                 <div className="p-3 space-y-3">
+                  {/* Mode indicator */}
+                  {interactiveMode && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-xs text-blue-600 dark:text-blue-400">
+                      <div className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
+                      <span>Interactive Mode: Select an edge in the 3D view</span>
+                    </div>
+                  )}
+
                   {/* Description */}
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">{description}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {interactiveMode
+                      ? "Click on an edge, then drag the gizmo to adjust the value. Preview updates in real-time."
+                      : description}
+                  </p>
 
-                  {/* Slider + Input */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-[10px] font-medium text-foreground/90">{label}</Label>
-                      <input
-                        type="text"
-                        value={inputValue}
-                        onChange={handleInputChange}
-                        onBlur={handleInputBlur}
-                        onKeyDown={handleKeyDown}
-                        className="w-16 h-6 px-2 text-[11px] text-right bg-muted/30 border border-border/40 rounded focus:outline-none focus:ring-1 focus:ring-primary/50"
-                        placeholder="0.00"
+                  {/* Slider + Input - Only show in manual mode */}
+                  {!interactiveMode && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium text-foreground/90">{label}</Label>
+                        <input
+                          type="text"
+                          value={inputValue}
+                          onChange={handleInputChange}
+                          onBlur={handleInputBlur}
+                          onKeyDown={handleKeyDown}
+                          className="w-16 h-6 px-2 text-xs text-right bg-muted/30 border border-border/40 rounded-2xl focus:outline-none focus:ring-1 focus:ring-primary/50"
+                          placeholder="0.00"
+                        />
+                      </div>
+
+                      <Slider
+                        value={[numValue]}
+                        onValueChange={handleSliderChange}
+                        min={min}
+                        max={max}
+                        step={step}
+                        className="w-full"
                       />
-                    </div>
 
-                    <Slider
-                      value={[numValue]}
-                      onValueChange={handleSliderChange}
-                      min={min}
-                      max={max}
-                      step={step}
-                      className="w-full"
-                    />
-
-                    <div className="flex justify-between text-[9px] text-muted-foreground/60">
-                      <span>{min}</span>
-                      <span>{max}</span>
+                      <div className="flex justify-between text-xs text-muted-foreground/60">
+                        <span>{min}</span>
+                        <span>{max}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Value display in interactive mode */}
+                  {interactiveMode && (
+                    <div className="flex items-center justify-between px-2 py-1.5 bg-muted/20 rounded-2xl">
+                      <span className="text-xs font-medium text-foreground/90">{label}</span>
+                      <span className="text-sm font-semibold text-primary tabular-nums">
+                        {value} mm
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Mode Toggle (optional) */}
+                  {onToggleInteractiveMode && (
+                    <button
+                      type="button"
+                      onClick={onToggleInteractiveMode}
+                      className="w-full flex items-center justify-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border/40 rounded-2xl hover:bg-muted/50"
+                    >
+                      <span>Switch to {interactiveMode ? "Manual" : "Interactive"} Mode</span>
+                    </button>
+                  )}
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 pt-1">
@@ -197,11 +236,11 @@ export function FloatingCADOperationsPanel({
                       variant="outline"
                       size="sm"
                       onClick={onCancel}
-                      className="flex-1 h-7 text-[10px]"
+                      className="flex-1 h-7 text-xs"
                     >
                       Cancelar
                     </Button>
-                    <Button size="sm" onClick={onApply} className="flex-1 h-7 text-[10px]">
+                    <Button size="sm" onClick={onApply} className="flex-1 h-7 text-xs">
                       Aplicar
                     </Button>
                   </div>
