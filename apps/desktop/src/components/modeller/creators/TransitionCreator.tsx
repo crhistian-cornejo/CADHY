@@ -35,7 +35,7 @@ import {
   useObjects,
 } from "@/stores/modeller"
 
-import { createSimpleBasinConfig, designStillingBasin } from "@/utils/stilling-basin-design"
+import { createSimpleBasinConfig } from "@/utils/stilling-basin-design"
 
 interface TransitionCreatorProps {
   onClose: () => void
