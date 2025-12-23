@@ -7,7 +7,7 @@ export { CreatePanel } from "./creators"
 // Main view
 export { ModellerView } from "./ModellerView"
 // Panels
-export { LayersPanel } from "./panels"
+export { NotificationsPanel } from "./panels"
 // Properties
 export { PropertiesPanel } from "./properties"
 // Toolbars
