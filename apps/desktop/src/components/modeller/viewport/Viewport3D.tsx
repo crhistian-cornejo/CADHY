@@ -22,9 +22,9 @@ import { useIsAnalyzingScene } from "@/stores/chat-store"
 import { useBoxSelectMode, useViewportSettings } from "@/stores/modeller"
 import { ActiveOperationRenderer } from "./ActiveOperationRenderer"
 import { CommandProvider } from "./CommandProvider"
+import { Label3DContainer } from "./Label3D"
 import { MeshCacheStats } from "./MeshCacheStats"
 import { PlaybackControls } from "./PlaybackControls"
-import { RenderingToolbar } from "./RenderingToolbar"
 import { SceneContent } from "./SceneContent"
 import { SimpleSelectionBox } from "./SimpleSelectionBox"
 import { ViewportOverlays } from "./ViewportOverlays"
@@ -98,12 +98,12 @@ export function Viewport3D({
   return (
     <AIGlowBorder active={isAnalyzingScene} borderWidth={60} duration={3}>
       <div className={cn("relative h-full w-full p-2", className)}>
-        {/* Viewport Container with subtle rounded corners */}
-        <div className="relative h-full w-full rounded-lg overflow-hidden ring-1 ring-border/30">
+        {/* Viewport Container with subtle rounded-2xl corners */}
+        <div className="relative h-full w-full rounded-2xl overflow-hidden ring-1 ring-border/30">
           <Canvas
-            shadows={false}
+            shadows="soft"
             dpr={[1, 1.5]}
-            frameloop="demand"
+            frameloop={viewportSettings.enablePostProcessing ? "demand" : "always"}
             gl={{
               antialias: viewportSettings.antialiasing,
               alpha: false,
@@ -129,12 +129,6 @@ export function Viewport3D({
           {/* Floating toolbars and panels (Plasticity-style) */}
           <ViewportOverlays />
 
-          {/* Rendering Toolbar - Only shows when post-processing is enabled */}
-          <RenderingToolbar
-            showAnimationPanel={showAnimationPanel}
-            onToggleAnimationPanel={onToggleAnimationPanel}
-          />
-
           {/* Selection Box */}
           <SimpleSelectionBox />
 
@@ -143,7 +137,7 @@ export function Viewport3D({
 
           {/* Box Select Hint - Show when Shift is held */}
           {isBoxSelectMode && showBoxSelectHint && (
-            <div className="absolute left-1/2 top-4 -translate-x-1/2 flex items-center gap-2 rounded-lg bg-background/95 backdrop-blur-sm border px-3 py-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+            <div className="absolute left-1/2 top-4 -translate-x-1/2 flex items-center gap-2 rounded-2xl bg-background/95 backdrop-blur-sm border px-3 py-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 z-50">
               <span className="text-sm text-muted-foreground">Hold</span>
               <Kbd>Shift</Kbd>
               <span className="text-sm text-muted-foreground">+ hold</span>
@@ -154,7 +148,7 @@ export function Viewport3D({
               <button
                 type="button"
                 onClick={() => setShowBoxSelectHint(false)}
-                className="ml-1 p-0.5 rounded hover:bg-muted transition-colors"
+                className="ml-1 p-0.5 rounded-2xl hover:bg-muted transition-colors"
               >
                 <HugeiconsIcon icon={Cancel01Icon} className="size-3.5 text-muted-foreground" />
               </button>
@@ -166,6 +160,11 @@ export function Viewport3D({
 
           {/* Active Operation Dialog - Controlled by commands */}
           <ActiveOperationRenderer />
+
+          {/* 3D Labels Container - For edge operation labels */}
+          <Label3DContainer>
+            {/* Labels are rendered here by InteractiveCADOperations */}
+          </Label3DContainer>
         </div>
       </div>
     </AIGlowBorder>

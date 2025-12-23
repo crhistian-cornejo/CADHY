@@ -239,6 +239,8 @@ export const ChannelMesh = React.memo(function ChannelMesh({
     <mesh
       ref={internalMeshRef}
       geometry={geometry}
+      castShadow
+      receiveShadow
       position={[worldPositionX, 0, 0]}
       rotation={[
         THREE.MathUtils.degToRad(channel.transform.rotation.x),
@@ -250,20 +252,35 @@ export const ChannelMesh = React.memo(function ChannelMesh({
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
     >
-      <meshStandardMaterial
-        color={error ? "#ef4444" : pbrTextures?.albedo ? "#ffffff" : color}
-        wireframe={wireframe}
-        transparent={opacity < 1}
-        opacity={opacity}
-        side={THREE.DoubleSide}
-        metalness={metalness}
-        roughness={roughness}
-        {...(pbrTextures?.albedo && { map: pbrTextures.albedo })}
-        {...(pbrTextures?.normal && { normalMap: pbrTextures.normal })}
-        {...(pbrTextures?.roughness && { roughnessMap: pbrTextures.roughness })}
-        {...(pbrTextures?.metalness && { metalnessMap: pbrTextures.metalness })}
-        {...(pbrTextures?.ao && { aoMap: pbrTextures.ao, aoMapIntensity: 1 })}
-      />
+      {viewportSettings.enablePostProcessing ? (
+        <meshStandardMaterial
+          key={`mat-pbr-${pbrTextures?.albedo?.uuid ?? "none"}`}
+          color={error ? "#ef4444" : pbrTextures?.albedo ? "#ffffff" : color}
+          wireframe={wireframe}
+          transparent={opacity < 1}
+          opacity={opacity}
+          side={THREE.DoubleSide}
+          metalness={metalness}
+          roughness={roughness}
+          map={pbrTextures?.albedo ?? null}
+          normalMap={pbrTextures?.normal ?? null}
+          roughnessMap={pbrTextures?.roughness ?? null}
+          metalnessMap={pbrTextures?.metalness ?? null}
+          aoMap={pbrTextures?.ao ?? null}
+          aoMapIntensity={pbrTextures?.ao ? 1 : 0}
+          // Prevent overexposure from environment lighting when using textures
+          envMapIntensity={pbrTextures?.albedo ? 0.5 : 1}
+        />
+      ) : (
+        <meshBasicMaterial
+          key="mat-basic"
+          color={error ? "#ef4444" : color}
+          wireframe={wireframe}
+          transparent={opacity < 1}
+          opacity={opacity}
+          side={THREE.DoubleSide}
+        />
+      )}
     </mesh>
   )
 })

@@ -199,6 +199,14 @@ export class BoxFactory {
         height: this.height,
       })
 
+      // Validate dimensions
+      const minDimension = 0.01 // Minimum 1cm
+      if (this.width < minDimension || this.length < minDimension || this.height < minDimension) {
+        throw new Error(
+          `Box dimensions must be at least ${minDimension}m. Current: width=${this.width.toFixed(2)}, length=${this.length.toFixed(2)}, height=${this.height.toFixed(2)}`
+        )
+      }
+
       // Create shape in backend
       const result = await createBox(this.width, this.length, this.height)
       console.log("[BoxFactory] Backend shape created:", result.id)

@@ -23,6 +23,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   ScrollArea,
   Tooltip,
   TooltipContent,
@@ -57,12 +60,11 @@ import {
   type SceneArea,
   type ShapeObject,
   useAreas,
-  useLayers,
   useModellerStore,
   useObjects,
   useSelectedIds,
 } from "@/stores/modeller"
-import { getObjectIcon, getObjectTypeLabel, getShapeTypeLabel } from "./scene-utils"
+import { getObjectIcon } from "./scene-utils"
 
 // ============================================================================
 // TYPES
@@ -89,6 +91,7 @@ interface SceneObjectItemProps {
   onDelete: (id: string) => void
   onDuplicate: (id: string) => void
   onFocus: (id: string) => void
+  onColorChange?: (id: string, color: string) => void
 }
 
 const SceneObjectItem = React.memo(function SceneObjectItem({
@@ -101,6 +104,7 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
   onDelete,
   onDuplicate,
   onFocus,
+  onColorChange,
 }: SceneObjectItemProps) {
   const { t } = useTranslation()
 
@@ -127,8 +131,8 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
   const Icon = getObjectIcon(object.type, shapeType)
   const typeLabel =
     object.type === "shape" && shapeType
-      ? getShapeTypeLabel(shapeType)
-      : getObjectTypeLabel(object.type)
+      ? t(`scenePanel.shapeTypes.${shapeType}`)
+      : t(`scenePanel.types.${object.type}`)
 
   return (
     <div
@@ -138,14 +142,14 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
         onFocus(object.id)
       }}
       className={cn(
-        "group flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer transition-all",
+        "group flex items-center gap-1.5 px-2 py-1.5 rounded-2xl cursor-pointer transition-all",
         "hover:bg-muted/50",
         isSelected && "bg-primary/15 ring-1 ring-primary/40",
         !object.visible && "opacity-50"
       )}
     >
       {/* Index number */}
-      <span className="w-4 text-[10px] text-muted-foreground/60 font-mono shrink-0">{index}</span>
+      <span className="w-4 text-xs text-muted-foreground/60 font-mono shrink-0">{index}</span>
 
       {/* Type icon */}
       <Tooltip>
@@ -173,7 +177,7 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
       {/* Name */}
       <span
         className={cn(
-          "text-[11px] flex-1 truncate",
+          "text-xs flex-1 truncate",
           object.locked && "italic",
           !object.visible && "line-through text-muted-foreground"
         )}
@@ -185,105 +189,161 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
       {(materialInfo.texturePreview || materialInfo.color) && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div
-              className="size-3.5 rounded-full border border-border/50 shrink-0 shadow-sm overflow-hidden"
-              style={{
-                backgroundColor: materialInfo.texturePreview
-                  ? undefined
-                  : (materialInfo.color ?? undefined),
-              }}
-            >
-              {materialInfo.texturePreview && (
-                <img
-                  src={materialInfo.texturePreview}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // If texture image fails to load, hide it and show color
-                    e.currentTarget.style.display = "none"
-                    if (e.currentTarget.parentElement && materialInfo.color) {
-                      e.currentTarget.parentElement.style.backgroundColor = materialInfo.color
-                    }
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  onClick={(e) => e.stopPropagation()}
+                  className="size-3.5 rounded-full border border-border/50 shrink-0 shadow-sm overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                  style={{
+                    backgroundColor: materialInfo.texturePreview
+                      ? undefined
+                      : (materialInfo.color ?? undefined),
                   }}
-                />
-              )}
-            </div>
+                >
+                  {materialInfo.texturePreview && (
+                    <img
+                      src={materialInfo.texturePreview}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none"
+                        if (e.currentTarget.parentElement && materialInfo.color) {
+                          e.currentTarget.parentElement.style.backgroundColor = materialInfo.color
+                        }
+                      }}
+                    />
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="left"
+                align="center"
+                className="w-auto p-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {t("scenePanel.materialColor")}
+                  </span>
+                  <input
+                    type="color"
+                    value={materialInfo.color || "#6366f1"}
+                    onChange={(e) => {
+                      e.stopPropagation()
+                      onColorChange?.(object.id, e.target.value)
+                    }}
+                    className="w-16 h-8 rounded-2xl cursor-pointer border-0 p-0"
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
           </TooltipTrigger>
-          <TooltipContent side="left" className="text-xs">
-            {materialInfo.textureId
-              ? `${t("scenePanel.texture")}: ${materialInfo.textureId.replace(/_/g, " ")}`
-              : `${t("scenePanel.material")}: ${materialInfo.color}`}
+          <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+            {materialInfo.color
+              ? `${t("scenePanel.material")}: ${materialInfo.color}`
+              : t("scenePanel.material")}
           </TooltipContent>
         </Tooltip>
       )}
 
       {/* Quick actions - visible on hover */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          className="h-5 w-5"
-          onClick={(e) => {
-            e.stopPropagation()
-            onFocus(object.id)
-          }}
-          title={t("scenePanel.zoomToObject")}
-        >
-          <HugeiconsIcon icon={Target01Icon} className="size-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          className="h-5 w-5"
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleVisibility(object.id)
-          }}
-          title={object.visible ? t("scenePanel.hide") : t("scenePanel.show")}
-        >
-          <HugeiconsIcon icon={object.visible ? ViewIcon : ViewOffIcon} className="size-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          className="h-5 w-5"
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleLock(object.id)
-          }}
-          title={object.locked ? t("scenePanel.unlock") : t("scenePanel.lock")}
-        >
-          <HugeiconsIcon icon={object.locked ? LockIcon : SquareUnlock02Icon} className="size-3" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="h-5 w-5"
+              onClick={(e) => {
+                e.stopPropagation()
+                onFocus(object.id)
+              }}
+            >
+              <HugeiconsIcon icon={Target01Icon} className="size-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+            {t("scenePanel.zoomToObject")}
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="h-5 w-5"
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleVisibility(object.id)
+              }}
+            >
+              <HugeiconsIcon icon={object.visible ? ViewIcon : ViewOffIcon} className="size-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+            {object.visible ? t("scenePanel.hide") : t("scenePanel.show")}
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="h-5 w-5"
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleLock(object.id)
+              }}
+            >
+              <HugeiconsIcon
+                icon={object.locked ? LockIcon : SquareUnlock02Icon}
+                className="size-3"
+              />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+            {object.locked ? t("scenePanel.unlock") : t("scenePanel.lock")}
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Context menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          onClick={(e) => e.stopPropagation()}
-          className="h-5 w-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-muted transition-all"
-        >
-          <HugeiconsIcon icon={MoreVerticalIcon} className="size-3" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-36">
-          <DropdownMenuItem onClick={() => onFocus(object.id)}>
-            <HugeiconsIcon icon={Target01Icon} className="size-3.5 mr-2" />
-            {t("scenePanel.zoomToObject")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onDuplicate(object.id)}>
-            <HugeiconsIcon icon={Copy01Icon} className="size-3.5 mr-2" />
-            {t("scenePanel.duplicate")}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => onDelete(object.id)}
-            className="text-destructive focus:text-destructive"
-          >
-            <HugeiconsIcon icon={Delete01Icon} className="size-3.5 mr-2" />
-            {t("scenePanel.delete")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              onClick={(e) => e.stopPropagation()}
+              className="h-5 w-5 flex items-center justify-center rounded-2xl opacity-0 group-hover:opacity-100 hover:bg-muted transition-all"
+            >
+              <HugeiconsIcon icon={MoreVerticalIcon} className="size-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuItem onClick={() => onFocus(object.id)}>
+                <HugeiconsIcon icon={Target01Icon} className="size-3.5 mr-2" />
+                {t("scenePanel.zoomToObject")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDuplicate(object.id)}>
+                <HugeiconsIcon icon={Copy01Icon} className="size-3.5 mr-2" />
+                {t("scenePanel.duplicate")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onDelete(object.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <HugeiconsIcon icon={Delete01Icon} className="size-3.5 mr-2" />
+                {t("scenePanel.delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+          {t("common.more")}
+        </TooltipContent>
+      </Tooltip>
     </div>
   )
 })
@@ -302,6 +362,7 @@ interface AreaGroupProps {
   onDelete: (id: string) => void
   onDuplicate: (id: string) => void
   onFocus: (id: string) => void
+  onColorChange?: (id: string, color: string) => void
   onRenameArea: (areaId: string) => void
   onDeleteArea: (areaId: string) => void
 }
@@ -316,6 +377,7 @@ const AreaGroup = React.memo(function AreaGroup({
   onDelete,
   onDuplicate,
   onFocus,
+  onColorChange,
   onRenameArea,
   onDeleteArea,
 }: AreaGroupProps) {
@@ -326,7 +388,7 @@ const AreaGroup = React.memo(function AreaGroup({
   return (
     <Collapsible open={!area.collapsed} onOpenChange={() => toggleAreaCollapsed(area.id)}>
       {/* Use a div wrapper to avoid button-in-button nesting */}
-      <div className="flex w-full items-center gap-2 px-2 py-1.5 hover:bg-muted/30 rounded-md transition-colors group">
+      <div className="flex w-full items-center gap-2 px-2 py-1.5 hover:bg-muted/30 rounded-2xl transition-colors group">
         <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0">
           <HugeiconsIcon
             icon={area.collapsed ? ArrowRight01Icon : ArrowDown01Icon}
@@ -337,50 +399,62 @@ const AreaGroup = React.memo(function AreaGroup({
             className="size-3.5 shrink-0"
             style={{ color: area.color }}
           />
-          <span className="text-[11px] font-medium flex-1 text-left truncate">
+          <span className="text-xs font-medium flex-1 text-left truncate">
             {area.name} ({area.index})
           </span>
         </CollapsibleTrigger>
-        <Badge variant="secondary" className="h-4 px-1.5 text-[9px] shrink-0">
+        <Badge variant="secondary" className="h-4 px-1.5 text-xs shrink-0">
           {objects.length}
         </Badge>
         {selectedInArea > 0 && (
-          <Badge variant="default" className="h-4 px-1.5 text-[9px] shrink-0">
+          <Badge variant="default" className="h-4 px-1.5 text-xs shrink-0">
             {selectedInArea}
           </Badge>
         )}
-        {/* Area actions - visible on hover, outside of CollapsibleTrigger */}
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="h-5 w-5"
-            onClick={(e) => {
-              e.stopPropagation()
-              onRenameArea(area.id)
-            }}
-            title={t("scenePanel.renameArea")}
-          >
-            <HugeiconsIcon icon={PencilEdit01Icon} className="size-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="h-5 w-5"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDeleteArea(area.id)
-            }}
-            title={t("scenePanel.deleteArea")}
-          >
-            <HugeiconsIcon icon={Delete01Icon} className="size-3 text-destructive" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="h-5 w-5"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRenameArea(area.id)
+                }}
+              >
+                <HugeiconsIcon icon={PencilEdit01Icon} className="size-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+              {t("scenePanel.renameArea")}
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="h-5 w-5"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDeleteArea(area.id)
+                }}
+              >
+                <HugeiconsIcon icon={Delete01Icon} className="size-3 text-destructive" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+              {t("scenePanel.deleteArea")}
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
       <CollapsibleContent>
         <div className="ml-4 pl-2 border-l border-border/40 space-y-0.5 py-1">
           {objects.length === 0 ? (
-            <div className="text-[10px] text-muted-foreground/50 py-2 px-2 italic">
+            <div className="text-xs text-muted-foreground/50 py-2 px-2 italic">
               {t("scenePanel.emptyArea")}
             </div>
           ) : (
@@ -396,6 +470,7 @@ const AreaGroup = React.memo(function AreaGroup({
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
                 onFocus={onFocus}
+                onColorChange={onColorChange}
               />
             ))
           )}
@@ -418,6 +493,7 @@ interface UnassignedGroupProps {
   onDelete: (id: string) => void
   onDuplicate: (id: string) => void
   onFocus: (id: string) => void
+  onColorChange?: (id: string, color: string) => void
 }
 
 const UnassignedGroup = React.memo(function UnassignedGroup({
@@ -429,6 +505,7 @@ const UnassignedGroup = React.memo(function UnassignedGroup({
   onDelete,
   onDuplicate,
   onFocus,
+  onColorChange,
 }: UnassignedGroupProps) {
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(true)
@@ -438,20 +515,20 @@ const UnassignedGroup = React.memo(function UnassignedGroup({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex w-full items-center gap-2 px-2 py-1.5 hover:bg-muted/30 rounded-md transition-colors">
+      <CollapsibleTrigger className="flex w-full items-center gap-2 px-2 py-1.5 hover:bg-muted/30 rounded-2xl transition-colors">
         <HugeiconsIcon
           icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon}
           className="size-3 text-muted-foreground"
         />
         <HugeiconsIcon icon={Folder01Icon} className="size-3.5 text-muted-foreground/50 shrink-0" />
-        <span className="text-[11px] font-medium flex-1 text-left truncate text-muted-foreground">
+        <span className="text-xs font-medium flex-1 text-left truncate text-muted-foreground">
           {t("scenePanel.unassigned")}
         </span>
-        <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">
+        <Badge variant="secondary" className="h-4 px-1.5 text-xs">
           {objects.length}
         </Badge>
         {selectedInGroup > 0 && (
-          <Badge variant="default" className="h-4 px-1.5 text-[9px]">
+          <Badge variant="default" className="h-4 px-1.5 text-xs">
             {selectedInGroup}
           </Badge>
         )}
@@ -470,6 +547,7 @@ const UnassignedGroup = React.memo(function UnassignedGroup({
               onDelete={onDelete}
               onDuplicate={onDuplicate}
               onFocus={onFocus}
+              onColorChange={onColorChange}
             />
           ))}
         </div>
@@ -486,15 +564,12 @@ export function ScenePanel({ className }: ScenePanelProps) {
   const { t } = useTranslation()
   const objects = useObjects()
   const selectedIds = useSelectedIds()
-  const _layers = useLayers()
   const areas = useAreas()
   const {
     select,
     updateObject,
     deleteObject,
     duplicateObject,
-    selectAll,
-    deselectAll,
     focusObject,
     createArea,
     deleteArea,
@@ -607,6 +682,18 @@ export function ScenePanel({ className }: ScenePanelProps) {
     [focusObject]
   )
 
+  const handleColorChange = useCallback(
+    (id: string, color: string) => {
+      const obj = objects.find((o) => o.id === id)
+      if (obj && "material" in obj && obj.material) {
+        updateObject(id, {
+          material: { ...obj.material, color },
+        })
+      }
+    },
+    [objects, updateObject]
+  )
+
   const handleCreateArea = useCallback(() => {
     const newId = createArea()
     setRenamingAreaId(newId)
@@ -668,65 +755,90 @@ export function ScenePanel({ className }: ScenePanelProps) {
         {/* Filters & Sort */}
         <div className="flex items-center gap-1">
           {/* Type filter */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2">
-                <HugeiconsIcon icon={FilterIcon} className="size-3" />
-                {filterType === "all" ? t("scenePanel.all") : filterType}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-32">
-              <DropdownMenuItem onClick={() => setFilterType("all")}>
-                {t("scenePanel.all")} ({objectTypeCounts.all || 0})
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {Object.entries(objectTypeCounts)
-                .filter(([key]) => key !== "all")
-                .map(([type, count]) => (
-                  <DropdownMenuItem key={type} onClick={() => setFilterType(type as ObjectType)}>
-                    {type} ({count})
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-6 text-xs gap-1 px-2">
+                    <HugeiconsIcon icon={FilterIcon} className="size-3" />
+                    {filterType === "all"
+                      ? t("scenePanel.all")
+                      : t(`scenePanel.types.${filterType}`)}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-32">
+                  <DropdownMenuItem onClick={() => setFilterType("all")}>
+                    {t("scenePanel.all")} ({objectTypeCounts.all || 0})
                   </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <DropdownMenuSeparator />
+                  {Object.entries(objectTypeCounts)
+                    .filter(([key]) => key !== "all")
+                    .map(([type, count]) => (
+                      <DropdownMenuItem
+                        key={type}
+                        onClick={() => setFilterType(type as ObjectType)}
+                      >
+                        {t(`scenePanel.types.${type}`)} ({count})
+                      </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+              {t("scenePanel.filter")}
+            </TooltipContent>
+          </Tooltip>
 
           {/* Sort */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2">
-                <HugeiconsIcon icon={SortingAZ01Icon} className="size-3" />
-                {sortMode}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-32">
-              <DropdownMenuItem onClick={() => setSortMode("area")}>
-                {t("scenePanel.byArea")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortMode("name")}>
-                {t("scenePanel.byName")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortMode("type")}>
-                {t("scenePanel.byType")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortMode("created")}>
-                {t("scenePanel.byCreated")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-6 text-xs gap-1 px-2">
+                    <HugeiconsIcon icon={SortingAZ01Icon} className="size-3" />
+                    {t(`scenePanel.sortModes.${sortMode}`)}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-32">
+                  <DropdownMenuItem onClick={() => setSortMode("area")}>
+                    {t("scenePanel.byArea")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortMode("name")}>
+                    {t("scenePanel.byName")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortMode("type")}>
+                    {t("scenePanel.byType")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortMode("created")}>
+                    {t("scenePanel.byCreated")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+              {t("scenePanel.sort")}
+            </TooltipContent>
+          </Tooltip>
 
           <div className="flex-1" />
 
           {/* Add Area button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 text-[10px] px-2 gap-1"
-            onClick={handleCreateArea}
-            title={t("scenePanel.addArea")}
-          >
-            <HugeiconsIcon icon={Add01Icon} className="size-3" />
-            {t("scenePanel.addArea")}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs px-2 gap-1"
+                onClick={handleCreateArea}
+              >
+                <HugeiconsIcon icon={Add01Icon} className="size-3" />
+                {t("scenePanel.addArea")}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs px-1.5 py-0.5 h-6">
+              {t("scenePanel.addArea")}
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -755,7 +867,7 @@ export function ScenePanel({ className }: ScenePanelProps) {
             {/* Rename dialog overlay */}
             {renamingAreaId && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-background border rounded-lg p-4 shadow-lg w-64">
+                <div className="bg-background border rounded-2xl p-4 shadow-lg w-64">
                   <h3 className="text-sm font-medium mb-3">{t("scenePanel.renameArea")}</h3>
                   <Input
                     value={renameValue}
@@ -802,6 +914,7 @@ export function ScenePanel({ className }: ScenePanelProps) {
                 onDelete={handleDelete}
                 onDuplicate={handleDuplicate}
                 onFocus={handleFocus}
+                onColorChange={handleColorChange}
                 onRenameArea={handleRenameArea}
                 onDeleteArea={handleDeleteArea}
               />
@@ -817,6 +930,7 @@ export function ScenePanel({ className }: ScenePanelProps) {
               onDelete={handleDelete}
               onDuplicate={handleDuplicate}
               onFocus={handleFocus}
+              onColorChange={handleColorChange}
             />
           </div>
         ) : (

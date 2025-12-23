@@ -297,7 +297,7 @@ export function HotkeySettings() {
             <AccordionItem
               key={categoryData.category}
               value={categoryData.category}
-              className="border rounded-lg px-3"
+              className="border rounded-2xl px-3"
             >
               <AccordionTrigger className="py-3 hover:no-underline">
                 <div className="flex items-center gap-2">
@@ -321,13 +321,13 @@ export function HotkeySettings() {
                     return (
                       <div
                         key={hotkey.id}
-                        className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 group"
+                        className="flex items-center justify-between py-2 px-2 rounded-2xl hover:bg-muted/50 group"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium">{hotkey.name}</span>
                             {customized && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                              <span className="text-xs px-1.5 py-0.5 rounded-2xl bg-primary/10 text-primary">
                                 Modified
                               </span>
                             )}
@@ -349,7 +349,7 @@ export function HotkeySettings() {
                                   readOnly
                                 />
                                 {editing.conflict && (
-                                  <span className="text-[10px] text-destructive flex items-center gap-1">
+                                  <span className="text-xs text-destructive flex items-center gap-1">
                                     <HugeiconsIcon icon={AlertCircleIcon} className="size-3" />
                                     {editing.conflict}
                                   </span>
@@ -377,12 +377,12 @@ export function HotkeySettings() {
                             <>
                               <button
                                 onClick={() => startEditing(hotkey)}
-                                className="flex items-center gap-1 px-2 py-1 rounded border border-border bg-muted/30 hover:bg-muted transition-colors"
+                                className="flex items-center gap-1 px-2 py-1 rounded-2xl border border-border bg-muted/30 hover:bg-muted transition-colors"
                               >
                                 {currentKeys.map((key, i) => (
                                   <kbd
                                     key={i}
-                                    className="min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded border border-border bg-background text-[10px] font-mono"
+                                    className="min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-2xl border border-border bg-background text-xs font-mono"
                                   >
                                     {key
                                       .replace("Ctrl", modKey)

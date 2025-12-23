@@ -45,33 +45,33 @@ export const VectorInput = React.memo(function VectorInput({
   return (
     <div className="flex gap-1.5">
       <div className="flex-1 flex items-center min-w-0">
-        <span className="text-[8px] font-black text-red-500/90 w-2.5 text-center mr-0.5">X</span>
+        <span className="text-xs font-black text-red-500/90 w-2.5 text-center mr-0.5">X</span>
         <NumberInput
           value={value.x}
           onChange={(v) => handleChange("x", v)}
           step={step}
           precision={precision}
-          className="h-6 text-[10px] px-1 bg-muted/20 border-none hover:bg-muted/40 focus:bg-background/50 transition-colors min-w-0 flex-1 tabular-nums"
+          className="h-6 text-xs px-1 bg-muted/20 border-none hover:bg-muted/40 focus:bg-background/50 transition-colors min-w-0 flex-1 tabular-nums"
         />
       </div>
       <div className="flex-1 flex items-center min-w-0">
-        <span className="text-[8px] font-black text-green-500/90 w-2.5 text-center mr-0.5">Y</span>
+        <span className="text-xs font-black text-green-500/90 w-2.5 text-center mr-0.5">Y</span>
         <NumberInput
           value={value.y}
           onChange={(v) => handleChange("y", v)}
           step={step}
           precision={precision}
-          className="h-6 text-[10px] px-1 bg-muted/20 border-none hover:bg-muted/40 focus:bg-background/50 transition-colors min-w-0 flex-1 tabular-nums"
+          className="h-6 text-xs px-1 bg-muted/20 border-none hover:bg-muted/40 focus:bg-background/50 transition-colors min-w-0 flex-1 tabular-nums"
         />
       </div>
       <div className="flex-1 flex items-center min-w-0">
-        <span className="text-[8px] font-black text-blue-500/90 w-2.5 text-center mr-0.5">Z</span>
+        <span className="text-xs font-black text-blue-500/90 w-2.5 text-center mr-0.5">Z</span>
         <NumberInput
           value={value.z}
           onChange={(v) => handleChange("z", v)}
           step={step}
           precision={precision}
-          className="h-6 text-[10px] px-1 bg-muted/20 border-none hover:bg-muted/40 focus:bg-background/50 transition-colors min-w-0 flex-1 tabular-nums"
+          className="h-6 text-xs px-1 bg-muted/20 border-none hover:bg-muted/40 focus:bg-background/50 transition-colors min-w-0 flex-1 tabular-nums"
         />
       </div>
     </div>

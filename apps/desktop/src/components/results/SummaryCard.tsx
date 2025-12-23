@@ -78,8 +78,8 @@ export function SummaryCard({
   }
 
   return (
-    <div className={cn("rounded-lg border border-border bg-card p-3", className)}>
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
+    <div className={cn("rounded-2xl border border-border bg-card p-3", className)}>
+      <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
       <p className={cn("text-lg font-mono font-semibold mt-0.5", statusColors[status])}>
         {typeof displayValue === "number" ? displayValue.toFixed(precision) : displayValue}
         {unitLabel && <span className="text-xs text-muted-foreground ml-1">{unitLabel}</span>}

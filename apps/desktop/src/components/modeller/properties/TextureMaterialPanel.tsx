@@ -17,11 +17,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Separator,
   Slider,
 } from "@cadhy/ui"
 import { PaintBrush01Icon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
@@ -31,6 +29,7 @@ import {
   TEXTURE_CATEGORIES,
   type TextureInfo,
 } from "@/services/texture-service"
+import { PropertySection } from "./shared/PropertySection"
 
 // ============================================================================
 // TYPES
@@ -72,8 +71,8 @@ function TexturePreview({ texture, isSelected, isLoading, onClick }: TexturePrev
         onClick={onClick}
         disabled={isLoading}
         className={cn(
-          "relative aspect-[16/9] w-full rounded-md overflow-hidden transition-all duration-200",
-          "border border-zinc-500/30 hover:border-primary/50 bg-muted outline-none",
+          "relative aspect-[16/9] w-full rounded-2xl overflow-hidden transition-all duration-200",
+          "border border-border hover:border-primary/50 bg-muted outline-none",
           isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background border-primary"
         )}
         title={texture.name}
@@ -106,7 +105,7 @@ function TexturePreview({ texture, isSelected, isLoading, onClick }: TexturePrev
           </div>
         )}
       </button>
-      <span className="text-[10px] text-muted-foreground group-hover:text-foreground transition-colors truncate px-0.5">
+      <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors truncate px-0.5">
         {texture.name}
       </span>
     </div>
@@ -127,7 +126,7 @@ export function TextureMaterialPanel({
   onRepeatChange,
 }: TextureMaterialPanelProps) {
   const { t } = useTranslation()
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [selectedCategory, setSelectedCategory] = useState<string>("concrete")
   const [isLoading, setIsLoading] = useState(false)
   const [textures, setTextures] = useState<TextureInfo[]>([])
   const [isLoadingTexture, setIsLoadingTexture] = useState(false)
@@ -178,35 +177,31 @@ export function TextureMaterialPanel({
 
   if (!postProcessingEnabled) {
     return (
-      <div className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <HugeiconsIcon icon={PaintBrush01Icon} className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">
-            {t("modeller.properties.textures.title", "PBR Textures")}
-          </span>
-        </div>
+      <PropertySection
+        title={t("modeller.properties.textures.title", "PBR Textures")}
+        icon={PaintBrush01Icon}
+        defaultOpen={false}
+      >
         <p className="text-xs text-muted-foreground">
           {t(
             "modeller.properties.textures.enablePostProcessing",
             "Enable post-processing in viewport settings to use PBR textures."
           )}
         </p>
-      </div>
+      </PropertySection>
     )
   }
 
   return (
-    <div className="flex flex-col h-full bg-background/50">
-      <div className="px-3 pt-3 pb-2 space-y-3">
-        <div className="flex items-center gap-2">
-          <HugeiconsIcon icon={PaintBrush01Icon} className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-            {t("modeller.properties.textures.title", "PBR Textures")}
-          </span>
-        </div>
-
+    <PropertySection
+      title={t("modeller.properties.textures.title", "PBR Textures")}
+      icon={PaintBrush01Icon}
+      defaultOpen={false}
+    >
+      <div className="space-y-3">
+        {/* Category Selector */}
         <Select value={selectedCategory} onValueChange={(val) => val && setSelectedCategory(val)}>
-          <SelectTrigger className="w-full h-8 text-xs bg-muted/30 border-zinc-500/20">
+          <SelectTrigger className="w-full h-8 text-xs bg-muted/30 border-border">
             <SelectValue />
           </SelectTrigger>
           <SelectContent side="bottom" align="center">
@@ -220,46 +215,48 @@ export function TextureMaterialPanel({
             ))}
           </SelectContent>
         </Select>
-      </div>
 
-      <ScrollArea className="flex-1 px-3">
-        {isLoading ? (
-          <div className="grid grid-cols-2 gap-3 py-2">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="flex flex-col gap-1.5 animate-pulse">
-                <div className="aspect-[16/9] w-full rounded-md bg-muted" />
-                <div className="h-2.5 w-1/2 rounded bg-muted" />
-              </div>
-            ))}
-          </div>
-        ) : textures.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 py-2">
-            {textures.map((texture) => (
-              <TexturePreview
-                key={texture.id}
-                texture={texture}
-                isSelected={currentTextureId === texture.id}
-                isLoading={isLoadingTexture}
-                onClick={() => applyTexture(texture)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center min-h-[100px] text-center text-muted-foreground">
-            <p className="text-xs">
-              {t("modeller.properties.textures.noTextures", "No textures found")}
-            </p>
-          </div>
-        )}
-      </ScrollArea>
+        {/* Texture Grid - contained with proper height and overflow */}
+        <div className="relative h-[180px] rounded-2xl border border-border bg-muted/20 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-2">
+              {isLoading ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex flex-col gap-1.5 animate-pulse">
+                      <div className="aspect-[16/9] w-full rounded-2xl bg-muted" />
+                      <div className="h-2.5 w-1/2 rounded-2xl bg-muted" />
+                    </div>
+                  ))}
+                </div>
+              ) : textures.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {textures.map((texture) => (
+                    <TexturePreview
+                      key={texture.id}
+                      texture={texture}
+                      isSelected={currentTextureId === texture.id}
+                      isLoading={isLoadingTexture}
+                      onClick={() => applyTexture(texture)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center min-h-[60px] text-center text-muted-foreground">
+                  <p className="text-xs">
+                    {t("modeller.properties.textures.noTextures", "No textures found")}
+                  </p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
 
-      <Separator className="my-2 bg-border/40" />
-
-      <div className="px-3 pb-3 space-y-4">
+        {/* Current Texture Info */}
         {currentTextureId && (
-          <div className="bg-muted/30 rounded-lg p-2 border border-zinc-500/10">
+          <div className="bg-muted/30 rounded-2xl p-2 border border-border">
             <div className="flex items-center gap-3">
-              <div className="relative w-12 h-12 rounded-md overflow-hidden shadow-inner bg-zinc-900 border border-white/5 shrink-0">
+              <div className="relative w-10 h-10 rounded-2xl overflow-hidden shadow-inner bg-muted border border-border shrink-0">
                 <img
                   src={`https://cdn.polyhaven.com/asset_img/primary/${currentTextureId}.png?height=128`}
                   alt={currentTextureId}
@@ -267,15 +264,15 @@ export function TextureMaterialPanel({
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium text-zinc-300 truncate">{currentTextureId}</p>
+                <p className="text-xs font-medium text-foreground truncate">{currentTextureId}</p>
                 {textureMaps && (
-                  <div className="flex gap-1.5 mt-1 flex-wrap">
+                  <div className="flex gap-1 mt-1 flex-wrap">
                     {["albedo", "normal", "roughness", "ao"].map(
                       (map) =>
                         textureMaps[map as keyof PBRTextureMaps] && (
                           <span
                             key={map}
-                            className="text-[8px] px-1 rounded bg-zinc-800 text-zinc-500 uppercase font-bold border border-white/5"
+                            className="text-xs px-1 rounded-2xl bg-muted text-muted-foreground uppercase font-bold border border-border"
                           >
                             {map.slice(0, 3)}
                           </span>
@@ -288,16 +285,17 @@ export function TextureMaterialPanel({
           </div>
         )}
 
-        <div className="space-y-2">
+        {/* UV Tiling */}
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-tight">
+            <Label className="text-xs text-muted-foreground uppercase tracking-tight">
               {t("modeller.properties.textures.uvTiling", "UV Tiling")}
             </Label>
-            <span className="text-[10px] font-mono text-zinc-400">
+            <span className="text-xs font-mono text-muted-foreground">
               {((repeatX + repeatY) / 2).toFixed(1)}x
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Slider
               value={[(repeatX + repeatY) / 2]}
               onValueChange={([scale]) => onRepeatChange?.(scale, scale)}
@@ -316,23 +314,24 @@ export function TextureMaterialPanel({
                   onRepeatChange?.(num, num)
                 }
               }}
-              className="w-12 h-6 text-[10px] text-center bg-zinc-900"
+              className="w-10 h-6 text-xs text-center bg-muted"
             />
           </div>
         </div>
 
+        {/* Clear Button */}
         {currentTextureId && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onTexturesChange?.({}, "")}
-            className="w-full h-7 text-[10px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-zinc-500/10"
+            className="w-full h-6 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border"
           >
             {t("modeller.properties.textures.clear", "Clear selection")}
           </Button>
         )}
       </div>
-    </div>
+    </PropertySection>
   )
 }
 

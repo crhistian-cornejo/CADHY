@@ -130,7 +130,7 @@ function SetupStepItem({
 
           {/* Command box */}
           {step.command && (
-            <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50 border border-border/50 font-mono text-xs">
+            <div className="flex items-center gap-2 p-2 rounded-2xl bg-muted/50 border border-border/50 font-mono text-xs">
               <code className="flex-1 select-all break-all">{step.command}</code>
               <CopyButton text={step.command} />
             </div>
@@ -300,7 +300,7 @@ export function SetupInstructionsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-[95vw]" showCloseButton>
         <DialogHeader>
-          <DialogTitle className="text-base">{getTitle()}</DialogTitle>
+          <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription className="text-xs">{getDescription()}</DialogDescription>
         </DialogHeader>
 

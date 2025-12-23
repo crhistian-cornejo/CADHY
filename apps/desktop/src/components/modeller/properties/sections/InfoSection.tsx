@@ -84,25 +84,23 @@ export function InfoSection({ object }: InfoSectionProps) {
       defaultOpen={false}
     >
       <PropertyRow label={t("properties.id")}>
-        <code className="text-[10px] text-muted-foreground font-mono">
-          {object.id.slice(0, 12)}...
-        </code>
+        <code className="text-xs text-muted-foreground font-mono">{object.id.slice(0, 12)}...</code>
       </PropertyRow>
       <PropertyRow label={t("properties.type")}>
-        <Badge variant="outline" className="text-[10px] capitalize">
+        <Badge variant="outline" className="text-xs capitalize">
           {object.type}
         </Badge>
       </PropertyRow>
       {object.type === "shape" && (
         <PropertyRow label={t("properties.volume")}>
-          <span className="text-[10px]">{volume} m³</span>
+          <span className="text-xs">{volume} m³</span>
         </PropertyRow>
       )}
       <PropertyRow label={t("properties.created")}>
-        <span className="text-[10px] text-muted-foreground">{createdDate}</span>
+        <span className="text-xs text-muted-foreground">{createdDate}</span>
       </PropertyRow>
       <PropertyRow label={t("properties.modified")}>
-        <span className="text-[10px] text-muted-foreground">{updatedDate}</span>
+        <span className="text-xs text-muted-foreground">{updatedDate}</span>
       </PropertyRow>
     </PropertySection>
   )

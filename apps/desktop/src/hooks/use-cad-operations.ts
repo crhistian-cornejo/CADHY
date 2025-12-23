@@ -18,6 +18,8 @@ export interface OperationDialogState {
   title: string
   description: string
   label: string
+  /** Interactive mode - uses edge gizmos instead of dialog */
+  interactiveMode: boolean
 }
 
 export function useCADOperations() {
@@ -31,6 +33,7 @@ export function useCADOperations() {
     title: "",
     description: "",
     label: "",
+    interactiveMode: true, // Default to interactive mode
   })
 
   // Execute Fillet operation
@@ -42,28 +45,32 @@ export function useCADOperations() {
       }
 
       const selectedObject = selectedObjects[0]
-      console.log("[CAD Operations] Selected object:", selectedObject)
+      console.log("[CAD Operations] === FILLET OPERATION ===")
+      console.log("[CAD Operations] Selected object ID:", selectedObject.id)
+      console.log("[CAD Operations] Selected object type:", selectedObject.type)
+      console.log("[CAD Operations] Selected object name:", selectedObject.name)
+      console.log("[CAD Operations] Metadata:", JSON.stringify(selectedObject.metadata, null, 2))
+      console.log("[CAD Operations] shapeIdMap size:", shapeIdMap.size)
       console.log("[CAD Operations] shapeIdMap contents:", Array.from(shapeIdMap.entries()))
 
       // Try to get backend ID from shapeIdMap first, then from metadata as fallback
       let backendId = shapeIdMap.get(selectedObject.id)
-      console.log("[CAD Operations] Looking for backend ID for scene object:", selectedObject.id)
-      console.log("[CAD Operations] Found backend ID in map:", backendId)
+      console.log("[CAD Operations] Backend ID from shapeIdMap:", backendId)
 
       // Fallback: try to get from metadata
       if (!backendId && selectedObject.metadata?.backendShapeId) {
-        backendId = selectedObject.metadata.backendShapeId
+        backendId = selectedObject.metadata.backendShapeId as string
         console.log("[CAD Operations] Using backend ID from metadata:", backendId)
         // Register it in the map for future use
         shapeIdMap.set(selectedObject.id, backendId)
       }
 
       if (!backendId) {
-        console.error(
-          "[CAD Operations] Shape not found in backend. Object metadata:",
-          selectedObject.metadata
-        )
-        toast.error(`Shape not found in backend. Object ID: ${selectedObject.id}`)
+        console.error("[CAD Operations] === SHAPE NOT FOUND ===")
+        console.error("[CAD Operations] Failed to find backend shape ID")
+        console.error("[CAD Operations] This usually means the object was created incorrectly")
+        console.error("[CAD Operations] Try creating a new object and applying the operation to it")
+        toast.error("Shape not found in backend. Try creating a new object.")
         return false
       }
 
@@ -265,6 +272,7 @@ export function useCADOperations() {
       title: config.title,
       description: config.description,
       label: config.label,
+      interactiveMode: true, // Use interactive mode by default
     })
   }, [])
 
@@ -299,12 +307,18 @@ export function useCADOperations() {
     }
   }, [dialogState, executeFillet, executeChamfer, executeShell, closeDialog])
 
+  // Toggle interactive mode
+  const toggleInteractiveMode = useCallback(() => {
+    setDialogState((prev) => ({ ...prev, interactiveMode: !prev.interactiveMode }))
+  }, [])
+
   return {
     dialogState,
     openOperationDialog,
     closeDialog,
     applyOperation,
     setDialogValue: (value: string) => setDialogState((prev) => ({ ...prev, value })),
+    toggleInteractiveMode,
     executeFillet,
     executeChamfer,
     executeShell,

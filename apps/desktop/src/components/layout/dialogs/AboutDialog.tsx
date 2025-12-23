@@ -108,23 +108,21 @@ License: ${systemInfo.license}`
         {/* Header */}
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10 p-1.5">
+            <div className="flex items-center justify-center size-10 rounded-2xl bg-primary/10 p-1.5">
               <img src="/LOGO.png" alt="CADHY" className="size-full object-contain" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <DialogTitle className="text-base font-semibold">
-                  {systemInfo?.appName ?? "CADHY"}
-                </DialogTitle>
+                <DialogTitle>{systemInfo?.appName ?? "CADHY"}</DialogTitle>
                 {systemInfo && (
-                  <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0">
+                  <Badge variant="secondary" className="font-mono text-xs px-1.5 py-0">
                     v{systemInfo.build.version}
                   </Badge>
                 )}
                 {systemInfo?.build.buildProfile === "debug" && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] px-1 py-0 text-yellow-600 border-yellow-500/50"
+                    className="text-xs px-1 py-0 text-yellow-600 border-yellow-500/50"
                   >
                     DEBUG
                   </Badge>
@@ -254,12 +252,12 @@ License: ${systemInfo.license}`
                       onClick={handleOpenUrl}
                     />
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <HugeiconsIcon icon={ShieldKeyIcon} className="size-3" />
                     <span>{t("about.license")}:</span>
                     <span className="font-medium text-foreground">{systemInfo.license}</span>
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     <span>{t("about.authors")}: </span>
                     <span className="text-foreground">{systemInfo.authors.join(", ")}</span>
                   </div>
@@ -273,7 +271,7 @@ License: ${systemInfo.license}`
                 title={t("about.thirdParty")}
                 icon={<HugeiconsIcon icon={Link01Icon} className="size-3.5" />}
               >
-                <div className="text-[10px] text-muted-foreground space-y-0.5">
+                <div className="text-xs text-muted-foreground space-y-0.5">
                   <p>Tauri (MIT/Apache-2.0)</p>
                   <p>React (MIT)</p>
                   <p>Zustand (MIT)</p>
@@ -377,11 +375,11 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-2 group">
-      <span className="text-[10px] text-muted-foreground truncate">{label}</span>
+      <span className="text-xs text-muted-foreground truncate">{label}</span>
       <div className="flex items-center gap-1">
         <span
           className={cn(
-            "text-[10px] truncate",
+            "text-xs truncate",
             mono && "font-mono",
             highlight && "text-green-600 dark:text-green-400 font-medium"
           )}
@@ -392,7 +390,7 @@ function InfoRow({
           <button
             type="button"
             onClick={onCopy}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-accent rounded"
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-accent rounded-2xl"
             title="Copy"
           >
             {copied ? (

@@ -239,7 +239,7 @@ export const AIImagePreview = forwardRef<HTMLDivElement, AIImagePreviewProps>(
         ref={ref}
         data-slot="ai-image-preview"
         className={cn(
-          "relative overflow-hidden rounded-lg bg-muted",
+          "relative overflow-hidden rounded-2xl bg-muted",
           status === "loading" && showSkeleton && "animate-pulse",
           lightbox && status === "loaded" && "cursor-zoom-in",
           className
@@ -298,7 +298,7 @@ export const AIImagePreview = forwardRef<HTMLDivElement, AIImagePreviewProps>(
               <img
                 src={src}
                 alt={alt}
-                className="max-w-full max-h-[90vh] rounded-lg object-contain"
+                className="max-w-full max-h-[90vh] rounded-2xl object-contain"
               />
             )}
           </DialogContent>
@@ -320,7 +320,7 @@ export function AIImageActions({ children, className, ...props }: AIImageActions
     <div
       data-slot="ai-image-actions"
       className={cn(
-        "absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/50 p-1",
+        "absolute bottom-2 right-2 flex items-center gap-1 rounded-2xl bg-black/50 p-1",
         "opacity-0 transition-opacity group-hover:opacity-100",
         className
       )}
@@ -418,7 +418,7 @@ export function AIImageSkeleton({
     <div
       data-slot="ai-image-skeleton"
       className={cn(
-        "animate-pulse rounded-lg bg-muted",
+        "animate-pulse rounded-2xl bg-muted",
         "flex items-center justify-center",
         className
       )}

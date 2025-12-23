@@ -20,7 +20,8 @@
     "yes": "Yes",
     "no": "No",
     "rename": "Rename",
-    "apply": "Apply"
+    "apply": "Apply",
+    "more": "More"
   },
   "camera": {
     "savedViews": "Saved Views",
@@ -58,6 +59,7 @@
   "sidebar": {
     "home": "Home",
     "newProject": "New Project",
+    "gallery": "AI Gallery",
     "open": "Open",
     "examples": "Examples",
     "workspace": "Workspace",
@@ -203,6 +205,35 @@
       "sceneTooltip": "Scene outliner",
       "checks": "Checks",
       "checksTooltip": "Design checks and warnings"
+    },
+    "properties": {
+      "textures": {
+        "title": "PBR Textures",
+        "enablePostProcessing": "Enable post-processing in viewport settings to use PBR textures.",
+        "allMaterials": "All materials",
+        "noTextures": "No textures found",
+        "uvTiling": "UV Tiling",
+        "clear": "Clear selection",
+        "categories": {
+          "concrete": "Concrete",
+          "wood": "Wood",
+          "metal": "Metal",
+          "brick": "Brick",
+          "stone": "Stone",
+          "fabric": "Fabric",
+          "plastic": "Plastic",
+          "ceramic": "Ceramic",
+          "marble": "Marble",
+          "plaster": "Plaster",
+          "asphalt": "Asphalt",
+          "gravel": "Gravel",
+          "sand": "Sand",
+          "grass": "Grass",
+          "soil": "Soil",
+          "rock": "Rock",
+          "water": "Water"
+        }
+      }
     }
   },
   "properties": {
@@ -272,7 +303,11 @@
       "bottomB": "Bottom (b)",
       "sideSlope": "Side Slope (z)",
       "diameterD": "Diameter (D)"
-    }
+    },
+    "objects": "objects",
+    "multipleEditInfo": "Changes will apply to all selected objects",
+    "bimInformation": "BIM Information",
+    "showTable": "Show Table"
   },
   "createPanel": {
     "primitives": "3D Primitives",
@@ -386,7 +421,38 @@
       "inletDesc": "Expansion entrance",
       "outlet": "Outlet",
       "outletDesc": "Contraction exit"
-    }
+    },
+    "manning": "Manning n",
+    "freeboard": "Freeboard",
+    "wall": "Wall (e)",
+    "slopeSymbol": "Slope (S₀)",
+    "lengthSymbol": "Length (L)",
+    "widthSymbol": "Width (b)",
+    "depthSymbol": "Depth (y)",
+    "bottomSymbol": "Bottom (b)",
+    "slopeZ": "Slope (z)",
+    "rectangular": "Rectangular",
+    "trapezoidal": "Trapezoidal",
+    "triangular": "Triangular",
+    "stationLabel": "Station",
+    "elevLabel": "Elev.",
+    "endStationLabel": "End Station:",
+    "endElevLabel": "End Elevation:",
+    "chuteType": "Chute Type",
+    "stepHeight": "Step Height",
+    "stepLength": "Step Length",
+    "baffleSpacing": "Baffle Spacing",
+    "baffleHeight": "Baffle Height",
+    "autoDesign": "Auto Design",
+    "discharge": "Discharge Q",
+    "recommended": "Recommended",
+    "outletVelocity": "Outlet Velocity",
+    "froudeNumber": "Froude Number",
+    "dropH": "Drop (H)",
+    "inletL": "Inlet L",
+    "inletSlope": "Inlet Slope",
+    "mainChute": "Main Chute",
+    "startPos": "Start Position"
   },
   "layersPanel": {
     "title": "Layers",
@@ -411,6 +477,7 @@
   },
   "scenePanel": {
     "searchObjects": "Search objects...",
+    "addArea": "Add Area",
     "filter": "Filter",
     "all": "All",
     "shapes": "Shapes",
@@ -420,6 +487,30 @@
     "byName": "By Name",
     "byType": "By Type",
     "byCreated": "By Created",
+    "byArea": "By Area",
+    "sortModes": {
+      "area": "area",
+      "name": "name",
+      "type": "type",
+      "created": "created"
+    },
+    "types": {
+      "shape": "Shape",
+      "channel": "Channel",
+      "transition": "Transition",
+      "chute": "Chute",
+      "structure": "Structure",
+      "annotation": "Annotation",
+      "alignment": "Alignment"
+    },
+    "shapeTypes": {
+      "box": "Box",
+      "sphere": "Sphere",
+      "cylinder": "Cylinder",
+      "cone": "Cone",
+      "torus": "Torus",
+      "plane": "Plane"
+    },
     "selectAll": "All",
     "selectNone": "None",
     "emptyScene": "Empty Scene",
@@ -434,7 +525,13 @@
     "lock": "Lock",
     "unlock": "Unlock",
     "duplicate": "Duplicate",
-    "delete": "Delete"
+    "delete": "Delete",
+    "renameArea": "Rename Area",
+    "deleteArea": "Delete Area",
+    "material": "Material",
+    "materialColor": "Material Color",
+    "unassigned": "Unassigned",
+    "emptyArea": "No objects in this area"
   },
   "designChecks": {
     "title": "Design Checks",
@@ -823,5 +920,56 @@
     "tooltipPending": "Update available - Click to view changelog",
     "tooltipInstalled": "App updated successfully - See what's new",
     "clickToViewChangelog": "Click to view full changelog on GitHub"
+  },
+  "bim": {
+    "identification": "Identification",
+    "objectId": "Object ID",
+    "objectType": "Type",
+    "name": "Name",
+    "geometry": "Geometry",
+    "shapeType": "Shape Type",
+    "sectionType": "Section Type",
+    "dimensions": "Dimensions",
+    "width": "Width",
+    "height": "Height",
+    "depth": "Depth",
+    "radius": "Radius",
+    "length": "Length",
+    "bottomWidth": "Bottom Width",
+    "freeBoard": "Free Board",
+    "thickness": "Wall Thickness",
+    "quantities": "Quantities",
+    "volume": "Volume",
+    "surfaceArea": "Surface Area",
+    "waterVolume": "Water Volume",
+    "crossSectionArea": "Cross Section Area",
+    "wetSurfaceArea": "Wet Surface Area",
+    "concreteVolume": "Concrete Volume",
+    "costs": "Costs",
+    "materialCost": "Material Cost",
+    "formworkCost": "Formwork Cost",
+    "concreteCost": "Concrete Cost",
+    "totalEstimate": "Total Estimate",
+    "hydraulics": "Hydraulics",
+    "slope": "Slope",
+    "manningN": "Manning's n",
+    "metadata": "Metadata",
+    "created": "Created",
+    "modified": "Modified",
+    "state": "State",
+    "visible": "Visible",
+    "locked": "Locked",
+    "fullTable": "BIM Data Explorer",
+    "properties": "Properties",
+    "categories": "Categories",
+    "keyMetrics": "Key Metrics",
+    "searchProperties": "Search properties...",
+    "allCategories": "All",
+    "items": "items",
+    "property": "Property",
+    "value": "Value",
+    "unit": "Unit",
+    "noResults": "No matching properties found",
+    "clearFilters": "Clear filters"
   }
 }

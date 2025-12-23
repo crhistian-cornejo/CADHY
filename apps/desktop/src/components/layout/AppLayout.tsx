@@ -12,7 +12,7 @@ import {
   toast,
 } from "@cadhy/ui"
 import {
-  Add01Icon,
+  Album01Icon,
   Analytics01Icon,
   BookOpen01Icon,
   CubeIcon,
@@ -31,6 +31,7 @@ import { useTranslation } from "react-i18next"
 import { AIChatPanel } from "@/components/ai"
 import { CommandPalette, useCommandPalette } from "@/components/command-palette"
 import { ChatErrorBoundary, UpdateBadge } from "@/components/common"
+import { GalleryView } from "@/components/gallery"
 import { ModellerView } from "@/components/modeller"
 import { NewProjectDialog, OpenProjectDialog, ProjectsView } from "@/components/project"
 import {
@@ -225,6 +226,8 @@ export function AppLayout() {
                   <WorkInProgress feature={t("wip.features.resultsVisualization")} />
                 ) : currentView === "examples" ? (
                   <WorkInProgress feature={t("wip.features.examplesLibrary")} />
+                ) : currentView === "gallery" ? (
+                  <GalleryView />
                 ) : (
                   <div className="flex h-full items-center justify-center bg-background">
                     <div className="text-center">
@@ -329,7 +332,7 @@ export function AppLayout() {
 // File actions
 const fileActions = [
   { id: "projects" as ViewId, icon: Home01Icon, labelKey: "sidebar.home" },
-  { id: "new-project" as ViewId, icon: Add01Icon, labelKey: "sidebar.newProject" },
+  { id: "gallery" as ViewId, icon: Album01Icon, labelKey: "sidebar.gallery" },
   { id: "examples" as ViewId, icon: BookOpen01Icon, labelKey: "sidebar.examples" },
 ]
 
@@ -392,11 +395,7 @@ function Titlebar({
 
   // Handle navigation item clicks
   const handleNavClick = (id: ViewId) => {
-    if (id === "new-project") {
-      onNewProject()
-    } else {
-      setView(id)
-    }
+    setView(id)
   }
 
   return (
@@ -487,7 +486,7 @@ function Titlebar({
             >
               <HugeiconsIcon icon={Search01Icon} className="size-4" />
               <span className="text-xs">{t("titlebar.search")}</span>
-              <kbd className="pointer-events-none ml-2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
+              <kbd className="pointer-events-none ml-2 hidden h-5 select-none items-center gap-1 rounded-2xl border bg-muted px-1.5 font-mono text-xs font-medium sm:flex">
                 <span className="text-xs">{modKey}</span>K
               </kbd>
             </Button>
@@ -633,7 +632,7 @@ function Titlebar({
             >
               <HugeiconsIcon icon={Search01Icon} className="size-4" />
               <span className="text-xs">{t("titlebar.search")}</span>
-              <kbd className="pointer-events-none ml-2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
+              <kbd className="pointer-events-none ml-2 hidden h-5 select-none items-center gap-1 rounded-2xl border bg-muted px-1.5 font-mono text-xs font-medium sm:flex">
                 <span className="text-xs">{modKey}</span>K
               </kbd>
             </Button>

@@ -77,15 +77,15 @@ export function ShortcutsTab() {
             <div className="space-y-1">
               {category.shortcuts.map((shortcut, i) => (
                 <div key={i} className="flex items-center justify-between py-1">
-                  <span className="text-[10px] text-muted-foreground">{shortcut.description}</span>
+                  <span className="text-xs text-muted-foreground">{shortcut.description}</span>
                   <div className="flex items-center gap-0.5">
                     {shortcut.keys.map((key, j) => (
                       <span key={j} className="flex items-center gap-0.5">
-                        <kbd className="min-w-[18px] h-5 px-1 inline-flex items-center justify-center rounded border border-border bg-muted text-[10px] font-mono">
+                        <kbd className="min-w-[18px] h-5 px-1 inline-flex items-center justify-center rounded-2xl border border-border bg-muted text-xs font-mono">
                           {key}
                         </kbd>
                         {j < shortcut.keys.length - 1 && (
-                          <span className="text-muted-foreground text-[10px]">+</span>
+                          <span className="text-muted-foreground text-xs">+</span>
                         )}
                       </span>
                     ))}
@@ -97,7 +97,7 @@ export function ShortcutsTab() {
         </div>
       ))}
       <Separator />
-      <p className="text-[10px] text-muted-foreground text-center">
+      <p className="text-xs text-muted-foreground text-center">
         {t(
           "shortcuts.customizeHint",
           "Keyboard shortcuts will be customizable in a future release"

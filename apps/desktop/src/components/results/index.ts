@@ -6,7 +6,6 @@
 
 export { GvfProfileTable } from "./GvfProfileTable"
 export { GvfSummaryPanel } from "./GvfSummaryPanel"
-export { ResultsPanel } from "./ResultsPanel"
 export { SpecificEnergyChart } from "./SpecificEnergyChart"
 export { SummaryCard } from "./SummaryCard"
 export type {

@@ -137,14 +137,14 @@ export function LogoDropdown({ onNewProject, onOpenProject, dialogActions }: Log
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent side="right" align="start" sideOffset={8} className="w-64 rounded-lg">
+      <DropdownMenuContent side="right" align="start" sideOffset={8} className="w-64 rounded-2xl">
         {/* User Profile Header */}
         <DropdownMenuGroup>
           <DropdownMenuLabel className="p-0 font-normal">
             <div className="flex items-center gap-3 px-2 py-2">
-              <Avatar className="size-10 rounded-lg ring-2 ring-primary/20">
+              <Avatar className="size-10 rounded-2xl ring-2 ring-primary/20">
                 <AvatarImage src={profile.avatar} alt={profile.name} />
-                <AvatarFallback className="rounded-lg text-sm font-medium">
+                <AvatarFallback className="rounded-2xl text-sm font-medium">
                   {profile.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -160,7 +160,7 @@ export function LogoDropdown({ onNewProject, onOpenProject, dialogActions }: Log
 
         {/* File Actions */}
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
             {t("menu.file")}
           </DropdownMenuLabel>
           <DropdownMenuItem onClick={onNewProject}>
@@ -193,7 +193,7 @@ export function LogoDropdown({ onNewProject, onOpenProject, dialogActions }: Log
                         className="flex flex-col items-start gap-0.5"
                       >
                         <span className="font-medium text-sm">{project.name}</span>
-                        <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">
+                        <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                           {project.path}
                         </span>
                       </DropdownMenuItem>
@@ -235,7 +235,7 @@ export function LogoDropdown({ onNewProject, onOpenProject, dialogActions }: Log
 
         {/* View Settings */}
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
             {t("menu.view")}
           </DropdownMenuLabel>
           <DropdownMenuSub>
@@ -291,7 +291,7 @@ export function LogoDropdown({ onNewProject, onOpenProject, dialogActions }: Log
 
         {/* Account */}
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
             {t("menu.account")}
           </DropdownMenuLabel>
           <DropdownMenuItem onClick={dialogActions.openProfile}>

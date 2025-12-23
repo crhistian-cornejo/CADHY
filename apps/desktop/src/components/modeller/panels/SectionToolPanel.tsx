@@ -124,13 +124,13 @@ export function SectionToolPanel() {
         </div>
 
         {sections.length === 0 ? (
-          <div className="rounded-md border border-dashed p-4 text-center">
+          <div className="rounded-2xl border border-dashed p-4 text-center">
             <p className="text-xs text-muted-foreground">No section planes active</p>
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {sections.map((section) => (
-              <div key={section.id} className="rounded-md border bg-card p-3 space-y-3">
+              <div key={section.id} className="rounded-2xl border bg-card p-3 space-y-3">
                 {/* Section Header */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -192,7 +192,7 @@ export function SectionToolPanel() {
       {sections.length > 0 && (
         <>
           <Separator />
-          <div className="rounded-md bg-blue-500/10 border border-blue-500/20 p-3">
+          <div className="rounded-2xl bg-blue-500/10 border border-blue-500/20 p-3">
             <p className="text-xs text-blue-600 dark:text-blue-400">
               💡 Tip: Drag sliders to move section planes and reveal interior details
             </p>
@@ -211,7 +211,7 @@ export function SectionToolPanel() {
               clearAll()
               addSection("xz")
             }}
-            className="rounded-md border bg-card p-2 text-xs hover:bg-accent/50 transition-colors text-left"
+            className="rounded-2xl border bg-card p-2 text-xs hover:bg-accent/50 transition-colors text-left"
           >
             <p className="font-medium">Longitudinal</p>
             <p className="text-muted-foreground">View flow direction</p>
@@ -222,7 +222,7 @@ export function SectionToolPanel() {
               clearAll()
               addSection("yz")
             }}
-            className="rounded-md border bg-card p-2 text-xs hover:bg-accent/50 transition-colors text-left"
+            className="rounded-2xl border bg-card p-2 text-xs hover:bg-accent/50 transition-colors text-left"
           >
             <p className="font-medium">Cross Section</p>
             <p className="text-muted-foreground">View channel profile</p>

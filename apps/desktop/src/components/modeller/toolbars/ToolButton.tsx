@@ -53,13 +53,9 @@ export const ToolButton = React.memo(function ToolButton({
           </Button>
         }
       />
-      <TooltipContent side="bottom" className="flex items-center gap-2">
-        <span>{label}</span>
-        {shortcut && (
-          <kbd className="rounded bg-background/20 px-1.5 py-0.5 text-[10px] font-mono text-inherit">
-            {shortcut}
-          </kbd>
-        )}
+      <TooltipContent side="bottom">
+        {label}
+        {shortcut && <span className="ml-1.5 opacity-70">({shortcut})</span>}
       </TooltipContent>
     </Tooltip>
   )

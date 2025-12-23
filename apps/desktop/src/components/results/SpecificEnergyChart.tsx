@@ -35,7 +35,7 @@ function CustomTooltip({ active, payload, lengthLabel, precision }: CustomToolti
 
   const data = payload[0]?.payload
   return (
-    <div className="bg-popover border border-border rounded-lg p-2 shadow-lg text-xs">
+    <div className="bg-popover border border-border rounded-2xl p-2 shadow-lg text-xs">
       <p className="font-medium mb-1">
         Station: {data?.station?.toFixed(precision)} {lengthLabel}
       </p>
@@ -80,9 +80,9 @@ export function SpecificEnergyChart({ stations, summary }: SpecificEnergyChartPr
             value: `Specific Energy E (${lengthLabel})`,
             position: "bottom",
             offset: 15,
-            className: "fill-muted-foreground text-[10px]",
+            className: "fill-muted-foreground text-xs",
           }}
-          className="text-[10px]"
+          className="text-xs"
           tick={{ fill: "hsl(var(--muted-foreground))" }}
         />
 
@@ -95,9 +95,9 @@ export function SpecificEnergyChart({ stations, summary }: SpecificEnergyChartPr
             value: `Depth y (${lengthLabel})`,
             angle: -90,
             position: "insideLeft",
-            className: "fill-muted-foreground text-[10px]",
+            className: "fill-muted-foreground text-xs",
           }}
-          className="text-[10px]"
+          className="text-xs"
           tick={{ fill: "hsl(var(--muted-foreground))" }}
         />
 
@@ -111,7 +111,7 @@ export function SpecificEnergyChart({ stations, summary }: SpecificEnergyChartPr
           label={{
             value: "yc",
             position: "right",
-            className: "fill-amber-500 text-[10px]",
+            className: "fill-amber-500 text-xs",
           }}
         />
 
@@ -123,7 +123,7 @@ export function SpecificEnergyChart({ stations, summary }: SpecificEnergyChartPr
           label={{
             value: "yn",
             position: "right",
-            className: "fill-emerald-500 text-[10px]",
+            className: "fill-emerald-500 text-xs",
           }}
         />
 
@@ -135,7 +135,7 @@ export function SpecificEnergyChart({ stations, summary }: SpecificEnergyChartPr
           label={{
             value: "Emin",
             position: "top",
-            className: "fill-orange-500 text-[10px]",
+            className: "fill-orange-500 text-xs",
           }}
         />
 

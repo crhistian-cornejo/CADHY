@@ -522,7 +522,7 @@ export function PromptInputToolMenu({
           size="sm"
           className={cn(
             "h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground",
-            "rounded-lg hover:bg-muted/80",
+            "rounded-2xl hover:bg-muted/80",
             className
           )}
         >
@@ -544,7 +544,7 @@ export function PromptInputToolMenu({
             <label
               key={tool.id}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-2 py-2 cursor-pointer",
+                "flex items-center gap-3 rounded-2xl px-2 py-2 cursor-pointer",
                 "hover:bg-accent transition-colors",
                 tool.enabled && "bg-accent/50"
               )}
@@ -772,15 +772,15 @@ export function PromptInputAttachment({ data, className, ...props }: PromptInput
     <div
       data-slot="prompt-input-attachment"
       className={cn(
-        "group relative inline-flex items-center gap-2 rounded-lg bg-muted px-2 py-1",
+        "group relative inline-flex items-center gap-2 rounded-2xl bg-muted px-2 py-1",
         className
       )}
       {...props}
     >
       {data.type === "image" ? (
-        <img src={data.url} alt={data.file.name} className="size-8 rounded object-cover" />
+        <img src={data.url} alt={data.file.name} className="size-8 rounded-2xl object-cover" />
       ) : (
-        <div className="flex size-8 items-center justify-center rounded bg-muted-foreground/10">
+        <div className="flex size-8 items-center justify-center rounded-2xl bg-muted-foreground/10">
           <HugeiconsIcon icon={Image01Icon} className="size-4 text-muted-foreground" />
         </div>
       )}

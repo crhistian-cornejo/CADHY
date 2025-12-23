@@ -12,7 +12,7 @@ export { MenuToolButton, type MenuToolButtonProps } from "./MenuToolButton"
 export { ToolButton, type ToolButtonProps } from "./ToolButton"
 // Utilities
 export { useContainerWidth } from "./use-container-width"
-export { default as VerticalToolbar } from "./VerticalToolbar"
+
 export { ViewButton, type ViewButtonProps } from "./ViewButton"
 export { default as ViewportBottomToolbar } from "./ViewportBottomToolbar"
 export { default as ViewportToolbar } from "./ViewportToolbar"

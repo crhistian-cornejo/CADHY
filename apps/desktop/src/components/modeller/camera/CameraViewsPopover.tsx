@@ -77,7 +77,7 @@ function SavedViewItem({
   return (
     <div
       className={cn(
-        "group flex items-center gap-2 rounded-md p-2 hover:bg-accent/50 transition-colors",
+        "group flex items-center gap-2 rounded-2xl p-2 hover:bg-accent/50 transition-colors",
         isEditing && "bg-accent/50"
       )}
     >
@@ -268,7 +268,7 @@ export function CameraViewsPopover({ className }: CameraViewsPopoverProps) {
       <PopoverContent align="end" className="w-64 p-2.5">
         <div className="space-y-2">
           {/* Header */}
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             {t("camera.savedViews", "Saved Views")}
           </p>
 

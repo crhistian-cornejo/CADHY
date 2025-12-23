@@ -37,6 +37,7 @@ import { createSettingsSlice } from "./settings-slice"
 // Types
 import type { ModellerStore } from "./store-types"
 import { createTemporarySlice } from "./temporary-slice"
+import { createTopologySlice } from "./topology-slice"
 import { createTransformSlice } from "./transform-slice"
 
 // ============================================================================
@@ -134,6 +135,7 @@ export const useModellerStore = create<ModellerStore>()(
       ...createNotificationsSlice(...args),
       ...createTemporarySlice(...args),
       ...createHelpersSlice(...args),
+      ...createTopologySlice(...args),
     }),
     {
       name: "cadhy-modeller",

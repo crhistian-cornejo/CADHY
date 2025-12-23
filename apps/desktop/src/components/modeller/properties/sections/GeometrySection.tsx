@@ -63,7 +63,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("width", v)}
                 step={0.1}
                 min={0.01}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.height")}>
@@ -72,7 +72,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("height", v)}
                 step={0.1}
                 min={0.01}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.depth")}>
@@ -81,7 +81,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("depth", v)}
                 step={0.1}
                 min={0.01}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
           </>
@@ -95,7 +95,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("radius", v)}
                 step={0.1}
                 min={0.01}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.height")}>
@@ -104,7 +104,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("height", v)}
                 step={0.1}
                 min={0.01}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
           </>
@@ -117,7 +117,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
               onChange={(v) => handleParamChange("radius", v)}
               step={0.1}
               min={0.01}
-              className="h-6 text-[10px]"
+              className="h-6 text-xs"
             />
           </PropertyRow>
         )
@@ -130,7 +130,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("bottomRadius", v)}
                 step={0.1}
                 min={0}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.topRadius")}>
@@ -139,7 +139,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("topRadius", v)}
                 step={0.1}
                 min={0}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.height")}>
@@ -148,7 +148,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("height", v)}
                 step={0.1}
                 min={0.01}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
           </>
@@ -162,7 +162,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("majorRadius", v)}
                 step={0.1}
                 min={0.01}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
             <PropertyRow label={t("properties.minorRadius")}>
@@ -171,7 +171,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
                 onChange={(v) => handleParamChange("minorRadius", v)}
                 step={0.1}
                 min={0.01}
-                className="h-6 text-[10px]"
+                className="h-6 text-xs"
               />
             </PropertyRow>
           </>
@@ -184,7 +184,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
   return (
     <PropertySection title={t("properties.geometry")} icon={CubeIcon}>
       <PropertyRow label={t("properties.type")}>
-        <Badge variant="outline" className="text-[10px] capitalize">
+        <Badge variant="outline" className="text-xs capitalize">
           {object.shapeType}
         </Badge>
       </PropertyRow>
@@ -202,7 +202,7 @@ export function GeometrySection({ object, onUpdate }: GeometrySectionProps) {
               step={segmentLimits.step}
               className="flex-1 h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
             />
-            <span className="text-[10px] text-muted-foreground font-mono w-8 text-right">
+            <span className="text-xs text-muted-foreground font-mono w-8 text-right">
               {currentSegments}
             </span>
           </div>

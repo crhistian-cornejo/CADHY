@@ -120,11 +120,11 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
         {/* Header */}
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+            <div className="flex items-center justify-center size-10 rounded-2xl bg-primary/10">
               <span className="text-lg">&#x2328;</span>
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-semibold">{t("shortcuts.title")}</DialogTitle>
+              <DialogTitle>{t("shortcuts.title")}</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 {t("shortcuts.description")}
               </DialogDescription>
@@ -156,7 +156,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
 
         {/* Footer */}
         <DialogFooter className="flex items-center justify-between gap-2 px-4 py-3 border-t border-border/50 bg-muted/30">
-          <p className="text-[10px] text-muted-foreground">{t("shortcuts.customizeHint")}</p>
+          <p className="text-xs text-muted-foreground">{t("shortcuts.customizeHint")}</p>
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             {t("common.close")}
           </Button>
@@ -193,14 +193,14 @@ function ShortcutSection({
 function ShortcutRow({ keys, description }: { keys: string[]; description: string }) {
   return (
     <div className="flex items-center justify-between py-1">
-      <span className="text-[10px] text-muted-foreground">{description}</span>
+      <span className="text-xs text-muted-foreground">{description}</span>
       <div className="flex items-center gap-0.5">
         {keys.map((key, i) => (
           <span key={i} className="flex items-center gap-0.5">
-            <kbd className="min-w-[18px] h-5 px-1 inline-flex items-center justify-center rounded border border-border bg-muted text-[10px] font-mono">
+            <kbd className="min-w-[18px] h-5 px-1 inline-flex items-center justify-center rounded-2xl border border-border bg-muted text-xs font-mono">
               {key}
             </kbd>
-            {i < keys.length - 1 && <span className="text-muted-foreground text-[10px]">+</span>}
+            {i < keys.length - 1 && <span className="text-muted-foreground text-xs">+</span>}
           </span>
         ))}
       </div>

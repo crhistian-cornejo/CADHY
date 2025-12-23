@@ -24,7 +24,6 @@ import {
   type MaterialProperties,
   type ShapeObject,
   type TransitionObject,
-  useLayers,
   useModellerStore,
   useSelectedIds,
   useViewportSettings,
@@ -32,9 +31,8 @@ import {
 import { ChannelPropertiesPanel } from "./panels/ChannelPropertiesPanel"
 import { ChutePropertiesPanel } from "./panels/ChutePropertiesPanel"
 import { TransitionPropertiesPanel } from "./panels/TransitionPropertiesPanel"
+import { BIMInfoSection } from "./sections/BIMInfoSection"
 import { GeometrySection } from "./sections/GeometrySection"
-import { InfoSection } from "./sections/InfoSection"
-import { LayerStateSection } from "./sections/LayerStateSection"
 import { MaterialSection } from "./sections/MaterialSection"
 import { PropertyRow } from "./shared/PropertyRow"
 import { MultipleSelection } from "./states/MultipleSelection"
@@ -57,7 +55,6 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
   const { t } = useTranslation()
   const selectedIds = useSelectedIds()
   const objects = useModellerStore((s) => s.objects)
-  const layers = useLayers()
   const viewportSettings = useViewportSettings()
   const updateObject = useModellerStore((s) => s.updateObject)
   const deleteSelected = useModellerStore((s) => s.deleteSelected)
@@ -174,7 +171,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
                 <Input
                   value={selectedObject.name}
                   onChange={(e) => handleUpdate({ name: e.target.value })}
-                  className="h-6 text-[10px]"
+                  className="h-6 text-xs"
                 />
               </PropertyRow>
             </div>
@@ -262,11 +259,8 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
               />
             )}
 
-            {/* Layer & State */}
-            <LayerStateSection object={selectedObject} layers={layers} onUpdate={handleUpdate} />
-
-            {/* Info */}
-            <InfoSection object={selectedObject} />
+            {/* BIM Information */}
+            <BIMInfoSection object={selectedObject} />
           </div>
         )}
       </ScrollArea>
