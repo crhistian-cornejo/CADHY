@@ -25,7 +25,7 @@ import type {
   OrbitControls as OrbitControlsImpl,
   TransformControls as TransformControlsImpl,
 } from "three-stdlib"
-import { shapeIdMap, useCAD } from "@/hooks/use-cad"
+import { shapeIdMap } from "@/hooks/use-cad"
 import { useCADOperations } from "@/hooks/use-cad-operations"
 import { useTopologicalSelection } from "@/hooks/use-topological-selection"
 import { useTopology } from "@/hooks/use-topology"
