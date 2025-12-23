@@ -164,7 +164,6 @@ function calculateChannelMetrics(channel: ChannelObject): {
 } {
   const length = channel.length ?? 0
   const thickness = channel.thickness ?? 0.15
-  const freeBoard = channel.freeBoard ?? 0.3
   const section = channel.section
 
   let crossSectionArea = 0
