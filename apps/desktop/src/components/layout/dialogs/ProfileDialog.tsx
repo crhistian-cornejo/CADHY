@@ -95,7 +95,8 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-sm w-[95vw] p-0 gap-0 overflow-hidden"
+        size="lg"
+        className="w-[95vw] p-0 gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* Header */}

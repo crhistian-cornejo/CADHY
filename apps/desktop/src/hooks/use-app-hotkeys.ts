@@ -24,6 +24,7 @@ interface UseAppHotkeysOptions {
   onOpenShortcuts?: () => void
   onNewProject?: () => void
   onOpenProject?: () => void
+  onSaveProjectAs?: () => void
 }
 
 // ============================================================================
@@ -34,8 +35,14 @@ interface UseAppHotkeysOptions {
  * Register all application-wide keyboard shortcuts
  */
 export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
-  const { onOpenCommandPalette, onOpenSettings, onOpenShortcuts, onNewProject, onOpenProject } =
-    options
+  const {
+    onOpenCommandPalette,
+    onOpenSettings,
+    onOpenShortcuts,
+    onNewProject,
+    onOpenProject,
+    onSaveProjectAs,
+  } = options
 
   // ========== VIEW HOTKEYS ==========
 
@@ -217,6 +224,17 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
         state.saveCurrentProject()
       }
     }, [])
+  )
+
+  useHotkey(
+    {
+      id: "file.saveAs",
+      name: "Save As",
+      description: "Save the current project to a new location",
+      category: "file",
+      keys: ["$mod+Shift+S"],
+    },
+    useCallback(() => onSaveProjectAs?.(), [onSaveProjectAs])
   )
 
   useHotkey(

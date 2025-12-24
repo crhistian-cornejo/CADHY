@@ -39,7 +39,13 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import type { AnySceneObject, ChannelObject, ShapeObject } from "@/stores/modeller"
+import type {
+  AnySceneObject,
+  ChannelObject,
+  ChuteObject,
+  ShapeObject,
+  TransitionObject,
+} from "@/stores/modeller"
 import { PropertySection } from "../shared/PropertySection"
 
 // ============================================================================
@@ -70,12 +76,19 @@ const MATERIAL_COSTS = {
 
 const FORMWORK_COST = 25 // USD per m² of surface area
 
+// Structural constants
+const SOLADO_THICKNESS = 0.1 // Standard solado thickness in meters (10 cm)
+const STEEL_GRADE = "Grade 60" // ASTM A615 Grade 60
+const STEEL_FY = 420 // MPa (60 ksi)
+const MIN_REBAR_RATIO = 0.0018 // ρ_min for walls/channels (ACI 318)
+
 // Category colors for visual distinction
 const CATEGORY_COLORS: Record<string, string> = {
   Identification: "bg-blue-500/10 text-blue-500 border-blue-500/30",
   Geometry: "bg-purple-500/10 text-purple-500 border-purple-500/30",
   Dimensions: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
   Quantities: "bg-amber-500/10 text-amber-500 border-amber-500/30",
+  Structural: "bg-orange-500/10 text-orange-500 border-orange-500/30",
   Hydraulics: "bg-cyan-500/10 text-cyan-500 border-cyan-500/30",
   Costs: "bg-rose-500/10 text-rose-500 border-rose-500/30",
   Metadata: "bg-slate-500/10 text-slate-500 border-slate-500/30",
@@ -209,6 +222,124 @@ function calculateChannelMetrics(channel: ChannelObject): {
     concreteVolume,
     length,
     crossSectionArea,
+    wetPerimeter,
+  }
+}
+
+function calculateTransitionMetrics(transition: TransitionObject): {
+  volume: number
+  surfaceArea: number
+  concreteVolume: number
+  length: number
+  crossSectionArea: number
+  wetPerimeter: number
+} {
+  const length = transition.length ?? 0
+  const inlet = transition.inlet
+  const outlet = transition.outlet
+
+  // Calculate inlet section
+  let inletArea = 0
+  let inletPerimeter = 0
+  if (inlet) {
+    const w = inlet.width ?? 0
+    const d = inlet.depth ?? 0
+    const z = inlet.sideSlope ?? 0
+    if (inlet.sectionType === "rectangular") {
+      inletArea = w * d
+      inletPerimeter = w + 2 * d
+    } else if (inlet.sectionType === "trapezoidal") {
+      const topWidth = w + 2 * z * d
+      inletArea = ((w + topWidth) / 2) * d
+      const sideLength = Math.sqrt(d * d + z * d * (z * d))
+      inletPerimeter = w + 2 * sideLength
+    }
+  }
+
+  // Calculate outlet section
+  let outletArea = 0
+  let outletPerimeter = 0
+  if (outlet) {
+    const w = outlet.width ?? 0
+    const d = outlet.depth ?? 0
+    const z = outlet.sideSlope ?? 0
+    if (outlet.sectionType === "rectangular") {
+      outletArea = w * d
+      outletPerimeter = w + 2 * d
+    } else if (outlet.sectionType === "trapezoidal") {
+      const topWidth = w + 2 * z * d
+      outletArea = ((w + topWidth) / 2) * d
+      const sideLength = Math.sqrt(d * d + z * d * (z * d))
+      outletPerimeter = w + 2 * sideLength
+    }
+  }
+
+  // Average values (prismoidal approximation)
+  const avgArea = (inletArea + outletArea) / 2
+  const avgPerimeter = (inletPerimeter + outletPerimeter) / 2
+  const avgThickness = ((inlet?.wallThickness ?? 0.15) + (outlet?.wallThickness ?? 0.15)) / 2
+
+  const waterVolume = avgArea * length
+  const innerSurfaceArea = avgPerimeter * length
+  const concreteVolume = avgPerimeter * avgThickness * length
+
+  return {
+    volume: waterVolume,
+    surfaceArea: innerSurfaceArea,
+    concreteVolume,
+    length,
+    crossSectionArea: avgArea,
+    wetPerimeter: avgPerimeter,
+  }
+}
+
+function calculateChuteMetrics(chute: ChuteObject): {
+  volume: number
+  surfaceArea: number
+  concreteVolume: number
+  length: number
+  crossSectionArea: number
+  wetPerimeter: number
+  inclinedLength: number
+} {
+  const length = chute.length ?? 0
+  const drop = chute.drop ?? 0
+  const width = chute.width ?? 0
+  const depth = chute.depth ?? 0
+  const sideSlope = chute.sideSlope ?? 0
+  const thickness = chute.thickness ?? 0.15
+
+  // Inclined length (actual surface length)
+  const inclinedLength = Math.sqrt(length * length + drop * drop)
+
+  // Cross section area
+  let crossSectionArea = 0
+  let wetPerimeter = 0
+
+  if (sideSlope === 0) {
+    // Rectangular
+    crossSectionArea = width * depth
+    wetPerimeter = width + 2 * depth
+  } else {
+    // Trapezoidal
+    const topWidth = width + 2 * sideSlope * depth
+    crossSectionArea = ((width + topWidth) / 2) * depth
+    const sideLength = Math.sqrt(depth * depth + sideSlope * depth * (sideSlope * depth))
+    wetPerimeter = width + 2 * sideLength
+  }
+
+  const waterVolume = crossSectionArea * inclinedLength
+  const innerSurfaceArea = wetPerimeter * inclinedLength
+  const concreteVolume = wetPerimeter * thickness * inclinedLength
+
+  return {
+    volume: waterVolume,
+    surfaceArea: innerSurfaceArea,
+    concreteVolume,
+    length,
+    crossSectionArea,
+    wetPerimeter,
+    inclinedLength,
   }
 }
 
@@ -233,6 +364,75 @@ function getCategoryColor(category: string): string {
     if (category.includes(key)) return value
   }
   return "bg-muted text-muted-foreground border-border"
+}
+
+/**
+ * Calculate recommended concrete strength based on structure volume
+ * Returns f'c in MPa (megapascals)
+ */
+function getRecommendedConcreteStrength(concreteVolume: number): {
+  fcMPa: number
+  fcKgCm2: number
+  type: string
+} {
+  // Based on structure size and typical hydraulic structure requirements
+  if (concreteVolume < 5) {
+    // Small structures
+    return { fcMPa: 21, fcKgCm2: 210, type: "Concreto f'c=210 kg/cm²" }
+  }
+  if (concreteVolume < 20) {
+    // Medium structures
+    return { fcMPa: 24, fcKgCm2: 245, type: "Concreto f'c=245 kg/cm²" }
+  }
+  // Large structures
+  return { fcMPa: 28, fcKgCm2: 280, type: "Concreto f'c=280 kg/cm²" }
+}
+
+/**
+ * Calculate required rebar area based on concrete cross-sectional area
+ * Uses minimum reinforcement ratio per ACI 318
+ */
+function calculateRequiredRebarArea(
+  concreteArea: number,
+  thickness: number
+): {
+  rebarArea: number // cm²
+  rebarAreaPerMeter: number // cm²/m
+} {
+  // Convert to cm²
+  const concreteAreaCm2 = concreteArea * 10000
+  const thicknessCm = thickness * 100
+
+  // Calculate gross area for reinforcement
+  const grossArea = concreteAreaCm2
+
+  // As = ρ_min * A_gross
+  const rebarArea = MIN_REBAR_RATIO * grossArea
+
+  // Per meter of length (for walls/channels)
+  const rebarAreaPerMeter = MIN_REBAR_RATIO * (thicknessCm * 100) // per meter width
+
+  return { rebarArea, rebarAreaPerMeter }
+}
+
+/**
+ * Calculate solado (concrete base) properties based on structure footprint
+ */
+function calculateSoladoProperties(
+  length: number,
+  width: number
+): {
+  area: number
+  volume: number
+  thickness: number
+} {
+  const area = length * width
+  const volume = area * SOLADO_THICKNESS
+  return {
+    area,
+    volume,
+    thickness: SOLADO_THICKNESS,
+  }
 }
 
 // ============================================================================
@@ -464,6 +664,482 @@ function useBIMData(object: AnySceneObject) {
         highlight: true,
       })
 
+      // Structural information
+      const concreteSpec = getRecommendedConcreteStrength(metrics.concreteVolume)
+      const rebarCalc = calculateRequiredRebarArea(
+        metrics.wetPerimeter * channel.thickness,
+        channel.thickness
+      )
+      const solado = calculateSoladoProperties(
+        metrics.length,
+        (channel.section?.width ?? 0) + 2 * (channel.thickness ?? 0.15)
+      )
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.concreteType", "Concrete Type"),
+        value: concreteSpec.type,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.concreteStrength", "Concrete Strength (f'c)"),
+        value: `${formatNumber(concreteSpec.fcMPa, 0)} MPa / ${formatNumber(concreteSpec.fcKgCm2, 0)} kg/cm²`,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.steelGrade", "Steel Grade"),
+        value: STEEL_GRADE,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.steelYield", "Steel Yield Strength (fy)"),
+        value: formatNumber(STEEL_FY, 0),
+        unit: "MPa",
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.minRebarRatio", "Minimum Rebar Ratio (ρ_min)"),
+        value: formatNumber(MIN_REBAR_RATIO, 4),
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.rebarArea", "Required Rebar Area"),
+        value: formatNumber(rebarCalc.rebarAreaPerMeter, 2),
+        unit: "cm²/m",
+        highlight: true,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.soladoThickness", "Solado Thickness"),
+        value: formatNumber(solado.thickness),
+        unit: "m",
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.soladoArea", "Solado Area"),
+        value: formatNumber(solado.area),
+        unit: "m²",
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.soladoVolume", "Solado Volume"),
+        value: formatNumber(solado.volume),
+        unit: "m³",
+      })
+
+      const concreteCost = metrics.concreteVolume * MATERIAL_COSTS.concrete
+      const formworkCost = metrics.surfaceArea * FORMWORK_COST
+
+      data.push({
+        category: t("bim.costs", "Costs"),
+        property: t("bim.concreteCost", "Concrete Cost"),
+        value: formatNumber(concreteCost, 2),
+        unit: "USD",
+      })
+
+      data.push({
+        category: t("bim.costs", "Costs"),
+        property: t("bim.formworkCost", "Formwork Cost"),
+        value: formatNumber(formworkCost, 2),
+        unit: "USD",
+      })
+
+      data.push({
+        category: t("bim.costs", "Costs"),
+        property: t("bim.totalEstimate", "Total Estimate"),
+        value: formatNumber(concreteCost + formworkCost, 2),
+        unit: "USD",
+        highlight: true,
+      })
+    }
+
+    // Transition-specific metrics
+    if (object.type === "transition") {
+      const transition = object as TransitionObject
+      const metrics = calculateTransitionMetrics(transition)
+
+      data.push({
+        category: t("bim.geometry", "Geometry"),
+        property: t("bim.transitionType", "Transition Type"),
+        value: transition.transitionType
+          ? transition.transitionType.charAt(0).toUpperCase() + transition.transitionType.slice(1)
+          : "N/A",
+      })
+
+      data.push({
+        category: t("bim.dimensions", "Dimensions"),
+        property: t("bim.length", "Length"),
+        value: formatNumber(metrics.length),
+        unit: "m",
+        highlight: true,
+      })
+
+      // Inlet dimensions
+      if (transition.inlet) {
+        data.push({
+          category: t("bim.dimensions", "Dimensions"),
+          property: t("bim.inletWidth", "Inlet Width"),
+          value: formatNumber(transition.inlet.width),
+          unit: "m",
+        })
+        data.push({
+          category: t("bim.dimensions", "Dimensions"),
+          property: t("bim.inletDepth", "Inlet Depth"),
+          value: formatNumber(transition.inlet.depth),
+          unit: "m",
+        })
+      }
+
+      // Outlet dimensions
+      if (transition.outlet) {
+        data.push({
+          category: t("bim.dimensions", "Dimensions"),
+          property: t("bim.outletWidth", "Outlet Width"),
+          value: formatNumber(transition.outlet.width),
+          unit: "m",
+        })
+        data.push({
+          category: t("bim.dimensions", "Dimensions"),
+          property: t("bim.outletDepth", "Outlet Depth"),
+          value: formatNumber(transition.outlet.depth),
+          unit: "m",
+        })
+      }
+
+      if (transition.inlet?.wallThickness) {
+        data.push({
+          category: t("bim.dimensions", "Dimensions"),
+          property: t("bim.thickness", "Wall Thickness"),
+          value: formatNumber(transition.inlet.wallThickness),
+          unit: "m",
+        })
+      }
+
+      // Hydraulics
+      const slope =
+        transition.length > 0
+          ? Math.abs(transition.endElevation - transition.startElevation) / transition.length
+          : 0
+      data.push({
+        category: t("bim.hydraulics", "Hydraulics"),
+        property: t("bim.slope", "Slope"),
+        value: formatNumber(slope, 5),
+        unit: "m/m",
+      })
+
+      // Quantities
+      data.push({
+        category: t("bim.quantities", "Quantities"),
+        property: t("bim.waterVolume", "Water Volume"),
+        value: formatNumber(metrics.volume),
+        unit: "m³",
+        highlight: true,
+      })
+
+      data.push({
+        category: t("bim.quantities", "Quantities"),
+        property: t("bim.crossSectionArea", "Cross Section Area"),
+        value: formatNumber(metrics.crossSectionArea),
+        unit: "m²",
+      })
+
+      data.push({
+        category: t("bim.quantities", "Quantities"),
+        property: t("bim.wetSurfaceArea", "Wet Surface Area"),
+        value: formatNumber(metrics.surfaceArea),
+        unit: "m²",
+      })
+
+      data.push({
+        category: t("bim.quantities", "Quantities"),
+        property: t("bim.concreteVolume", "Concrete Volume"),
+        value: formatNumber(metrics.concreteVolume),
+        unit: "m³",
+        highlight: true,
+      })
+
+      // Structural information for transition
+      const transitionConcreteSpec = getRecommendedConcreteStrength(metrics.concreteVolume)
+      const transitionRebarCalc = calculateRequiredRebarArea(
+        metrics.wetPerimeter * (transition.inlet?.wallThickness ?? 0.15),
+        transition.inlet?.wallThickness ?? 0.15
+      )
+      const avgWidth = ((transition.inlet?.width ?? 0) + (transition.outlet?.width ?? 0)) / 2
+      const transitionSolado = calculateSoladoProperties(
+        metrics.length,
+        avgWidth + 2 * (transition.inlet?.wallThickness ?? 0.15)
+      )
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.concreteType", "Concrete Type"),
+        value: transitionConcreteSpec.type,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.concreteStrength", "Concrete Strength (f'c)"),
+        value: `${formatNumber(transitionConcreteSpec.fcMPa, 0)} MPa / ${formatNumber(transitionConcreteSpec.fcKgCm2, 0)} kg/cm²`,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.steelGrade", "Steel Grade"),
+        value: STEEL_GRADE,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.steelYield", "Steel Yield Strength (fy)"),
+        value: formatNumber(STEEL_FY, 0),
+        unit: "MPa",
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.minRebarRatio", "Minimum Rebar Ratio (ρ_min)"),
+        value: formatNumber(MIN_REBAR_RATIO, 4),
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.rebarArea", "Required Rebar Area"),
+        value: formatNumber(transitionRebarCalc.rebarAreaPerMeter, 2),
+        unit: "cm²/m",
+        highlight: true,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.soladoThickness", "Solado Thickness"),
+        value: formatNumber(transitionSolado.thickness),
+        unit: "m",
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.soladoArea", "Solado Area"),
+        value: formatNumber(transitionSolado.area),
+        unit: "m²",
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.soladoVolume", "Solado Volume"),
+        value: formatNumber(transitionSolado.volume),
+        unit: "m³",
+      })
+
+      // Costs
+      const concreteCost = metrics.concreteVolume * MATERIAL_COSTS.concrete
+      const formworkCost = metrics.surfaceArea * FORMWORK_COST
+
+      data.push({
+        category: t("bim.costs", "Costs"),
+        property: t("bim.concreteCost", "Concrete Cost"),
+        value: formatNumber(concreteCost, 2),
+        unit: "USD",
+      })
+
+      data.push({
+        category: t("bim.costs", "Costs"),
+        property: t("bim.formworkCost", "Formwork Cost"),
+        value: formatNumber(formworkCost, 2),
+        unit: "USD",
+      })
+
+      data.push({
+        category: t("bim.costs", "Costs"),
+        property: t("bim.totalEstimate", "Total Estimate"),
+        value: formatNumber(concreteCost + formworkCost, 2),
+        unit: "USD",
+        highlight: true,
+      })
+    }
+
+    // Chute-specific metrics
+    if (object.type === "chute") {
+      const chute = object as ChuteObject
+      const metrics = calculateChuteMetrics(chute)
+
+      data.push({
+        category: t("bim.geometry", "Geometry"),
+        property: t("bim.chuteType", "Chute Type"),
+        value: chute.chuteType
+          ? chute.chuteType.charAt(0).toUpperCase() + chute.chuteType.slice(1)
+          : "N/A",
+      })
+
+      data.push({
+        category: t("bim.dimensions", "Dimensions"),
+        property: t("bim.length", "Horizontal Length"),
+        value: formatNumber(metrics.length),
+        unit: "m",
+      })
+
+      data.push({
+        category: t("bim.dimensions", "Dimensions"),
+        property: t("bim.inclinedLength", "Inclined Length"),
+        value: formatNumber(metrics.inclinedLength),
+        unit: "m",
+        highlight: true,
+      })
+
+      data.push({
+        category: t("bim.dimensions", "Dimensions"),
+        property: t("bim.drop", "Drop"),
+        value: formatNumber(chute.drop ?? 0),
+        unit: "m",
+      })
+
+      data.push({
+        category: t("bim.dimensions", "Dimensions"),
+        property: t("bim.width", "Width"),
+        value: formatNumber(chute.width ?? 0),
+        unit: "m",
+      })
+
+      data.push({
+        category: t("bim.dimensions", "Dimensions"),
+        property: t("bim.depth", "Depth"),
+        value: formatNumber(chute.depth ?? 0),
+        unit: "m",
+      })
+
+      if (chute.thickness) {
+        data.push({
+          category: t("bim.dimensions", "Dimensions"),
+          property: t("bim.thickness", "Wall Thickness"),
+          value: formatNumber(chute.thickness),
+          unit: "m",
+        })
+      }
+
+      // Hydraulics
+      data.push({
+        category: t("bim.hydraulics", "Hydraulics"),
+        property: t("bim.slope", "Slope"),
+        value: formatNumber(chute.slope ?? 0, 5),
+        unit: "m/m",
+      })
+
+      data.push({
+        category: t("bim.hydraulics", "Hydraulics"),
+        property: t("bim.manningN", "Manning's n"),
+        value: formatNumber(chute.manningN ?? 0.013, 4),
+      })
+
+      // Quantities
+      data.push({
+        category: t("bim.quantities", "Quantities"),
+        property: t("bim.waterVolume", "Water Volume"),
+        value: formatNumber(metrics.volume),
+        unit: "m³",
+        highlight: true,
+      })
+
+      data.push({
+        category: t("bim.quantities", "Quantities"),
+        property: t("bim.crossSectionArea", "Cross Section Area"),
+        value: formatNumber(metrics.crossSectionArea),
+        unit: "m²",
+      })
+
+      data.push({
+        category: t("bim.quantities", "Quantities"),
+        property: t("bim.wetSurfaceArea", "Wet Surface Area"),
+        value: formatNumber(metrics.surfaceArea),
+        unit: "m²",
+      })
+
+      data.push({
+        category: t("bim.quantities", "Quantities"),
+        property: t("bim.concreteVolume", "Concrete Volume"),
+        value: formatNumber(metrics.concreteVolume),
+        unit: "m³",
+        highlight: true,
+      })
+
+      // Structural information for chute
+      const chuteConcreteSpec = getRecommendedConcreteStrength(metrics.concreteVolume)
+      const chuteRebarCalc = calculateRequiredRebarArea(
+        metrics.wetPerimeter * (chute.thickness ?? 0.15),
+        chute.thickness ?? 0.15
+      )
+      const chuteSolado = calculateSoladoProperties(
+        metrics.inclinedLength,
+        (chute.width ?? 0) + 2 * (chute.thickness ?? 0.15)
+      )
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.concreteType", "Concrete Type"),
+        value: chuteConcreteSpec.type,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.concreteStrength", "Concrete Strength (f'c)"),
+        value: `${formatNumber(chuteConcreteSpec.fcMPa, 0)} MPa / ${formatNumber(chuteConcreteSpec.fcKgCm2, 0)} kg/cm²`,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.steelGrade", "Steel Grade"),
+        value: STEEL_GRADE,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.steelYield", "Steel Yield Strength (fy)"),
+        value: formatNumber(STEEL_FY, 0),
+        unit: "MPa",
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.minRebarRatio", "Minimum Rebar Ratio (ρ_min)"),
+        value: formatNumber(MIN_REBAR_RATIO, 4),
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.rebarArea", "Required Rebar Area"),
+        value: formatNumber(chuteRebarCalc.rebarAreaPerMeter, 2),
+        unit: "cm²/m",
+        highlight: true,
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.soladoThickness", "Solado Thickness"),
+        value: formatNumber(chuteSolado.thickness),
+        unit: "m",
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.soladoArea", "Solado Area"),
+        value: formatNumber(chuteSolado.area),
+        unit: "m²",
+      })
+
+      data.push({
+        category: t("bim.structural", "Structural"),
+        property: t("bim.soladoVolume", "Solado Volume"),
+        value: formatNumber(chuteSolado.volume),
+        unit: "m³",
+      })
+
+      // Costs
       const concreteCost = metrics.concreteVolume * MATERIAL_COSTS.concrete
       const formworkCost = metrics.surfaceArea * FORMWORK_COST
 
@@ -583,42 +1259,19 @@ function BIMTableSheet({
     return data
   }, [bimData, activeCategory, searchQuery])
 
-  // Stats for header
-  const stats = useMemo(() => {
-    const totalProps = bimData.length
-    const categoriesCount = categories.length
-    const highlightedCount = bimData.filter((d) => d.highlight).length
-    return { totalProps, categoriesCount, highlightedCount }
-  }, [bimData, categories])
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[70vh] flex flex-col">
-        <SheetHeader className="pb-4 shrink-0">
-          <div className="flex items-start justify-between">
-            <div className="pr-8">
-              <SheetTitle className="flex items-center gap-2 text-lg">
+        <SheetHeader className="pb-6 shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle className="text-xl font-semibold">
                 {t("bim.fullTable", "BIM Data Explorer")}
               </SheetTitle>
-              <SheetDescription className="mt-1">
-                {object.name} • <span className="text-primary">{object.type.toUpperCase()}</span>
+              <SheetDescription className="mt-2 text-sm">
+                {object.name} •{" "}
+                <span className="text-primary font-medium">{object.type.toUpperCase()}</span>
               </SheetDescription>
-
-              {/* Stats badges */}
-              <div className="flex gap-2 mt-3">
-                <Badge variant="outline" className="gap-1">
-                  <span className="text-primary font-bold">{stats.totalProps}</span>
-                  {t("bim.properties", "Properties")}
-                </Badge>
-                <Badge variant="outline" className="gap-1">
-                  <span className="text-emerald-500 font-bold">{stats.categoriesCount}</span>
-                  {t("bim.categories", "Categories")}
-                </Badge>
-                <Badge variant="outline" className="gap-1 bg-amber-500/10">
-                  <span className="text-amber-500 font-bold">{stats.highlightedCount}</span>
-                  {t("bim.keyMetrics", "Key Metrics")}
-                </Badge>
-              </div>
             </div>
           </div>
 
@@ -695,45 +1348,42 @@ function BIMTableSheet({
                 if (filteredItems.length === 0) return null
 
                 return (
-                  <div key={category} className="space-y-2">
+                  <div key={category} className="space-y-3">
                     {/* Category header */}
-                    <div className="flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur py-2 z-10">
-                      <Badge
-                        variant="outline"
-                        className={`text-sm px-3 py-1 ${getCategoryColor(category)}`}
-                      >
-                        {category}
-                      </Badge>
-                      <div className="h-px flex-1 bg-border/50" />
+                    <div className="flex items-center gap-3 sticky top-0 bg-background/95 backdrop-blur py-2 z-10">
+                      <h3 className="text-sm font-semibold text-foreground">{category}</h3>
+                      <div className="h-px flex-1 bg-border" />
                       <span className="text-xs text-muted-foreground">
                         {filteredItems.length} {t("bim.items", "items")}
                       </span>
                     </div>
 
                     {/* Category table */}
-                    <div className="rounded-2xl border overflow-hidden">
+                    <div className="rounded-xl border overflow-hidden bg-muted/20">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-muted/30 hover:bg-muted/30">
-                            <TableHead className="w-[40%] font-semibold text-xs">
+                          <TableRow className="bg-muted/50 hover:bg-muted/50 border-b">
+                            <TableHead className="w-[45%] font-semibold text-xs h-10">
                               {t("bim.property", "Property")}
                             </TableHead>
-                            <TableHead className="font-semibold text-xs text-right">
+                            <TableHead className="font-semibold text-xs text-right h-10">
                               {t("bim.value", "Value")}
                             </TableHead>
-                            <TableHead className="w-20 font-semibold text-xs text-center">
+                            <TableHead className="w-24 font-semibold text-xs text-center h-10">
                               {t("bim.unit", "Unit")}
                             </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {filteredItems.map((item, idx) => (
-                            <TableRow key={`${item.property}-${idx}`}>
-                              <TableCell className="font-medium text-sm">{item.property}</TableCell>
-                              <TableCell className="text-right font-mono text-sm">
+                            <TableRow key={`${item.property}-${idx}`} className="hover:bg-muted/30">
+                              <TableCell className="font-medium text-sm py-3">
+                                {item.property}
+                              </TableCell>
+                              <TableCell className="text-right font-mono text-sm py-3">
                                 {item.value}
                               </TableCell>
-                              <TableCell className="text-center text-muted-foreground text-sm">
+                              <TableCell className="text-center text-muted-foreground text-sm py-3">
                                 {item.unit || "—"}
                               </TableCell>
                             </TableRow>
@@ -747,27 +1397,29 @@ function BIMTableSheet({
             </div>
           ) : (
             // Single category view
-            <div className="rounded-2xl border overflow-hidden">
+            <div className="rounded-xl border overflow-hidden bg-muted/20">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="w-[40%] font-semibold">
+                  <TableRow className="bg-muted/50 hover:bg-muted/50 border-b">
+                    <TableHead className="w-[45%] font-semibold text-xs h-10">
                       {t("bim.property", "Property")}
                     </TableHead>
-                    <TableHead className="font-semibold text-right">
+                    <TableHead className="font-semibold text-xs text-right h-10">
                       {t("bim.value", "Value")}
                     </TableHead>
-                    <TableHead className="w-24 font-semibold text-center">
+                    <TableHead className="w-24 font-semibold text-xs text-center h-10">
                       {t("bim.unit", "Unit")}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredData.map((item, idx) => (
-                    <TableRow key={`${item.property}-${idx}`}>
-                      <TableCell className="font-medium">{item.property}</TableCell>
-                      <TableCell className="text-right font-mono">{item.value}</TableCell>
-                      <TableCell className="text-center text-muted-foreground">
+                    <TableRow key={`${item.property}-${idx}`} className="hover:bg-muted/30">
+                      <TableCell className="font-medium text-sm py-3">{item.property}</TableCell>
+                      <TableCell className="text-right font-mono text-sm py-3">
+                        {item.value}
+                      </TableCell>
+                      <TableCell className="text-center text-muted-foreground text-sm py-3">
                         {item.unit || "—"}
                       </TableCell>
                     </TableRow>
@@ -812,39 +1464,35 @@ function FullBIMView({ groupedData }: FullBIMViewProps) {
   const { t } = useTranslation()
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {Object.entries(groupedData).map(([category, items]) => (
-        <div key={category}>
-          <Badge variant="outline" className={`text-xs mb-2 ${getCategoryColor(category)}`}>
-            {category}
-          </Badge>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/30">
-                <TableHead className="h-6 text-xs font-medium text-muted-foreground py-1">
-                  {t("bim.property", "Property")}
-                </TableHead>
-                <TableHead className="h-6 text-xs font-medium text-muted-foreground py-1 text-right">
-                  {t("bim.value", "Value")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((item, idx) => (
-                <TableRow key={`${item.property}-${idx}`} className="border-border/20">
-                  <TableCell className="py-1 text-xs text-muted-foreground">
-                    {item.property}
-                  </TableCell>
-                  <TableCell className="py-1 text-xs text-right font-mono">
-                    {item.value}
-                    {item.unit && (
-                      <span className="text-muted-foreground/70 ml-1">{item.unit}</span>
-                    )}
-                  </TableCell>
+        <div key={category} className="space-y-2">
+          <h4 className="text-xs font-semibold text-foreground px-1">{category}</h4>
+          <div className="rounded-xl border overflow-hidden bg-muted/10">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30 border-b">
+                  <TableHead className="h-8 text-xs font-medium py-2">
+                    {t("bim.property", "Property")}
+                  </TableHead>
+                  <TableHead className="h-8 text-xs font-medium py-2 text-right">
+                    {t("bim.value", "Value")}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {items.map((item, idx) => (
+                  <TableRow key={`${item.property}-${idx}`} className="hover:bg-muted/20">
+                    <TableCell className="py-2 text-xs font-medium">{item.property}</TableCell>
+                    <TableCell className="py-2 text-xs text-right font-mono">
+                      {item.value}
+                      {item.unit && <span className="text-muted-foreground ml-1">{item.unit}</span>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       ))}
     </div>

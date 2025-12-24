@@ -114,7 +114,8 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-md w-[95vw] p-0 gap-0 overflow-hidden"
+        size="xl"
+        className="w-[95vw] p-0 gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* Header */}
