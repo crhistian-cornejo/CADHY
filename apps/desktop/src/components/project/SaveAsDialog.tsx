@@ -2,7 +2,7 @@
  * Save As Dialog - CADHY
  *
  * Dialog for saving current project to a new location with a new name.
- * Triggered by Cmd/Ctrl+Shift+S hotkey.
+ * Triggered via the application's configured Save As keyboard shortcut.
  */
 
 import {
