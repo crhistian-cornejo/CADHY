@@ -69,7 +69,7 @@ export function ProfileTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -80,44 +80,57 @@ export function ProfileTab() {
       />
 
       {/* Avatar Section */}
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <Avatar className="size-14 rounded-2xl">
-            <AvatarImage
-              src={isEditing ? editedProfile.avatar : profile.avatar}
-              alt={isEditing ? editedProfile.name : profile.name}
-            />
-            <AvatarFallback className="rounded-2xl text-base">
-              {(isEditing ? editedProfile.name : profile.name).slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          {isEditing && (
-            <Button
-              variant="secondary"
-              size="icon-xs"
-              className="absolute -bottom-1 -right-1 rounded-full size-5"
-              onClick={() => fileInputRef.current?.click()}
-              type="button"
-            >
-              <HugeiconsIcon icon={Camera01Icon} className="size-3" />
-            </Button>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Avatar className="size-16 rounded-2xl ring-2 ring-border/50">
+              <AvatarImage
+                src={isEditing ? editedProfile.avatar : profile.avatar}
+                alt={isEditing ? editedProfile.name : profile.name}
+              />
+              <AvatarFallback className="rounded-2xl text-lg font-semibold">
+                {(isEditing ? editedProfile.name : profile.name).slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            {isEditing && (
+              <Button
+                variant="secondary"
+                size="icon-xs"
+                className="absolute -bottom-1 -right-1 rounded-full size-6 shadow-md"
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
+                <HugeiconsIcon icon={Camera01Icon} className="size-3" />
+              </Button>
+            )}
+          </div>
+          {!isEditing && (
+            <div>
+              <h3 className="text-base font-semibold">{profile.name}</h3>
+              <p className="text-sm text-muted-foreground">{profile.email}</p>
+            </div>
           )}
         </div>
         {!isEditing && (
-          <div>
-            <h3 className="text-sm font-medium">{profile.name}</h3>
-            <p className="text-xs text-muted-foreground">{profile.email}</p>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(true)}
+            className="gap-2 h-9"
+          >
+            <HugeiconsIcon icon={Edit01Icon} className="size-4" />
+            {t("settings.profile.edit", "Edit")}
+          </Button>
         )}
       </div>
 
       <Separator />
 
       {/* Profile Fields */}
-      <div className="space-y-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="name" className="flex items-center gap-1.5 text-xs">
-            <HugeiconsIcon icon={UserIcon} className="size-3.5" />
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="flex items-center gap-2 text-sm font-medium">
+            <HugeiconsIcon icon={UserIcon} className="size-4 text-muted-foreground" />
             {t("settings.profile.name", "Name")}
           </Label>
           {isEditing ? (
@@ -125,16 +138,17 @@ export function ProfileTab() {
               id="name"
               value={editedProfile.name}
               onChange={(e) => setEditedProfile({ ...editedProfile, name: e.target.value })}
-              className="h-8 text-xs"
+              className="h-10"
+              placeholder="Enter your name"
             />
           ) : (
-            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">{profile.name}</p>
+            <p className="text-sm px-3 py-2 bg-muted/50 rounded-xl border">{profile.name}</p>
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="email" className="flex items-center gap-1.5 text-xs">
-            <HugeiconsIcon icon={Mail01Icon} className="size-3.5" />
+        <div className="space-y-2">
+          <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
+            <HugeiconsIcon icon={Mail01Icon} className="size-4 text-muted-foreground" />
             {t("settings.profile.email", "Email")}
           </Label>
           {isEditing ? (
@@ -143,15 +157,16 @@ export function ProfileTab() {
               type="email"
               value={editedProfile.email}
               onChange={(e) => setEditedProfile({ ...editedProfile, email: e.target.value })}
-              className="h-8 text-xs"
+              className="h-10"
+              placeholder="Enter your email"
             />
           ) : (
-            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">{profile.email}</p>
+            <p className="text-sm px-3 py-2 bg-muted/50 rounded-xl border">{profile.email}</p>
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="company" className="text-xs">
+        <div className="space-y-2">
+          <Label htmlFor="company" className="text-sm font-medium">
             {t("settings.profile.company", "Company")}
           </Label>
           {isEditing ? (
@@ -159,17 +174,22 @@ export function ProfileTab() {
               id="company"
               value={editedProfile.company ?? ""}
               onChange={(e) => setEditedProfile({ ...editedProfile, company: e.target.value })}
-              className="h-8 text-xs"
+              className="h-10"
+              placeholder="Enter your company"
             />
           ) : (
-            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">
-              {profile.company || t("settings.profile.notSet", "Not set")}
+            <p className="text-sm px-3 py-2 bg-muted/50 rounded-xl border">
+              {profile.company || (
+                <span className="text-muted-foreground">
+                  {t("settings.profile.notSet", "Not set")}
+                </span>
+              )}
             </p>
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="role" className="text-xs">
+        <div className="space-y-2">
+          <Label htmlFor="role" className="text-sm font-medium">
             {t("settings.profile.role", "Role")}
           </Label>
           {isEditing ? (
@@ -177,39 +197,32 @@ export function ProfileTab() {
               id="role"
               value={editedProfile.role ?? ""}
               onChange={(e) => setEditedProfile({ ...editedProfile, role: e.target.value })}
-              className="h-8 text-xs"
+              className="h-10"
+              placeholder="Enter your role"
             />
           ) : (
-            <p className="text-xs px-2.5 py-1.5 bg-muted/30 rounded-2xl">
-              {profile.role || t("settings.profile.notSet", "Not set")}
+            <p className="text-sm px-3 py-2 bg-muted/50 rounded-xl border">
+              {profile.role || (
+                <span className="text-muted-foreground">
+                  {t("settings.profile.notSet", "Not set")}
+                </span>
+              )}
             </p>
           )}
         </div>
       </div>
 
       {/* Edit/Save buttons */}
-      <div className="flex justify-end gap-2 pt-2">
-        {isEditing ? (
-          <>
-            <Button variant="ghost" size="sm" onClick={handleCancel}>
-              {t("common.cancel", "Cancel")}
-            </Button>
-            <Button variant="default" size="sm" onClick={handleSave}>
-              {t("common.save", "Save")}
-            </Button>
-          </>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsEditing(true)}
-            className="gap-1.5"
-          >
-            <HugeiconsIcon icon={Edit01Icon} className="size-3.5" />
-            {t("settings.profile.edit", "Edit")}
+      {isEditing && (
+        <div className="flex justify-end gap-2 pt-4">
+          <Button variant="outline" size="sm" onClick={handleCancel} className="h-9">
+            {t("common.cancel", "Cancel")}
           </Button>
-        )}
-      </div>
+          <Button variant="default" size="sm" onClick={handleSave} className="h-9">
+            {t("common.save", "Save")}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

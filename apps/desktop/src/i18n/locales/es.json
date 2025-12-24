@@ -120,6 +120,8 @@
   },
   "menu": {
     "file": "Archivo",
+    "newProject": "Nuevo Proyecto",
+    "openProject": "Abrir Proyecto",
     "newFile": "Nuevo Archivo",
     "newFolder": "Nueva Carpeta",
     "openRecent": "Abrir Reciente",
@@ -761,6 +763,46 @@
       "copied": "Copiado al portapapeles"
     }
   },
+  "preferences": {
+    "title": "Preferencias",
+    "description": "Personaliza CADHY a tus necesidades",
+    "sidebar": {
+      "profile": {
+        "label": "Perfil",
+        "description": "Información personal"
+      },
+      "ai": {
+        "label": "Proveedores de IA",
+        "description": "Configura modelos de IA"
+      },
+      "shortcuts": {
+        "label": "Atajos",
+        "description": "Atajos de teclado"
+      },
+      "privacy": {
+        "label": "Privacidad y Seguridad",
+        "description": "Datos y análisis"
+      }
+    },
+    "sections": {
+      "profile": {
+        "title": "Perfil",
+        "subtitle": "Administra tu información personal y avatar"
+      },
+      "ai": {
+        "title": "Proveedores de IA",
+        "subtitle": "Configura modelos y proveedores de IA"
+      },
+      "shortcuts": {
+        "title": "Atajos de Teclado",
+        "subtitle": "Ver y personalizar atajos de teclado"
+      },
+      "privacy": {
+        "title": "Privacidad y Seguridad",
+        "subtitle": "Administra configuración de privacidad y recolección de datos"
+      }
+    }
+  },
   "notifications": {
     "title": "Notificaciones",
     "description": "Configura cómo recibes las notificaciones",
@@ -809,6 +851,26 @@
       "cfdAnalysis": "Análisis CFD",
       "resultsVisualization": "Visualización de Resultados",
       "examplesLibrary": "Biblioteca de Ejemplos"
+    }
+  },
+  "project": {
+    "saveAs": {
+      "title": "Guardar Proyecto Como",
+      "description": "Guardar una copia de tu proyecto en una nueva ubicación",
+      "projectName": "Nombre del Proyecto",
+      "namePlaceholder": "Ingresa el nombre del proyecto",
+      "location": "Ubicación de Guardado",
+      "selectLocation": "Selecciona una ubicación...",
+      "currentProject": "Proyecto actual",
+      "save": "Guardar Como",
+      "saving": "Guardando...",
+      "success": "Proyecto guardado",
+      "successDesc": "Proyecto guardado en {{path}}",
+      "error": "Error al guardar"
+    },
+    "errors": {
+      "nameRequired": "El nombre del proyecto es requerido",
+      "pathRequired": "La ubicación del proyecto es requerida"
     }
   },
   "openProject": {
@@ -921,15 +983,23 @@
     "geometry": "Geometría",
     "shapeType": "Tipo de Forma",
     "sectionType": "Tipo de Sección",
+    "transitionType": "Tipo de Transición",
+    "chuteType": "Tipo de Rápida",
     "dimensions": "Dimensiones",
     "width": "Ancho",
     "height": "Alto",
     "depth": "Profundidad",
     "radius": "Radio",
     "length": "Longitud",
+    "inclinedLength": "Longitud Inclinada",
+    "drop": "Caída",
     "bottomWidth": "Ancho de Base",
     "freeBoard": "Borde Libre",
     "thickness": "Espesor de Pared",
+    "inletWidth": "Ancho de Entrada",
+    "inletDepth": "Profundidad de Entrada",
+    "outletWidth": "Ancho de Salida",
+    "outletDepth": "Profundidad de Salida",
     "quantities": "Cantidades",
     "volume": "Volumen",
     "surfaceArea": "Área Superficial",
@@ -962,6 +1032,17 @@
     "value": "Valor",
     "unit": "Unidad",
     "noResults": "No se encontraron propiedades",
-    "clearFilters": "Limpiar filtros"
+    "clearFilters": "Limpiar filtros",
+    "structural": "Estructural",
+    "concreteType": "Tipo de Concreto",
+    "concreteStrength": "Resistencia del Concreto (f'c)",
+    "steelGrade": "Grado del Acero",
+    "steelYield": "Esfuerzo de Fluencia (fy)",
+    "minRebarRatio": "Cuantía Mínima de Refuerzo (ρ_min)",
+    "rebarArea": "Área de Acero Requerida",
+    "soladoThickness": "Espesor de Solado",
+    "soladoVolume": "Volumen de Solado",
+    "soladoArea": "Área de Solado",
+    "footingBase": "Base de Cimentación"
   }
 }
