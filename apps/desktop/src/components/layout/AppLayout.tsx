@@ -33,7 +33,12 @@ import { CommandPalette, useCommandPalette } from "@/components/command-palette"
 import { ChatErrorBoundary, UpdateBadge } from "@/components/common"
 import { GalleryView } from "@/components/gallery"
 import { ModellerView } from "@/components/modeller"
-import { NewProjectDialog, OpenProjectDialog, ProjectsView } from "@/components/project"
+import {
+  NewProjectDialog,
+  OpenProjectDialog,
+  ProjectsView,
+  SaveAsDialog,
+} from "@/components/project"
 import {
   useAppHotkeys,
   useAutoSave,
@@ -49,8 +54,8 @@ import {
   HelpDialog,
   KeyboardShortcutsDialog,
   NotificationsDialog,
+  PreferencesDialog,
   PrivacySecurityDialog,
-  SettingsDialog,
 } from "./dialogs"
 import { LogoDropdown } from "./LogoDropdown"
 import { StatusBar } from "./StatusBar"
@@ -93,6 +98,7 @@ export function AppLayout() {
   // Dialog states
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const [openProjectOpen, setOpenProjectOpen] = useState(false)
+  const [saveAsOpen, setSaveAsOpen] = useState(false)
   const [dialogs, setDialogs] = useState<DialogState>({
     help: false,
     about: false,
@@ -136,6 +142,7 @@ export function AppLayout() {
     onOpenShortcuts: () => dialogActions.setDialog("shortcuts", true),
     onNewProject: () => setNewProjectOpen(true),
     onOpenProject: () => setOpenProjectOpen(true),
+    onSaveProjectAs: () => setSaveAsOpen(true),
   })
 
   // Listen to native menu events from Tauri (macOS/Windows)
@@ -274,6 +281,7 @@ export function AppLayout() {
       {/* Project Dialogs */}
       <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
       <OpenProjectDialog open={openProjectOpen} onOpenChange={setOpenProjectOpen} />
+      <SaveAsDialog open={saveAsOpen} onOpenChange={setSaveAsOpen} />
 
       {/* Help & Support Dialogs */}
       <HelpDialog
@@ -294,7 +302,7 @@ export function AppLayout() {
       />
 
       {/* Account & Preferences Dialogs */}
-      <SettingsDialog
+      <PreferencesDialog
         open={dialogs.profile}
         onOpenChange={(open) => dialogActions.setDialog("profile", open)}
       />

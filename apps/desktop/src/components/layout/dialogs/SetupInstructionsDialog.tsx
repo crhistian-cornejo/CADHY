@@ -298,7 +298,7 @@ export function SetupInstructionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md w-[95vw]" showCloseButton>
+      <DialogContent size="lg" className="w-[95vw]" showCloseButton>
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription className="text-xs">{getDescription()}</DialogDescription>

@@ -186,7 +186,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px]" showCloseButton={false}>
+      <DialogContent size="xl" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>New Project</DialogTitle>
           <DialogDescription>

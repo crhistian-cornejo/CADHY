@@ -67,17 +67,32 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  size = "md",
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "full"
 }) {
+  const sizeClasses = {
+    sm: "sm:max-w-sm", // 384px
+    md: "sm:max-w-md", // 448px (default)
+    lg: "sm:max-w-lg", // 512px
+    xl: "sm:max-w-xl", // 576px
+    "2xl": "sm:max-w-2xl", // 672px
+    "3xl": "sm:max-w-3xl", // 768px
+    "4xl": "sm:max-w-4xl", // 896px
+    "5xl": "sm:max-w-5xl", // 1024px
+    full: "sm:max-w-full sm:mx-8", // Full width with margins
+  }
+
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "bg-background data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/10 grid max-w-[calc(100%-2rem)] gap-6 rounded-2xl p-6 text-sm ring-1 duration-100 sm:max-w-md fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none",
+          "bg-background data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/10 grid max-w-[calc(100%-2rem)] gap-6 rounded-2xl p-6 text-sm ring-1 duration-100 fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none",
+          sizeClasses[size],
           className
         )}
         {...props}
