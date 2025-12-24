@@ -73,7 +73,8 @@ export function PrivacySecurityDialog({ open, onOpenChange }: PrivacySecurityDia
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-sm w-[95vw] p-0 gap-0 overflow-hidden"
+        size="lg"
+        className="w-[95vw] p-0 gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* Header */}
