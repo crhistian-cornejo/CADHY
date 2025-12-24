@@ -232,7 +232,7 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       name: "Save As",
       description: "Save the current project to a new location",
       category: "file",
-      keys: ["Ctrl+Option+S"],
+      keys: ["$mod+Shift+S"],
     },
     useCallback(() => onSaveProjectAs?.(), [onSaveProjectAs])
   )
