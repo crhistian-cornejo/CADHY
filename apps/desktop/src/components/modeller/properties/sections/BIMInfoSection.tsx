@@ -78,7 +78,7 @@ const FORMWORK_COST = 25 // USD per m² of surface area
 
 // Structural constants
 const SOLADO_THICKNESS = 0.1 // Standard solado thickness in meters (10 cm)
-const STEEL_GRADE = "Grado 60" // ASTM A615 Grade 60
+const STEEL_GRADE = "Grade 60" // ASTM A615 Grade 60
 const STEEL_FY = 420 // MPa (60 ksi)
 const MIN_REBAR_RATIO = 0.0018 // ρ_min for walls/channels (ACI 318)
 
