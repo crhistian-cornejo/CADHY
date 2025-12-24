@@ -138,7 +138,7 @@ export function PreferencesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         size="5xl"
-        className="w-[95vw] h-[85vh] !p-0 flex flex-col overflow-hidden"
+        className="w-[95vw] h-[85vh] p-0 flex flex-col overflow-hidden"
         showCloseButton={false}
         data-slot="preferences-dialog"
       >
