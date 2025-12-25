@@ -34,6 +34,7 @@ import { TransitionPropertiesPanel } from "./panels/TransitionPropertiesPanel"
 import { BIMInfoSection } from "./sections/BIMInfoSection"
 import { GeometrySection } from "./sections/GeometrySection"
 import { MaterialSection } from "./sections/MaterialSection"
+import { MeshDetailsSection } from "./sections/MeshDetailsSection"
 import { PropertyRow } from "./shared/PropertyRow"
 import { MultipleSelection } from "./states/MultipleSelection"
 import { NoSelection } from "./states/NoSelection"
@@ -258,6 +259,9 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
                 }}
               />
             )}
+
+            {/* Mesh Details */}
+            <MeshDetailsSection object={selectedObject} />
 
             {/* BIM Information */}
             <BIMInfoSection object={selectedObject} />

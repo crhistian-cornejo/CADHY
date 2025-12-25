@@ -65,6 +65,7 @@
     "workspace": "Workspace",
     "modeller": "3D Modeller",
     "mesh": "Mesh",
+    "cadras": "CADRas",
     "cfd": "CFD",
     "results": "Results"
   },
@@ -160,6 +161,14 @@
   "statusBar": {
     "ready": "Ready",
     "unsaved": "Unsaved",
+    "modified": "Modified",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "saveError": "Save failed",
+    "autoSaveIn": "Auto-save in",
+    "lastSaved": "Last saved",
+    "allChangesSaved": "All changes saved",
+    "unsavedChanges": "Unsaved changes",
     "processing": "Processing",
     "objects": "Objects",
     "connections": "Connections",
@@ -174,7 +183,6 @@
     "low": "Low",
     "memoryUsage": "Memory usage",
     "gpu": "GPU",
-    "saved": "Saved",
     "projectSaved": "Project saved successfully"
   },
   "panels": {
@@ -533,7 +541,8 @@
     "material": "Material",
     "materialColor": "Material Color",
     "unassigned": "Unassigned",
-    "emptyArea": "No objects in this area"
+    "emptyArea": "No objects in this area",
+    "dropHere": "Drop here to add to this area"
   },
   "designChecks": {
     "title": "Design Checks",
@@ -982,6 +991,206 @@
     "tooltipPending": "Update available - Click to view changelog",
     "tooltipInstalled": "App updated successfully - See what's new",
     "clickToViewChangelog": "Click to view full changelog on GitHub"
+  },
+  "drawings": {
+    "title": "Technical Drawings",
+    "noActiveDrawing": "No active drawing",
+    "createDrawingToStart": "Create a drawing to use the tools",
+    "selectOrCreate": "Select a drawing or create a new one",
+    "backToModeller": "Modeller",
+    "tools": {
+      "title": "Drawing tools",
+      "dimensions": "Dimensions",
+      "geometries": "Geometries",
+      "notes": "Notes",
+      "image": "Image",
+      "settings": "Settings"
+    },
+    "dimensions": {
+      "title": "Dimension Tools",
+      "auto": "Automatic",
+      "autoDesc": "Detects the dimension type based on selection",
+      "lineLength": "Line length",
+      "lineLengthDesc": "Select a line to dimension",
+      "pointToPoint": "Point to point",
+      "pointToPointDesc": "Select two points to measure",
+      "note": "Note",
+      "noteDesc": "Add a note/label to the geometry",
+      "selected": "Dimension {{index}} selected",
+      "delete": "Delete",
+      "escToDeselect": "Esc to deselect"
+    },
+    "annotations": {
+      "selected": "Annotation selected",
+      "edit": "Edit",
+      "delete": "Delete",
+      "placeholder": "Type your note..."
+    },
+    "geometries": {
+      "title": "2D Geometries",
+      "line": "Line",
+      "circle": "Circle",
+      "arc": "Arc",
+      "rectangle": "Rectangle",
+      "polygon": "Polygon",
+      "spline": "Spline",
+      "comingSoon": "Soon"
+    },
+    "notes": {
+      "title": "Notes",
+      "comingSoon": "Note tools coming soon"
+    },
+    "images": {
+      "title": "Image",
+      "comingSoon": "Image tools coming soon"
+    },
+    "settings": {
+      "scale": "Scale",
+      "scaleChangeInfo": "Changing the scale will automatically regenerate all views",
+      "units": "Units",
+      "paperSize": "Paper size",
+      "custom": "Custom"
+    },
+    "views": {
+      "addBaseView": "Add Base View",
+      "selectOrientation": "Select the orientation for the base view",
+      "top": "Top",
+      "front": "Front",
+      "right": "Right",
+      "left": "Left",
+      "bottom": "Bottom",
+      "back": "Back",
+      "isometric": "Isometric",
+      "lockViews": "Lock views",
+      "unlockViews": "Unlock views",
+      "locked": "Locked",
+      "lock": "Lock",
+      "fitViews": "Fit",
+      "fitViewsTooltip": "Reposition views in grid"
+    },
+    "viewport": {
+      "zoomTotal": "Zoom to Fit",
+      "zoomTotalTooltip": "Full zoom (view entire sheet)",
+      "zoomLevel": "{{level}}%"
+    },
+    "titleBlock": {
+      "title": "TITLE",
+      "untitled": "Untitled",
+      "units": "UNITS",
+      "projectionAngle": "PROJ. ANGLE",
+      "size": "SIZE",
+      "scale": "SCALE",
+      "lastUpdate": "LAST UPDATE",
+      "sheet": "SHEET",
+      "madeIn": "Made in"
+    },
+    "unitLabels": {
+      "mm": "mm",
+      "cm": "cm",
+      "m": "Meter",
+      "in": "Inch",
+      "ft": "Feet"
+    },
+    "toolbar": {
+      "dimensionsTooltip": "Dimensions",
+      "geometriesTooltip": "Geometries",
+      "notesTooltip": "Notes",
+      "imageTooltip": "Image"
+    },
+    "themes": {
+      "blueprint": "Blueprint",
+      "white": "White",
+      "black": "Black"
+    },
+    "list": {
+      "title": "Drawings",
+      "newDrawing": "New Drawing",
+      "defaultName": "Drawing {{date}}",
+      "createdSuccess": "Drawing created successfully",
+      "createError": "Error creating drawing: {{error}}",
+      "deleteConfirm": "Are you sure you want to delete this drawing?",
+      "noDrawings": "No drawings",
+      "createToStart": "Create a new drawing to get started",
+      "view": "view",
+      "views": "views"
+    },
+    "properties": {
+      "title": "Properties",
+      "noActiveDrawing": "No active drawing",
+      "sheet": {
+        "title": "Sheet",
+        "orientation": "Orientation",
+        "landscape": "Landscape",
+        "portrait": "Portrait",
+        "size": "Size",
+        "scale": "Scale",
+        "projection": "Projection",
+        "firstAngle": "First angle",
+        "thirdAngle": "Third angle",
+        "sheetTitle": "Title",
+        "untitled": "Untitled",
+        "viewsUpdated": "Views updated",
+        "viewsError": "Error regenerating views"
+      },
+      "dimensions": {
+        "title": "Dimensions",
+        "units": "Units",
+        "mm": "Millimeters (mm)",
+        "cm": "Centimeters (cm)",
+        "m": "Meters (m)",
+        "in": "Inches (in)",
+        "ft": "Feet (ft)",
+        "precision": "Precision",
+        "integers": "0 (integers)",
+        "textSize": "Text size",
+        "arrowSize": "Arrow size",
+        "showUnit": "Show unit"
+      },
+      "display": {
+        "title": "Display",
+        "constructionLines": "Construction lines",
+        "viewLabels": "View labels",
+        "gridReferences": "Grid references"
+      },
+      "lineWidths": {
+        "title": "Line widths",
+        "visible": "Visible outlines",
+        "hidden": "Hidden lines",
+        "dimension": "Dimension lines",
+        "centerline": "Centerlines",
+        "section": "Section lines"
+      },
+      "export": {
+        "title": "Export",
+        "dialogTitle": "Export drawing ({{format}})",
+        "success": "Exported: {{path}}",
+        "error": "Error exporting: {{error}}",
+        "description": "Export the drawing with line widths according to \"Line widths\" and line types (visible/hidden/center/section)."
+      }
+    },
+    "config": {
+      "dialogTitle": "Drawing preferences",
+      "orientation": "Orientation",
+      "portrait": "Portrait",
+      "landscape": "Landscape",
+      "paperSize": "Sheet size",
+      "scale": "View to sheet scale",
+      "projection": "Projection",
+      "firstAngle": "First Angle",
+      "thirdAngle": "Third Angle",
+      "units": "Units",
+      "mm": "Millimeters (mm)",
+      "cm": "Centimeters (cm)",
+      "m": "Meters (m)",
+      "in": "Inches (in)",
+      "ft": "Feet (ft)",
+      "titleBlock": "Title block",
+      "simple": "Simple",
+      "standard": "Standard",
+      "custom": "Custom",
+      "cancel": "Cancel",
+      "done": "Done"
+    }
   },
   "bim": {
     "identification": "Identification",

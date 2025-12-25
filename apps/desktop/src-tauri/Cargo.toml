@@ -34,6 +34,7 @@ cadhy-core = { path = "../../../crates/cadhy-core" }
 cadhy-cad = { path = "../../../crates/cadhy-cad" }
 cadhy-hydraulics = { path = "../../../crates/cadhy-hydraulics" }
 cadhy-mesh = { path = "../../../crates/cadhy-mesh" }
+cadhy-ifc = { path = "../../../crates/cadhy-ifc" }
 
 # Auth/Security - OS Keychain
 keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native"] }
@@ -45,6 +46,7 @@ tokio = { version = "1", features = ["time", "sync"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 dirs = "5"
+lopdf = "0.34"
 
 # System info
 hostname = "0.4"

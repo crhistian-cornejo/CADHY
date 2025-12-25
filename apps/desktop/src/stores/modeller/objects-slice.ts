@@ -75,7 +75,18 @@ export const createObjectsSlice: StateCreator<ModellerStore, [], [], ObjectsSlic
       objects: [...state.objects, object],
     }))
 
-    get().saveToHistory(`Add ${object.type}: ${object.name}`)
+    // Generate descriptive history name based on object type
+    const historyName =
+      object.type === "shape"
+        ? `Crear ${object.name}`
+        : object.type === "channel"
+          ? `Crear Canal: ${object.name}`
+          : object.type === "chute"
+            ? `Crear Tolva: ${object.name}`
+            : object.type === "transition"
+              ? `Crear Transición: ${object.name}`
+              : `Crear ${object.type}: ${object.name}`
+    get().saveToHistory(historyName)
     return id
   },
 
@@ -172,7 +183,7 @@ export const createObjectsSlice: StateCreator<ModellerStore, [], [], ObjectsSlic
 
     // If saveHistory is true, commit to history
     if (saveHistory && currentObj) {
-      get().commitToHistory(`Update: ${currentObj.name}`)
+      get().commitToHistory(`Actualizar: ${currentObj.name}`)
     }
 
     // Check if we need to propagate position changes to connected elements
@@ -232,22 +243,43 @@ export const createObjectsSlice: StateCreator<ModellerStore, [], [], ObjectsSlic
   deleteObject: (id) => {
     const obj = get().getObjectById(id)
     if (obj) {
+      // Cleanup backend shape if it exists
+      const backendShapeId = obj.metadata?.backendShapeId
+      if (backendShapeId) {
+        import("@tauri-apps/api/core").then(({ invoke }) => {
+          invoke("cad_delete_shape", { shapeId: backendShapeId }).catch((err) => {
+            console.warn(`[cad-store] Failed to delete backend shape ${backendShapeId}:`, err)
+          })
+        })
+      }
+
       set((state) => ({
         objects: state.objects.filter((o) => o.id !== id),
         selectedIds: state.selectedIds.filter((sid) => sid !== id),
       }))
-      get().saveToHistory(`Delete: ${obj.name}`)
+      get().saveToHistory(`Eliminar: ${obj.name}`)
     }
   },
 
   deleteSelected: () => {
     const selected = get().selectedIds
     if (selected.length > 0) {
+      // Cleanup backend shapes
+      selected.forEach((id) => {
+        const obj = get().getObjectById(id)
+        const backendShapeId = obj?.metadata?.backendShapeId
+        if (backendShapeId) {
+          import("@tauri-apps/api/core").then(({ invoke }) => {
+            invoke("cad_delete_shape", { shapeId: backendShapeId }).catch(() => {})
+          })
+        }
+      })
+
       set((state) => ({
         objects: state.objects.filter((o) => !selected.includes(o.id)),
         selectedIds: [],
       }))
-      get().saveToHistory(`Delete ${selected.length} objects`)
+      get().saveToHistory(`Eliminar ${selected.length} objeto${selected.length > 1 ? "s" : ""}`)
     }
   },
 
@@ -278,7 +310,7 @@ export const createObjectsSlice: StateCreator<ModellerStore, [], [], ObjectsSlic
       objects: [...state.objects, duplicate],
     }))
 
-    get().saveToHistory(`Duplicate: ${obj.name}`)
+    get().saveToHistory(`Duplicar: ${obj.name}`)
     return newId
   },
 

@@ -64,6 +64,12 @@ pub enum OcctError {
 
     #[error("Analysis failed: {0}")]
     AnalysisFailed(String),
+
+    #[error("Feature not implemented: {0}")]
+    Unimplemented(String),
+
+    #[error("I/O error: {0}")]
+    IOError(String),
 }
 
 impl From<cxx::Exception> for OcctError {

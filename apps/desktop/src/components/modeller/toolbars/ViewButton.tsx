@@ -39,9 +39,10 @@ export const ViewButton = React.memo(function ViewButton({
             variant={currentView === view ? "secondary" : "ghost"}
             size="icon-sm"
             onClick={() => onClick(view)}
+            aria-label={label}
             className="h-7 w-7"
           >
-            <HugeiconsIcon icon={icon} className="size-4" />
+            <HugeiconsIcon icon={icon} className="size-4" aria-hidden="true" />
           </Button>
         }
       />

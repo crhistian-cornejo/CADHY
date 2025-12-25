@@ -6,8 +6,10 @@
  * - Bottom toolbar (selection modes, view modes, operations)
  */
 
+import type { ProjectionType, SheetConfig } from "@cadhy/types"
 import {
   cn,
+  formatKbd,
   Kbd,
   Popover,
   PopoverContent,
@@ -20,16 +22,20 @@ import {
 } from "@cadhy/ui"
 import {
   Cursor01Icon,
+  DrawingModeIcon,
   MoreHorizontalIcon,
   Move01Icon,
   Resize01Icon,
   Rotate01Icon,
   SquareIcon,
 } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useState } from "react"
-import { useCADOperationsContext } from "@/components/modeller/dialogs"
-import { getPlatformSync } from "@/hooks/use-platform"
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import { type ComponentType, useCallback, useEffect, useState } from "react"
+import { DrawingConfigDialog, useCADOperationsContext } from "@/components/modeller/dialogs"
+import { shapeIdMap } from "@/hooks/use-cad"
+import * as cadService from "@/services/cad-service"
+import { useDrawingStore } from "@/stores/drawing-store"
+import type { AnySceneObject, ShapeObject } from "@/stores/modeller"
 import {
   type TransformMode,
   useBoxSelectMode,
@@ -39,16 +45,20 @@ import {
   useTransformMode,
   useViewportSettings,
 } from "@/stores/modeller"
+import { useNavigationStore } from "@/stores/navigation-store"
+import { getModelMetersToDrawingUnitsFactor } from "@/utils/drawing-units"
 import {
   BooleanIcon,
   ControlPointIcon,
   CutIcon,
   DeleteIcon,
+  DifferenceIcon,
   DuplicateIcon,
   EdgeIcon,
   ExtrudeIcon,
   FaceIcon,
   FilletIcon,
+  IntersectionIcon,
   MirrorIcon,
   PerspectiveViewIcon,
   PipeIcon,
@@ -66,20 +76,28 @@ interface ViewportOverlaysProps {
   onOpenSearch?: () => void
 }
 
+/** Icon type that can be a Hugeicons data object or a React component */
+type IconType = IconSvgElement | ComponentType<{ className?: string }>
+
 /**
  * SmartIcon - Renders either a Hugeicons data object or a React component
  */
-function SmartIcon({ icon, className, color }: { icon: any; className?: string; color?: string }) {
+function SmartIcon({
+  icon,
+  className,
+  color,
+}: {
+  icon: IconType
+  className?: string
+  color?: string
+}) {
   if (!icon) return null
-  const isHugeiconData =
-    typeof icon === "object" && icon !== null && !("$$typeof" in icon) && !("displayName" in icon)
-
-  if (isHugeiconData) {
-    return <HugeiconsIcon icon={icon} className={cn(className, color)} />
+  if (typeof icon === "function") {
+    const IconComponent = icon as ComponentType<{ className?: string }>
+    return <IconComponent className={cn(className, color)} />
   }
 
-  const IconComponent = icon
-  return <IconComponent className={cn(className, color)} />
+  return <HugeiconsIcon icon={icon as IconSvgElement} className={cn(className, color)} />
 }
 
 // ============================================================================
@@ -87,7 +105,7 @@ function SmartIcon({ icon, className, color }: { icon: any; className?: string; 
 // ============================================================================
 
 interface ToolbarButtonProps {
-  icon: any
+  icon: IconType
   label: string
   shortcut?: string
   active?: boolean
@@ -110,11 +128,6 @@ function ToolbarButton({
   disabled,
   onClick,
 }: ToolbarButtonProps) {
-  const isMac = getPlatformSync() === "macos"
-  const formattedShortcut = shortcut
-    ? shortcut.replace("⇧", isMac ? "\u21E7" : "Shift+").replace("Alt+", isMac ? "\u2325" : "Alt+")
-    : null
-
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -133,51 +146,13 @@ function ToolbarButton({
       </TooltipTrigger>
       <TooltipContent side={side} sideOffset={8} className="flex items-center gap-2 px-2 py-1">
         <span className="text-xs">{label}</span>
-        {formattedShortcut && <Kbd className="h-4 min-w-4 text-xs">{formattedShortcut}</Kbd>}
+        {shortcut && (
+          <Kbd variant="inverted" className="h-4 min-w-4 text-xs">
+            {formatKbd(shortcut)}
+          </Kbd>
+        )}
       </TooltipContent>
     </Tooltip>
-  )
-}
-
-function _CadIconButton({
-  icon,
-  label,
-  shortcut,
-  active,
-  color,
-  onClick,
-}: {
-  icon: any
-  label: string
-  shortcut?: string
-  active?: boolean
-  color?: string
-  onClick?: () => void
-}) {
-  const isMac = getPlatformSync() === "macos"
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-2.5 px-2 py-1.5 rounded-[10px] transition-all duration-200 group text-left",
-        "hover:bg-accent text-muted-foreground hover:text-foreground",
-        active && "bg-blue-600/20 text-blue-400 ring-1 ring-blue-500/40"
-      )}
-    >
-      <SmartIcon
-        icon={icon}
-        className="size-4 group-hover:scale-110 transition-transform"
-        color={color}
-      />
-      <span className="text-xs font-medium flex-1">{label}</span>
-      {shortcut && (
-        <span className="text-xs text-muted-foreground group-hover:text-foreground border border-border bg-muted px-1 rounded-2xl py-0.25">
-          {shortcut.replace("⇧", isMac ? "\u21E7" : "Shift+")}
-        </span>
-      )}
-    </button>
   )
 }
 
@@ -250,7 +225,7 @@ function LeftToolbar() {
         <ToolbarButton
           side="right"
           icon={Cursor01Icon}
-          label="Select (Q)"
+          label="Select"
           shortcut="Q"
           active={transformMode === "none" && !isBoxSelectMode}
           onClick={() => handleTransformMode("none")}
@@ -258,7 +233,7 @@ function LeftToolbar() {
         <ToolbarButton
           side="right"
           icon={SquareIcon}
-          label="Box Select (B)"
+          label="Box Select"
           shortcut="B"
           active={isBoxSelectMode}
           onClick={() => {
@@ -301,9 +276,17 @@ function LeftToolbar() {
 
 function BottomToolbar() {
   const [operationsOpen, setOperationsOpen] = useState(false)
+  const [mirrorMenuOpen, setMirrorMenuOpen] = useState(false)
+  const [mirrorKeepOriginal, setMirrorKeepOriginal] = useState(true)
 
   // CAD Operations context
-  const { openOperationDialog } = useCADOperationsContext()
+  const {
+    openOperationDialog,
+    executeBooleanUnion,
+    executeBooleanSubtract,
+    executeBooleanIntersect,
+    executeMirror,
+  } = useCADOperationsContext()
 
   // Transform settings
   const viewportSettings = useViewportSettings()
@@ -321,16 +304,25 @@ function BottomToolbar() {
   }
 
   const handleDelete = () => {
-    selectedObjects.forEach((obj) => deleteObject(obj.id))
+    selectedObjects.forEach((obj) => {
+      deleteObject(obj.id)
+    })
     setOperationsOpen(false)
   }
 
   const handleOperation = useCallback(
-    (operationId: string) => {
+    async (operationId: string) => {
       setOperationsOpen(false)
 
-      if (selectedObjects.length === 0) {
-        toast.error("No objects selected. Select an object first.")
+      // Boolean operations need at least 2 objects
+      const minSelection = ["union", "subtract", "intersect"].includes(operationId) ? 2 : 1
+
+      if (selectedObjects.length < minSelection) {
+        if (minSelection === 2) {
+          toast.error("Selecciona al menos 2 objetos para operaciones booleanas.")
+        } else {
+          toast.error("No objects selected. Select an object first.")
+        }
         return
       }
 
@@ -344,8 +336,30 @@ function BottomToolbar() {
         case "shell":
           openOperationDialog("shell")
           break
+        case "union":
+          await executeBooleanUnion()
+          break
+        case "subtract":
+          await executeBooleanSubtract()
+          break
+        case "intersect":
+          await executeBooleanIntersect()
+          break
         case "mirror":
-          toast.info("Mirror operation - Coming soon!")
+          // Mirror is handled by the submenu, this is fallback
+          setMirrorMenuOpen(true)
+          return // Don't close operations popover
+        case "mirror-yz":
+          await executeMirror("yz", mirrorKeepOriginal)
+          setMirrorMenuOpen(false)
+          break
+        case "mirror-xz":
+          await executeMirror("xz", mirrorKeepOriginal)
+          setMirrorMenuOpen(false)
+          break
+        case "mirror-xy":
+          await executeMirror("xy", mirrorKeepOriginal)
+          setMirrorMenuOpen(false)
           break
         case "duplicate":
           toast.info("Duplicate operation - Coming soon!")
@@ -357,23 +371,47 @@ function BottomToolbar() {
           toast.error(`Unknown operation: ${operationId}`)
       }
     },
-    [selectedObjects, openOperationDialog]
+    [
+      selectedObjects,
+      openOperationDialog,
+      executeBooleanUnion,
+      executeBooleanSubtract,
+      executeBooleanIntersect,
+      executeMirror,
+      mirrorKeepOriginal,
+    ]
   )
 
   const operations = [
+    // Boolean operations (Subtract & Intersect - Union is in toolbar)
     {
-      id: "mirror",
-      icon: MirrorIcon,
-      label: "Mirror",
-      shortcut: "X",
-      onClick: () => handleOperation("mirror"),
+      id: "subtract",
+      icon: DifferenceIcon,
+      label: "Subtract",
+      shortcut: "⇧S",
+      onClick: () => handleOperation("subtract"),
     },
+    {
+      id: "intersect",
+      icon: IntersectionIcon,
+      label: "Intersect",
+      shortcut: "I",
+      onClick: () => handleOperation("intersect"),
+    },
+    // Modification operations
     {
       id: "fillet",
       icon: FilletIcon,
       label: "Fillet",
       shortcut: "F",
       onClick: () => handleOperation("fillet"),
+    },
+    {
+      id: "mirror",
+      icon: MirrorIcon,
+      label: "Mirror",
+      shortcut: "X",
+      onClick: () => handleOperation("mirror"),
     },
     {
       id: "duplicate",
@@ -418,40 +456,40 @@ function BottomToolbar() {
       {/* Core Modeling Ops */}
       <div className="flex items-center gap-0.5 px-1">
         <ToolbarButton side="top" icon={ExtrudeIcon} label="Extrude" shortcut="E" />
-        <ToolbarButton side="top" icon={BooleanIcon} label="Boolean Ops" shortcut="B" />
-        <ToolbarButton side="top" icon={CutIcon} label="Cut / Split" shortcut="K" />
-      </div>
-
-      <Separator orientation="vertical" className="h-6 bg-border/50 mx-1" />
-
-      {/* Destructive Quick Action */}
-      <div className="flex items-center px-1">
         <ToolbarButton
           side="top"
-          icon={DeleteIcon}
-          label="Delete Selection"
-          shortcut="X"
-          disabled={selectedObjects.length === 0}
-          onClick={handleDelete}
+          icon={BooleanIcon}
+          label="Union"
+          shortcut="U"
+          disabled={selectedObjects.filter((o) => o.type === "shape").length < 2}
+          onClick={() => handleOperation("union")}
         />
+        <ToolbarButton side="top" icon={CutIcon} label="Cut / Split" shortcut="K" />
       </div>
 
       <Separator orientation="vertical" className="h-6 bg-border/50 mx-1" />
 
       {/* Overflow Operations */}
       <Popover open={operationsOpen} onOpenChange={setOperationsOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              "w-7.5 h-7.5 flex items-center justify-center rounded-[10px] transition-all duration-200 outline-none",
-              "text-muted-foreground hover:bg-muted hover:text-foreground",
-              operationsOpen && "bg-secondary text-secondary-foreground"
-            )}
-          >
-            <HugeiconsIcon icon={MoreHorizontalIcon} className="size-3.5" />
-          </button>
-        </PopoverTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  "w-7.5 h-7.5 flex items-center justify-center rounded-[10px] transition-all duration-200 outline-none",
+                  "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  operationsOpen && "bg-secondary text-secondary-foreground"
+                )}
+              >
+                <HugeiconsIcon icon={MoreHorizontalIcon} className="size-3.5" />
+              </button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={8}>
+            <span className="text-xs">More Operations</span>
+          </TooltipContent>
+        </Tooltip>
         <PopoverContent
           side="top"
           align="center"
@@ -462,27 +500,100 @@ function BottomToolbar() {
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 px-2">
               All Operations
             </p>
-            {operations.map((op) => (
-              <button
-                type="button"
-                key={op.id}
-                onClick={op.onClick}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-muted transition-all text-left group"
-              >
-                <SmartIcon
-                  icon={op.icon}
-                  className="size-4 text-muted-foreground group-hover:text-foreground"
-                />
-                <span className="text-xs font-medium flex-1 text-muted-foreground group-hover:text-foreground">
-                  {op.label}
-                </span>
-                {op.shortcut && (
-                  <Kbd className="bg-muted border-border/50 text-muted-foreground group-hover:text-foreground">
-                    {op.shortcut}
-                  </Kbd>
-                )}
-              </button>
-            ))}
+            {operations.map((op) =>
+              op.id === "mirror" ? (
+                // Mirror has a submenu for plane selection
+                <Popover key={op.id} open={mirrorMenuOpen} onOpenChange={setMirrorMenuOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-muted transition-all text-left group",
+                        mirrorMenuOpen && "bg-muted"
+                      )}
+                    >
+                      <SmartIcon
+                        icon={op.icon}
+                        className="size-4 text-muted-foreground group-hover:text-foreground"
+                      />
+                      <span className="text-xs font-medium flex-1 text-muted-foreground group-hover:text-foreground">
+                        {op.label}
+                      </span>
+                      <span className="text-muted-foreground/50">▸</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="right"
+                    align="start"
+                    sideOffset={4}
+                    className="w-44 p-1.5 bg-background/95 backdrop-blur-xl border border-border/40 shadow-2xl rounded-2xl"
+                  >
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-2 py-1">
+                        Mirror Plane
+                      </p>
+                      {[
+                        { id: "mirror-yz", label: "YZ Plane", desc: "Flip X" },
+                        { id: "mirror-xz", label: "XZ Plane", desc: "Flip Y" },
+                        { id: "mirror-xy", label: "XY Plane", desc: "Flip Z" },
+                      ].map((plane) => (
+                        <button
+                          key={plane.id}
+                          type="button"
+                          onClick={() => handleOperation(plane.id)}
+                          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-muted transition-all text-left group"
+                        >
+                          <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
+                            {plane.label}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/60">{plane.desc}</span>
+                        </button>
+                      ))}
+                      <Separator className="my-1" />
+                      <button
+                        type="button"
+                        onClick={() => setMirrorKeepOriginal(!mirrorKeepOriginal)}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-muted transition-all text-left group"
+                      >
+                        <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
+                          Keep Original
+                        </span>
+                        <span
+                          className={cn(
+                            "size-3.5 rounded border transition-all flex items-center justify-center",
+                            mirrorKeepOriginal
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "border-muted-foreground/30"
+                          )}
+                        >
+                          {mirrorKeepOriginal && <span className="text-[8px] font-bold">✓</span>}
+                        </span>
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                <button
+                  type="button"
+                  key={op.id}
+                  onClick={op.onClick}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-muted transition-all text-left group"
+                >
+                  <SmartIcon
+                    icon={op.icon}
+                    className="size-4 text-muted-foreground group-hover:text-foreground"
+                  />
+                  <span className="text-xs font-medium flex-1 text-muted-foreground group-hover:text-foreground">
+                    {op.label}
+                  </span>
+                  {op.shortcut && (
+                    <Kbd className="bg-muted border-border/50 text-muted-foreground group-hover:text-foreground">
+                      {op.shortcut}
+                    </Kbd>
+                  )}
+                </button>
+              )
+            )}
           </div>
         </PopoverContent>
       </Popover>
@@ -490,72 +601,414 @@ function BottomToolbar() {
       <Separator orientation="vertical" className="h-6 bg-border/50 mx-1" />
 
       {/* Render Mode Select (Plasticity-Style) */}
-      <Popover>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  "w-7.5 h-7.5 flex items-center justify-center rounded-[10px] transition-all duration-200 outline-none",
-                  "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <RenderModeIcon className="size-3.5" />
-              </button>
-            </PopoverTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="top" sideOffset={8}>
-            <span className="text-xs">Render Quality</span>
-          </TooltipContent>
-        </Tooltip>
-        <PopoverContent
+      <div className="flex items-center px-1">
+        <Popover>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "w-7.5 h-7.5 flex items-center justify-center rounded-[10px] transition-all duration-200 outline-none",
+                    "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <RenderModeIcon className="size-3.5" />
+                </button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="top" sideOffset={8}>
+              <span className="text-xs">Render Quality</span>
+            </TooltipContent>
+          </Tooltip>
+          <PopoverContent
+            side="top"
+            align="center"
+            sideOffset={12}
+            className="w-44 p-1.5 bg-background/95 backdrop-blur-xl border border-border/40 shadow-2xl rounded-2xl"
+          >
+            <div className="space-y-0.5">
+              <p className="section-label px-2 py-1">Render Quality</p>
+              {[
+                { id: "low", name: "Draft", shortcut: "1" },
+                { id: "medium", name: "Modeling", shortcut: "2" },
+                { id: "high", name: "Real-time", shortcut: "3" },
+                { id: "ultra", name: "Cinematic", shortcut: "4" },
+              ].map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() =>
+                    setViewportSettings({
+                      postProcessingQuality: mode.id as "low" | "medium" | "high" | "ultra",
+                    })
+                  }
+                  className={cn(
+                    "w-full flex items-center justify-between px-2.5 py-1.5 rounded-2xl transition-all text-left group",
+                    "hover:bg-accent text-muted-foreground hover:text-foreground",
+                    viewportSettings.postProcessingQuality === mode.id &&
+                      "bg-primary/15 text-primary ring-1 ring-primary/30"
+                  )}
+                >
+                  <span className="text-xs font-medium">{mode.name}</span>
+                  <span className="text-xs text-muted-foreground/50 font-mono">
+                    {mode.shortcut}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <Separator orientation="vertical" className="h-6 bg-border/50 mx-1" />
+
+      {/* Delete - at the end */}
+      <div className="flex items-center px-1">
+        <ToolbarButton
           side="top"
-          align="center"
-          sideOffset={12}
-          className="w-44 p-1.5 bg-background/95 backdrop-blur-xl border border-border/40 shadow-2xl rounded-2xl"
-        >
-          <div className="space-y-0.5">
-            <p className="section-label px-2 py-1">Render Quality</p>
-            {[
-              { id: "low", name: "Draft", shortcut: "1" },
-              { id: "medium", name: "Modeling", shortcut: "2" },
-              { id: "high", name: "Real-time", shortcut: "3" },
-              { id: "ultra", name: "Cinematic", shortcut: "4" },
-            ].map((mode) => (
-              <button
-                key={mode.id}
-                type="button"
-                onClick={() =>
-                  setViewportSettings({
-                    postProcessingQuality: mode.id as "low" | "medium" | "high" | "ultra",
-                  })
-                }
-                className={cn(
-                  "w-full flex items-center justify-between px-2.5 py-1.5 rounded-2xl transition-all text-left group",
-                  "hover:bg-accent text-muted-foreground hover:text-foreground",
-                  viewportSettings.postProcessingQuality === mode.id &&
-                    "bg-primary/15 text-primary ring-1 ring-primary/30"
-                )}
-              >
-                <span className="text-xs font-medium">{mode.name}</span>
-                <span className="text-xs text-muted-foreground/50 font-mono">{mode.shortcut}</span>
-              </button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
+          icon={DeleteIcon}
+          label="Delete Selection"
+          shortcut="Del"
+          disabled={selectedObjects.length === 0}
+          onClick={handleDelete}
+        />
+      </div>
     </div>
   )
 }
 
-export function ViewportOverlays({ className }: ViewportOverlaysProps) {
+// ============================================================================
+// RIGHT VERTICAL TOOLBAR - DOCUMENTATION & DRAWINGS
+// ============================================================================
+
+interface RightToolbarProps {
+  onOpenDialog: () => void
+  isDialogOpen: boolean
+  isDrawingSelectionPending: boolean
+  onStartDrawingSelection: () => void
+}
+
+function RightToolbar({
+  onOpenDialog,
+  isDialogOpen,
+  isDrawingSelectionPending,
+  onStartDrawingSelection,
+}: RightToolbarProps) {
+  const selectedObjects = useSelectedObjects()
+
+  const handleCreateDrawing = useCallback(() => {
+    // Check if shapes are selected
+    const shapeObjects = selectedObjects.filter((obj) => obj.type === "shape")
+
+    if (shapeObjects.length === 0) {
+      // No shapes selected - start selection mode
+      onStartDrawingSelection()
+      return
+    }
+
+    // Shapes are selected - open dialog directly
+    onOpenDialog()
+  }, [selectedObjects, onOpenDialog, onStartDrawingSelection])
+
   return (
-    <div className={cn("absolute inset-0 pointer-events-none", className)}>
-      <SelectionToolbar />
-      <LeftToolbar />
-      <BottomToolbar />
+    <div className="absolute right-3 top-[55%] -translate-y-1/2 flex flex-col items-center gap-0.5 p-1.5 rounded-2xl bg-background/95 backdrop-blur-md border border-border/50 shadow-xl pointer-events-auto">
+      <ToolbarButton
+        side="left"
+        icon={DrawingModeIcon}
+        label="Dibujos"
+        shortcut="⌘D"
+        active={isDialogOpen || isDrawingSelectionPending}
+        onClick={handleCreateDrawing}
+      />
     </div>
+  )
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Create a shape in the backend from its parameters
+ * ALWAYS creates a new shape to avoid sync issues between frontend/backend
+ * Returns the backend shape ID if successful, null otherwise
+ */
+async function createShapeInBackend(obj: AnySceneObject): Promise<string | null> {
+  if (obj.type !== "shape") return null
+
+  const shape = obj as ShapeObject
+  const shapeType = shape.shapeType
+  const params = shape.parameters || {}
+
+  if (!shapeType) {
+    console.warn(`[Drawing] Cannot create shape "${obj.name}": missing shapeType`)
+    return null
+  }
+
+  try {
+    let result: cadService.ShapeResult | null = null
+    const pos = shape.transform?.position || { x: 0, y: 0, z: 0 }
+
+    switch (shapeType) {
+      case "box":
+        result = await cadService.createBoxAt(
+          pos.x,
+          pos.y,
+          pos.z,
+          params.width || 1,
+          params.depth || 1,
+          params.height || 1
+        )
+        break
+      case "cylinder":
+        result = await cadService.createCylinderAt(
+          pos.x,
+          pos.y,
+          pos.z,
+          params.radius || 0.5,
+          params.height || 1,
+          0,
+          0,
+          1 // Default axis (Z-up)
+        )
+        break
+      case "sphere":
+        result = await cadService.createSphereAt(pos.x, pos.y, pos.z, params.radius || 0.5)
+        break
+      case "cone":
+        result = await cadService.createCone(params.radius || 0.5, params.height || 1)
+        break
+      case "torus":
+        result = await cadService.createTorus(params.majorRadius || 1, params.minorRadius || 0.25)
+        break
+      case "wedge":
+        result = await cadService.createWedge(
+          params.width || 1,
+          params.depth || 1,
+          params.height || 1,
+          params.ltx || 0
+        )
+        break
+      case "pyramid":
+        result = await cadService.createPyramid(
+          params.sides || 4,
+          params.radius || 0.5,
+          params.height || 1
+        )
+        break
+      case "ellipsoid":
+        result = await cadService.createEllipsoid(
+          params.radiusX || 1,
+          params.radiusY || 0.75,
+          params.radiusZ || 0.5
+        )
+        break
+      default:
+        console.warn(`[Drawing] Unsupported shape type for drawing: ${shapeType}`)
+        return null
+    }
+
+    if (result) {
+      console.log(`[Drawing] Created shape "${obj.name}" in backend with ID: ${result.id}`)
+      // Update the mapping for future use
+      shapeIdMap.set(obj.id, result.id)
+      return result.id
+    }
+  } catch (error) {
+    console.error(`[Drawing] Failed to create shape "${obj.name}" in backend:`, error)
+    console.error(`[Drawing] Shape details:`, { shapeType, params, pos })
+  }
+
+  return null
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export function ViewportOverlays({ className }: ViewportOverlaysProps) {
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false)
+  const [isDrawingSelectionPending, setIsDrawingSelectionPending] = useState(false)
+  const selectedObjects = useSelectedObjects()
+  const createDrawing = useDrawingStore((s) => s.createDrawing)
+  const generateStandardViews = useDrawingStore((s) => s.generateStandardViews)
+  const generateProjection = useDrawingStore((s) => s.generateProjection)
+  const setActiveDrawing = useDrawingStore((s) => s.setActiveDrawing)
+  const addView = useDrawingStore((s) => s.addView)
+
+  // Watch for shape selection when in drawing selection mode
+  useEffect(() => {
+    if (!isDrawingSelectionPending) return
+
+    const shapeObjects = selectedObjects.filter((obj) => obj.type === "shape")
+    if (shapeObjects.length > 0) {
+      // User selected a shape - open dialog automatically
+      setIsDrawingSelectionPending(false)
+      setIsConfigDialogOpen(true)
+    }
+  }, [selectedObjects, isDrawingSelectionPending])
+
+  const handleStartDrawingSelection = useCallback(() => {
+    setIsDrawingSelectionPending(true)
+    toast.info("Selecciona un sólido para crear el dibujo", {
+      duration: 5000,
+    })
+  }, [])
+
+  const handleCancelDrawingSelection = useCallback(() => {
+    setIsDrawingSelectionPending(false)
+  }, [])
+
+  const handleConfigConfirm = useCallback(
+    async (config: SheetConfig, drawingName: string, includeFourViews: boolean) => {
+      // Filter to shape objects only (primitivas CAD)
+      const shapeObjects = selectedObjects.filter((obj) => obj.type === "shape")
+
+      if (shapeObjects.length === 0) {
+        // Check if user selected hydraulic elements
+        const hydraulicObjects = selectedObjects.filter(
+          (obj) => obj.type === "channel" || obj.type === "transition" || obj.type === "chute"
+        )
+        if (hydraulicObjects.length > 0) {
+          toast.error(
+            "Los canales, transiciones y caídas aún no soportan dibujos técnicos. " +
+              "Usa primitivas CAD (caja, cilindro, esfera, etc.)."
+          )
+        } else {
+          toast.error("Selecciona un sólido CAD para crear el dibujo")
+        }
+        return
+      }
+
+      try {
+        const backendShapeIds: string[] = []
+
+        for (const obj of shapeObjects) {
+          // First try to get existing backend ID
+          let backendId = shapeIdMap.get(obj.id)
+          if (!backendId && obj.metadata?.backendShapeId) {
+            backendId = obj.metadata.backendShapeId as string
+          }
+
+          // If we have a backend ID, verify it exists or recreate
+          if (backendId) {
+            const exists = await cadService.shapeExists(backendId)
+            if (exists) {
+              backendShapeIds.push(backendId)
+              continue
+            }
+          }
+
+          // No valid backend ID - try to create shape from parameters
+          const newId = await createShapeInBackend(obj)
+          if (newId) {
+            backendShapeIds.push(newId)
+          } else {
+            const shape = obj as ShapeObject
+            toast.error(`No se pudo recrear "${obj.name}" (${shape.shapeType || "?"})`)
+          }
+        }
+
+        if (backendShapeIds.length === 0) {
+          toast.error("No hay sólidos válidos para crear el dibujo")
+          return
+        }
+
+        // Create drawing with the provided name
+        const finalName = drawingName || `Dibujo ${new Date().toLocaleDateString()}`
+        const drawingId = createDrawing(finalName, config, backendShapeIds)
+
+        // Unit factor for scale conversion
+        const unitFactor = getModelMetersToDrawingUnitsFactor(config.units)
+
+        if (includeFourViews) {
+          // Generate standard 4 views (Front, Left, Top, Isometric)
+          const projections = await generateStandardViews(
+            backendShapeIds[0],
+            config.scale * unitFactor
+          )
+
+          // Add views in 2x2 grid layout
+          const viewTypes: ProjectionType[] = ["Front", "Left", "Top", "Isometric"]
+          projections.forEach((projection, index) => {
+            const col = index % 2
+            const row = Math.floor(index / 2)
+            const position: [number, number] = [col * 200 - 100, row * -200 + 100]
+            addView(drawingId, viewTypes[index] as ProjectionType, projection, position)
+          })
+        } else {
+          // Generate only front view
+          const projection = await generateProjection(
+            backendShapeIds[0],
+            "Front",
+            config.scale * unitFactor
+          )
+          addView(drawingId, "Front", projection, [0, 0])
+        }
+
+        setActiveDrawing(drawingId)
+        setIsConfigDialogOpen(false)
+
+        // Navigate to drawings view
+        useNavigationStore.getState().setView("drawings")
+
+        toast.success("Dibujo creado exitosamente")
+      } catch (error) {
+        toast.error(
+          `Error al crear dibujo: ${error instanceof Error ? error.message : String(error)}`
+        )
+      }
+    },
+    [
+      selectedObjects,
+      createDrawing,
+      generateStandardViews,
+      generateProjection,
+      setActiveDrawing,
+      addView,
+    ]
+  )
+
+  return (
+    <>
+      <div className={cn("absolute inset-0 pointer-events-none", className)}>
+        <SelectionToolbar />
+        <LeftToolbar />
+        <BottomToolbar />
+        <RightToolbar
+          onOpenDialog={() => setIsConfigDialogOpen(true)}
+          isDialogOpen={isConfigDialogOpen}
+          isDrawingSelectionPending={isDrawingSelectionPending}
+          onStartDrawingSelection={handleStartDrawingSelection}
+        />
+
+        {/* Drawing Selection Mode Overlay */}
+        {isDrawingSelectionPending && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-primary/95 backdrop-blur-md border border-primary/50 shadow-xl pointer-events-auto">
+            <span className="text-sm font-medium text-primary-foreground">
+              Selecciona cuerpos de referencia para incluirlos en el dibujo
+            </span>
+            <button
+              type="button"
+              onClick={handleCancelDrawingSelection}
+              className="px-3 py-1 text-xs font-medium text-primary-foreground/80 hover:text-primary-foreground rounded-lg hover:bg-primary-foreground/10 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+      </div>
+      {/* Render dialogs outside pointer-events-none container */}
+      <DrawingConfigDialog
+        open={isConfigDialogOpen}
+        onOpenChange={(open) => {
+          setIsConfigDialogOpen(open)
+          if (!open) setIsDrawingSelectionPending(false)
+        }}
+        onConfirm={handleConfigConfirm}
+      />
+    </>
   )
 }
 

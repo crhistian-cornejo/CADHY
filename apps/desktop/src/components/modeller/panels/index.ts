@@ -1,7 +1,11 @@
 // Named exports
 export { CameraAnimationPanel } from "./CameraAnimationPanel"
 export { DebugStatsPanel } from "./DebugStatsPanel"
+export { DrawingToolsPanel } from "./DrawingToolsPanel"
+export { HistoryEntryDetails } from "./HistoryEntryDetails"
+export { HistoryPanel } from "./HistoryPanel"
 export { MeasurementToolsPanel } from "./MeasurementToolsPanel"
+export { MergeHistoryDialog } from "./MergeHistoryDialog"
 export { default as NotificationsPanel } from "./NotificationsPanel"
 export { PerformanceSettingsPanel } from "./PerformanceSettingsPanel"
 export { SectionToolPanel } from "./SectionToolPanel"

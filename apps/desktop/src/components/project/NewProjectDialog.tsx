@@ -66,15 +66,16 @@ const templateIcons: Record<string, typeof File01Icon> = {
 // FOLDER COLOR MAP
 // ============================================================================
 
+// Uses CSS custom properties from globals.css [data-folder-color="*"]
 const folderColorMap: Record<string, string> = {
-  blue: "bg-blue-500",
-  green: "bg-green-500",
-  red: "bg-red-500",
-  yellow: "bg-yellow-500",
-  purple: "bg-purple-500",
-  pink: "bg-pink-500",
-  orange: "bg-orange-500",
-  cyan: "bg-cyan-500",
+  blue: "bg-folder-front",
+  green: "[&]:bg-[oklch(0.65_0.16_145)]",
+  red: "[&]:bg-[oklch(0.65_0.20_25)]",
+  yellow: "[&]:bg-[oklch(0.85_0.16_85)]",
+  purple: "[&]:bg-[oklch(0.65_0.17_300)]",
+  pink: "[&]:bg-[oklch(0.75_0.17_350)]",
+  orange: "[&]:bg-[oklch(0.75_0.18_55)]",
+  cyan: "[&]:bg-[oklch(0.65_0.14_185)]",
 }
 
 // ============================================================================

@@ -1,6 +1,9 @@
 import {
   Button,
   cn,
+  formatKbd,
+  Kbd,
+  KbdGroup,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -15,6 +18,7 @@ import {
   Album01Icon,
   Analytics01Icon,
   BookOpen01Icon,
+  CalculatorIcon,
   CubeIcon,
   GridIcon,
   Home01Icon,
@@ -29,8 +33,10 @@ import { listen } from "@tauri-apps/api/event"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AIChatPanel } from "@/components/ai"
+import { CadrasView } from "@/components/cadras"
 import { CommandPalette, useCommandPalette } from "@/components/command-palette"
 import { ChatErrorBoundary, UpdateBadge } from "@/components/common"
+import { DrawingsView } from "@/components/drawings/DrawingsView"
 import { GalleryView } from "@/components/gallery"
 import { ModellerView } from "@/components/modeller"
 import {
@@ -39,6 +45,7 @@ import {
   ProjectsView,
   SaveAsDialog,
 } from "@/components/project"
+import { ResultsView } from "@/components/results"
 import {
   useAppHotkeys,
   useAutoSave,
@@ -225,12 +232,19 @@ export function AppLayout() {
                     onNewProject={() => setNewProjectOpen(true)}
                     onOpenProject={() => setOpenProjectOpen(true)}
                   />
+                ) : currentView === "drawings" ? (
+                  <DrawingsView
+                    onNewProject={() => setNewProjectOpen(true)}
+                    onOpenProject={() => setOpenProjectOpen(true)}
+                  />
                 ) : currentView === "mesh" ? (
                   <WorkInProgress feature={t("wip.features.meshGeneration")} />
+                ) : currentView === "cadras" ? (
+                  <CadrasView />
                 ) : currentView === "cfd" ? (
                   <WorkInProgress feature={t("wip.features.cfdAnalysis")} />
                 ) : currentView === "results" ? (
-                  <WorkInProgress feature={t("wip.features.resultsVisualization")} />
+                  <ResultsView />
                 ) : currentView === "examples" ? (
                   <WorkInProgress feature={t("wip.features.examplesLibrary")} />
                 ) : currentView === "gallery" ? (
@@ -321,9 +335,7 @@ export function AppLayout() {
         onOpenChange={commandPalette.setOpen}
         onNewProject={() => setNewProjectOpen(true)}
         onOpenProject={() => setOpenProjectOpen(true)}
-        onOpenSettings={() => {
-          /* TODO: Open settings */
-        }}
+        onOpenSettings={() => dialogActions.setDialog("profile", true)}
         onOpenShortcuts={() => dialogActions.openShortcuts()}
       />
 
@@ -348,6 +360,7 @@ const fileActions = [
 const workspaceModules = [
   { id: "modeller" as ViewId, icon: CubeIcon, labelKey: "sidebar.modeller" },
   { id: "mesh" as ViewId, icon: GridIcon, labelKey: "sidebar.mesh" },
+  { id: "cadras" as ViewId, icon: CalculatorIcon, labelKey: "sidebar.cadras" },
   { id: "cfd" as ViewId, icon: WaveIcon, labelKey: "sidebar.cfd" },
   { id: "results" as ViewId, icon: Analytics01Icon, labelKey: "sidebar.results" },
 ]
@@ -494,9 +507,10 @@ function Titlebar({
             >
               <HugeiconsIcon icon={Search01Icon} className="size-4" />
               <span className="text-xs">{t("titlebar.search")}</span>
-              <kbd className="pointer-events-none ml-2 hidden h-5 select-none items-center gap-1 rounded-2xl border bg-muted px-1.5 font-mono text-xs font-medium sm:flex">
-                <span className="text-xs">{modKey}</span>K
-              </kbd>
+              <KbdGroup className="ml-2 hidden sm:flex">
+                <Kbd>{modKey}</Kbd>
+                <Kbd>K</Kbd>
+              </KbdGroup>
             </Button>
             <div className="flex items-center gap-1 ml-1">
               <Tooltip>
@@ -640,9 +654,10 @@ function Titlebar({
             >
               <HugeiconsIcon icon={Search01Icon} className="size-4" />
               <span className="text-xs">{t("titlebar.search")}</span>
-              <kbd className="pointer-events-none ml-2 hidden h-5 select-none items-center gap-1 rounded-2xl border bg-muted px-1.5 font-mono text-xs font-medium sm:flex">
-                <span className="text-xs">{modKey}</span>K
-              </kbd>
+              <KbdGroup className="ml-2 hidden sm:flex">
+                <Kbd>{modKey}</Kbd>
+                <Kbd>K</Kbd>
+              </KbdGroup>
             </Button>
           </>
         ) : (

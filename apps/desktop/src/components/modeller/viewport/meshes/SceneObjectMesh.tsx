@@ -21,6 +21,7 @@ import type {
   TransitionObject,
 } from "@/stores/modeller"
 import { useViewportSettings } from "@/stores/modeller"
+import { generateBoxProjectionUVs } from "../geometry-utils"
 import { ChannelMesh } from "./ChannelMesh"
 import { ChuteMesh } from "./ChuteMesh"
 import { TransitionMesh } from "./TransitionMesh"
@@ -36,6 +37,8 @@ export interface SceneObjectMeshProps {
   onHover: (id: string | null) => void
   meshRef?: React.RefObject<THREE.Mesh | THREE.Group | null>
   onMeshReady?: () => void
+  /** If true, render as ghost preview (green transparent) */
+  isGhostPreview?: boolean
 }
 
 export const SceneObjectMesh = React.memo(function SceneObjectMesh({
@@ -47,6 +50,7 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
   onHover,
   meshRef: externalMeshRef,
   onMeshReady,
+  isGhostPreview = false,
 }: SceneObjectMeshProps) {
   const internalMeshRef = useRef<THREE.Mesh>(null)
 
@@ -66,6 +70,13 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
 
   // Determine color based on state - keep original color, use outline for selection
   const color = useMemo(() => {
+    // Ghost preview: always green
+    if (isGhostPreview) {
+      return "#10b981" // Green for preview
+    }
+    if (isSelected) {
+      return "#f59e0b" // Amber/Orange for selection (more CAD-like)
+    }
     if (object.type === "shape") {
       return (object as ShapeObject).material?.color ?? "#6366f1"
     }
@@ -79,16 +90,20 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
       return (object as ChuteObject).material?.color ?? "#f59e0b"
     }
     return "#6366f1"
-  }, [object])
+  }, [object, isGhostPreview])
 
   // Determine opacity
   const opacity = useMemo(() => {
+    // Ghost preview: semi-transparent
+    if (isGhostPreview) {
+      return 0.3
+    }
     if (viewMode === "xray") return 0.5
     if (object.type === "shape") {
       return (object as ShapeObject).material?.opacity ?? 1
     }
     return 1
-  }, [object, viewMode])
+  }, [object, viewMode, isGhostPreview])
 
   // Get material properties
   const materialProps = useMemo(() => {
@@ -154,7 +169,9 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
   const handleClick = useCallback(
     (event: ThreeEvent<MouseEvent>) => {
       event.stopPropagation()
-      onSelect(object.id, event.nativeEvent.shiftKey)
+      // Use Ctrl/Cmd for additive selection (Shift is reserved for box selection)
+      const additive = event.nativeEvent.ctrlKey || event.nativeEvent.metaKey
+      onSelect(object.id, additive)
     },
     [object.id, onSelect]
   )
@@ -317,37 +334,68 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
     )
   }
 
-  // Extract shape parameters for dependency tracking
-  // Serialize params to JSON string to ensure useMemo detects changes in nested objects
-  const _shapeParamsKey =
-    object.type === "shape" ? JSON.stringify((object as ShapeObject).parameters) : null
-  const _shapeType = object.type === "shape" ? (object as ShapeObject).shapeType : null
-  const _shapeMeshKey =
-    object.type === "shape" && (object as ShapeObject).mesh
-      ? ((object as ShapeObject).mesh?.vertices?.length ?? 0)
-      : null
-
   // Create geometry for shape objects with caching
   // Prioritize mesh data from backend (OpenCASCADE) if available
   const geometry = useMemo(() => {
     if (object.type === "shape") {
       const shapeObj = object as ShapeObject
 
-      // If we have mesh data from the CAD backend, use it (can't cache custom meshes easily)
-      if (shapeObj.mesh?.vertices && shapeObj.mesh.vertices.length > 0) {
+      // For basic primitives, ALWAYS use Three.js geometry for display (instant feedback)
+      // Backend mesh is only used for complex shapes (boolean results, imports, etc.)
+      // This gives smooth slider interaction while keeping backend synced for CAD operations
+      const isBasicPrimitive = ["box", "cylinder", "sphere", "cone", "torus"].includes(
+        shapeObj.shapeType
+      )
+
+      // Use backend mesh ONLY for non-primitive shapes (boolean results, complex geometry)
+      if (shapeObj.mesh?.vertices && shapeObj.mesh.vertices.length > 0 && !isBasicPrimitive) {
         const geo = new THREE.BufferGeometry()
 
         // Set vertices - swap Y and Z for Three.js coordinate system
         const positions = new Float32Array(shapeObj.mesh.vertices.length)
+
+        // First pass: transform coordinates and find bounding box
+        let minX = Infinity,
+          minY = Infinity,
+          minZ = Infinity
+        let maxX = -Infinity,
+          maxY = -Infinity,
+          maxZ = -Infinity
+
         for (let i = 0; i < shapeObj.mesh.vertices.length; i += 3) {
           const x = shapeObj.mesh.vertices[i] // X stays X
           const y = shapeObj.mesh.vertices[i + 1] // Backend Y (transverse)
           const z = shapeObj.mesh.vertices[i + 2] // Backend Z (vertical/up)
 
-          positions[i] = x // Three.js X
-          positions[i + 1] = z // Three.js Y = Backend Z
-          positions[i + 2] = -y // Three.js Z = -Backend Y
+          // Transform to Three.js coordinates
+          const tx = x // Three.js X
+          const ty = z // Three.js Y = Backend Z
+          const tz = -y // Three.js Z = -Backend Y
+
+          positions[i] = tx
+          positions[i + 1] = ty
+          positions[i + 2] = tz
+
+          // Track bounding box
+          minX = Math.min(minX, tx)
+          minY = Math.min(minY, ty)
+          minZ = Math.min(minZ, tz)
+          maxX = Math.max(maxX, tx)
+          maxY = Math.max(maxY, ty)
+          maxZ = Math.max(maxZ, tz)
         }
+
+        // Second pass: center the geometry (OpenCASCADE creates shapes from origin, Three.js centers them)
+        const centerX = (minX + maxX) / 2
+        const centerY = (minY + maxY) / 2
+        const centerZ = (minZ + maxZ) / 2
+
+        for (let i = 0; i < positions.length; i += 3) {
+          positions[i] -= centerX
+          positions[i + 1] -= centerY
+          positions[i + 2] -= centerZ
+        }
+
         geo.setAttribute("position", new THREE.BufferAttribute(positions, 3))
 
         // Set indices
@@ -372,6 +420,9 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
           geo.computeVertexNormals()
         }
 
+        // Generate UV coordinates using box projection for proper texture mapping
+        generateBoxProjectionUVs(geo, 1.0)
+
         geo.computeBoundingBox()
         geo.computeBoundingSphere()
 
@@ -381,10 +432,12 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
         return geo
       }
 
-      // Fallback: create simple Three.js geometry based on shape type
-      // Use mesh cache to reuse identical geometries
+      // Create Three.js geometry based on shape type
+      // This is used either as fallback (no backend mesh) or when we want visual subdivisions
       const params = shapeObj.parameters
-      const segments = params.segments ?? 32
+      // Default segments: 1 for boxes (subdivisions), 32 for curved primitives (tessellation detail)
+      const defaultSegments = shapeObj.shapeType === "box" ? 1 : 32
+      const segments = params.segments ?? defaultSegments
 
       switch (shapeObj.shapeType) {
         case "box":
@@ -474,14 +527,35 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
       () => new THREE.BoxGeometry(1, 1, 1)
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [object.id, object.type, object])
+  }, [
+    object.id,
+    object.type,
+    // Include shape-specific properties to detect changes in history preview
+    object.type === "shape" ? (object as ShapeObject).shapeType : null,
+    object.type === "shape" ? JSON.stringify((object as ShapeObject).parameters) : null,
+    object.type === "shape" && (object as ShapeObject).mesh
+      ? ((object as ShapeObject).mesh?.vertices?.length ?? 0)
+      : null,
+  ])
+
+  // Cleanup geometry on unmount if it's not from cache
+  useEffect(() => {
+    return () => {
+      if (object.type === "shape") {
+        const shapeObj = object as ShapeObject
+        if (shapeObj.mesh?.vertices && shapeObj.mesh.vertices.length > 0) {
+          geometry.dispose()
+        }
+      }
+    }
+  }, [geometry, object])
 
   return (
     <mesh
       ref={internalMeshRef}
       geometry={geometry}
-      castShadow
-      receiveShadow
+      castShadow={viewportSettings.shadows}
+      receiveShadow={viewportSettings.shadows}
       position={[
         object.transform.position.x,
         object.transform.position.y,
@@ -501,23 +575,33 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
         <meshStandardMaterial
           key={`mat-pbr-${pbrTextures?.albedo?.uuid ?? "none"}`}
           color={
-            isSelected
-              ? "#10b981" // Selected: green
-              : isHovered
-                ? "#3b82f6" // Hovered: blue
-                : pbrTextures?.albedo
-                  ? "#ffffff"
-                  : color
+            isGhostPreview
+              ? "#10b981" // Ghost preview: green
+              : isSelected
+                ? "#10b981" // Selected: green
+                : isHovered
+                  ? "#3b82f6" // Hovered: blue
+                  : pbrTextures?.albedo
+                    ? "#ffffff"
+                    : color
           }
-          wireframe={viewMode === "wireframe"}
-          transparent={opacity < 1 || viewMode === "xray"}
+          wireframe={viewMode === "wireframe" || isGhostPreview}
+          transparent={opacity < 1 || viewMode === "xray" || isGhostPreview}
           opacity={opacity}
-          side={THREE.DoubleSide}
-          metalness={materialProps.metalness}
-          roughness={materialProps.roughness}
+          side={THREE.FrontSide}
+          metalness={Math.min(
+            1,
+            materialProps.metalness + (viewportSettings.reflection ?? 0) * 0.5
+          )}
+          roughness={Math.max(
+            0,
+            materialProps.roughness - (viewportSettings.reflection ?? 0) * 0.3
+          )}
           // Selection glow effect - emissive for selected objects
-          emissive={isSelected ? "#10b981" : isHovered ? "#3b82f6" : "#000000"}
-          emissiveIntensity={isSelected ? 0.3 : isHovered ? 0.15 : 0}
+          emissive={
+            isGhostPreview ? "#10b981" : isSelected ? "#10b981" : isHovered ? "#3b82f6" : "#000000"
+          }
+          emissiveIntensity={isGhostPreview ? 0.2 : isSelected ? 0.3 : isHovered ? 0.15 : 0}
           map={pbrTextures?.albedo ?? null}
           normalMap={pbrTextures?.normal ?? null}
           roughnessMap={pbrTextures?.roughness ?? null}
@@ -525,16 +609,23 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
           aoMap={pbrTextures?.ao ?? null}
           aoMapIntensity={pbrTextures?.ao ? 1 : 0}
           // Prevent overexposure from environment lighting when using textures
-          envMapIntensity={pbrTextures?.albedo ? 0.5 : 1}
+          // Increase envMapIntensity based on reflection setting
+          envMapIntensity={
+            pbrTextures?.albedo
+              ? 0.5 + (viewportSettings.reflection ?? 0) * 0.5
+              : 1 + (viewportSettings.reflection ?? 0) * 0.5
+          }
         />
       ) : (
         <meshBasicMaterial
           key="mat-basic"
-          color={isSelected ? "#10b981" : isHovered ? "#3b82f6" : color}
-          wireframe={viewMode === "wireframe"}
-          transparent={opacity < 1 || viewMode === "xray"}
+          color={
+            isGhostPreview ? "#10b981" : isSelected ? "#f59e0b" : isHovered ? "#3b82f6" : color
+          }
+          wireframe={viewMode === "wireframe" || isGhostPreview}
+          transparent={opacity < 1 || viewMode === "xray" || isGhostPreview}
           opacity={opacity}
-          side={THREE.DoubleSide}
+          side={THREE.FrontSide}
         />
       )}
     </mesh>

@@ -4,7 +4,7 @@
  * Reusable button for toolbar tools with tooltip and optional shortcut display.
  */
 
-import { Button, cn, Tooltip, TooltipContent, TooltipTrigger } from "@cadhy/ui"
+import { Button, cn, formatKbd, Kbd, Tooltip, TooltipContent, TooltipTrigger } from "@cadhy/ui"
 import type { Cursor01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import React from "react"
@@ -43,19 +43,20 @@ export const ToolButton = React.memo(function ToolButton({
             size="icon-sm"
             disabled={disabled}
             onClick={onClick}
+            aria-label={label}
             className={cn(
               "h-7 w-7",
               active && "bg-primary/20 text-primary hover:bg-primary/30",
               className
             )}
           >
-            <HugeiconsIcon icon={icon} className="size-4" />
+            <HugeiconsIcon icon={icon} className="size-4" aria-hidden="true" />
           </Button>
         }
       />
-      <TooltipContent side="bottom">
-        {label}
-        {shortcut && <span className="ml-1.5 opacity-70">({shortcut})</span>}
+      <TooltipContent side="bottom" className="flex items-center gap-2">
+        <span>{label}</span>
+        {shortcut && <Kbd variant="inverted">{formatKbd(shortcut)}</Kbd>}
       </TooltipContent>
     </Tooltip>
   )

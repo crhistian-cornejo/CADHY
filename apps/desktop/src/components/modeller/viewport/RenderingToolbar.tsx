@@ -119,8 +119,9 @@ function SavedViewItem({
                     size="icon-sm"
                     className="h-5 w-5"
                     onClick={() => onSaveEdit(view.id, editName)}
+                    aria-label="Save"
                   >
-                    <HugeiconsIcon icon={TickDouble02Icon} className="size-3" />
+                    <HugeiconsIcon icon={TickDouble02Icon} className="size-3" aria-hidden="true" />
                   </Button>
                 }
               />
@@ -129,8 +130,14 @@ function SavedViewItem({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button variant="ghost" size="icon-sm" className="h-5 w-5" onClick={onCancelEdit}>
-                    <HugeiconsIcon icon={Delete02Icon} className="size-3" />
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="h-5 w-5"
+                    onClick={onCancelEdit}
+                    aria-label="Cancel"
+                  >
+                    <HugeiconsIcon icon={Delete02Icon} className="size-3" aria-hidden="true" />
                   </Button>
                 }
               />

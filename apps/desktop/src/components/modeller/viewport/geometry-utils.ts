@@ -113,79 +113,120 @@ export function meshResultToBufferGeometry(
 }
 
 /**
- * Generate UV coordinates using triplanar mapping
+ * Generate UV coordinates using PER-FACE box projection mapping
  *
- * Triplanar mapping projects textures from 3 axes and blends them based on surface normal.
- * This provides seamless texturing on all surfaces regardless of orientation,
- * which is ideal for hydraulic structures with vertical walls, floors, and sloped surfaces.
+ * This function projects UVs based on the FACE NORMAL (computed from triangle vertices),
+ * NOT the vertex normal. This ensures all vertices of a triangle use the same projection plane,
+ * eliminating seam artifacts that occur when adjacent vertices have slightly different normals.
  *
- * The UVs are scaled to provide consistent texture density across ALL geometry.
- * IMPORTANT: Uses a FIXED scale to ensure 1 meter in 3D = 1 meter of texture everywhere.
- * This creates visual consistency - stairs, walls, and floors all show the same texture size.
+ * The algorithm:
+ * 1. For each triangle, compute the face normal from the 3 vertex positions
+ * 2. Determine the dominant axis of the face normal
+ * 3. Project all 3 vertices using the same plane (XY, XZ, or YZ)
  *
- * @param geometry - The geometry to generate UVs for
+ * @param geometry - The geometry to generate UVs for (must have indices or be non-indexed triangles)
  * @param baseScale - Optional scale multiplier (default: 1.0 = 1 world unit = 1 texture unit)
- *                    - 0.5 = texture appears 2x larger (less tiling)
- *                    - 2.0 = texture appears 2x smaller (more tiling)
  */
-function generateBoxProjectionUVs(geometry: THREE.BufferGeometry, baseScale = 1.0): void {
+export function generateBoxProjectionUVs(geometry: THREE.BufferGeometry, baseScale = 1.0): void {
   const positions = geometry.getAttribute("position")
-  const normals = geometry.getAttribute("normal")
 
-  if (!positions || !normals) {
-    console.warn("[generateBoxProjectionUVs] Missing positions or normals, cannot generate UVs")
+  if (!positions) {
+    console.warn("[generateBoxProjectionUVs] Missing positions, cannot generate UVs")
     return
   }
 
   const uvs = new Float32Array(positions.count * 2)
-  const tempNormal = new THREE.Vector3()
-  const tempPos = new THREE.Vector3()
+  const indices = geometry.getIndex()
 
-  // CRITICAL: Use FIXED scale for consistency across all objects
-  // baseScale = 1.0 means 1 meter in world = 1 texture repeat
-  // This ensures stairs, walls, floors all have the same texture density
-  const textureScale = baseScale
+  // Helper vectors
+  const v0 = new THREE.Vector3()
+  const v1 = new THREE.Vector3()
+  const v2 = new THREE.Vector3()
+  const edge1 = new THREE.Vector3()
+  const edge2 = new THREE.Vector3()
+  const faceNormal = new THREE.Vector3()
 
-  for (let i = 0; i < positions.count; i++) {
-    // Get position and normal for this vertex
-    tempPos.fromBufferAttribute(positions, i)
-    tempNormal.fromBufferAttribute(normals, i)
+  /**
+   * Compute UV for a vertex based on the face's dominant axis
+   */
+  function computeUV(pos: THREE.Vector3, dominantAxis: "x" | "y" | "z"): [number, number] {
+    switch (dominantAxis) {
+      case "x":
+        // X-dominant: project onto YZ plane
+        return [pos.z * baseScale, pos.y * baseScale]
+      case "y":
+        // Y-dominant: project onto XZ plane (floor/ceiling)
+        return [pos.x * baseScale, pos.z * baseScale]
+      case "z":
+        // Z-dominant: project onto XY plane
+        return [pos.x * baseScale, pos.y * baseScale]
+    }
+  }
 
-    // Get absolute normal components
-    const absX = Math.abs(tempNormal.x)
-    const absY = Math.abs(tempNormal.y)
-    const absZ = Math.abs(tempNormal.z)
+  /**
+   * Get dominant axis from face normal
+   */
+  function getDominantAxis(normal: THREE.Vector3): "x" | "y" | "z" {
+    const absX = Math.abs(normal.x)
+    const absY = Math.abs(normal.y)
+    const absZ = Math.abs(normal.z)
 
-    let u = 0
-    let v = 0
+    if (absX >= absY && absX >= absZ) return "x"
+    if (absY >= absX && absY >= absZ) return "y"
+    return "z"
+  }
 
-    // Project based on dominant normal axis
-    // Use world-space coordinates scaled by textureScale for consistent tiling
-    if (absX >= absY && absX >= absZ) {
-      // X-axis dominant (side walls parallel to flow direction)
-      // Map Y (vertical) to V and Z (transverse) to U
-      u = tempPos.z * textureScale
-      v = tempPos.y * textureScale
-    } else if (absY >= absX && absY >= absZ) {
-      // Y-axis dominant (horizontal surfaces - floors/ceilings)
-      // Map X (flow direction) to U and Z (transverse) to V
-      u = tempPos.x * textureScale
-      v = tempPos.z * textureScale
+  // Process triangles
+  const triangleCount = indices ? indices.count / 3 : positions.count / 3
+
+  for (let t = 0; t < triangleCount; t++) {
+    // Get vertex indices for this triangle
+    let i0: number, i1: number, i2: number
+
+    if (indices) {
+      i0 = indices.getX(t * 3)
+      i1 = indices.getX(t * 3 + 1)
+      i2 = indices.getX(t * 3 + 2)
     } else {
-      // Z-axis dominant (end walls perpendicular to flow)
-      // Map X (flow direction) to U and Y (vertical) to V
-      u = tempPos.x * textureScale
-      v = tempPos.y * textureScale
+      i0 = t * 3
+      i1 = t * 3 + 1
+      i2 = t * 3 + 2
     }
 
-    uvs[i * 2] = u
-    uvs[i * 2 + 1] = v
+    // Get vertex positions
+    v0.fromBufferAttribute(positions, i0)
+    v1.fromBufferAttribute(positions, i1)
+    v2.fromBufferAttribute(positions, i2)
+
+    // Compute face normal from cross product of edges
+    edge1.subVectors(v1, v0)
+    edge2.subVectors(v2, v0)
+    faceNormal.crossVectors(edge1, edge2).normalize()
+
+    // Handle degenerate triangles
+    if (faceNormal.lengthSq() < 0.0001) {
+      // Fallback: use Y-axis projection for degenerate triangles
+      faceNormal.set(0, 1, 0)
+    }
+
+    // Get dominant axis for this face
+    const dominantAxis = getDominantAxis(faceNormal)
+
+    // Compute UVs for all 3 vertices using the SAME projection plane
+    const [u0, uv0] = computeUV(v0, dominantAxis)
+    const [u1, uv1] = computeUV(v1, dominantAxis)
+    const [u2, uv2] = computeUV(v2, dominantAxis)
+
+    // Store UVs
+    uvs[i0 * 2] = u0
+    uvs[i0 * 2 + 1] = uv0
+    uvs[i1 * 2] = u1
+    uvs[i1 * 2 + 1] = uv1
+    uvs[i2 * 2] = u2
+    uvs[i2 * 2 + 1] = uv2
   }
 
   geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2))
-  console.log(
-    `[generateBoxProjectionUVs] Generated UVs for ${positions.count} vertices | Scale: ${textureScale.toFixed(2)} (1m world = ${textureScale.toFixed(2)}m texture)`
-  )
 }
 
 /**

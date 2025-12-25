@@ -23,6 +23,7 @@ export const KbdSymbols = {
 /**
  * Helper to format keyboard shortcuts with macOS-style symbols.
  * Replaces 'Shift+', 'Ctrl+', 'Cmd+', 'Opt+', 'Alt+' with their respective symbols.
+ * Also handles special keys like Delete, Escape, Tab, Enter, etc.
  */
 export function formatKbd(kbd: string): string {
   if (!kbd) return ""
@@ -33,8 +34,9 @@ export function formatKbd(kbd: string): string {
     .replace(/Opt\+/g, KbdSymbols.option)
     .replace(/Alt\+/g, KbdSymbols.option)
     .replace(/Return|Enter/g, KbdSymbols.enter)
-    .replace(/Esc/g, KbdSymbols.escape)
+    .replace(/Esc(ape)?/g, KbdSymbols.escape)
     .replace(/Tab/g, KbdSymbols.tab)
+    .replace(/Delete|Del/g, KbdSymbols.delete)
 }
 
 interface KbdProps extends React.ComponentProps<"kbd"> {
@@ -49,7 +51,8 @@ function Kbd({ className, variant = "default", ...props }: KbdProps) {
         "pointer-events-none inline-flex h-5 min-w-[20px] select-none items-center justify-center gap-1 rounded-md px-1.5 font-medium font-sans text-[10px] transition-colors [&_svg:not([class*='size-'])]:size-3",
         variant === "default" &&
           "border border-border/50 bg-muted/50 text-muted-foreground shadow-[0_1px_0_rgba(0,0,0,0.1)] group-hover:bg-muted group-hover:text-foreground",
-        variant === "inverted" && "bg-background/25 text-background font-semibold",
+        variant === "inverted" &&
+          "bg-tooltip/80 text-tooltip-foreground border border-tooltip-foreground/20 font-semibold shadow-none",
         className
       )}
       data-slot="kbd"

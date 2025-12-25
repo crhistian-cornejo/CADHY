@@ -4,7 +4,7 @@
  * Dropdown menu item variant of ToolButton for overflow menus.
  */
 
-import { cn, DropdownMenuItem } from "@cadhy/ui"
+import { cn, DropdownMenuItem, formatKbd, Kbd } from "@cadhy/ui"
 import type { Cursor01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import React from "react"
@@ -40,7 +40,7 @@ export const MenuToolButton = React.memo(function MenuToolButton({
     >
       <HugeiconsIcon icon={icon} className="mr-2 size-4" />
       <span className="flex-1">{label}</span>
-      {shortcut && <kbd className="ml-auto text-xs text-muted-foreground">{shortcut}</kbd>}
+      {shortcut && <Kbd className="ml-auto">{formatKbd(shortcut)}</Kbd>}
     </DropdownMenuItem>
   )
 })

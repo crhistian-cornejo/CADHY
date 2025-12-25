@@ -7,5 +7,6 @@ export {
   GeminiIcon,
   GrokIcon,
   getProviderIcon,
+  OllamaIcon,
   OpenAIIcon,
 } from "./provider-icons"

@@ -86,7 +86,7 @@ import {
 } from "react"
 import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
-import { type AIChatMessage, type ToolCallInfo, useAIChat } from "@/hooks"
+import { type AIChatMessage, type ToolCallInfo, useAIChat, useAIProvider } from "@/hooks"
 import type { ChatSessionMeta } from "@/services/chat-persistence"
 import { useChatStore, useSessionUsage } from "@/stores/chat-store"
 import { useProjectStore } from "@/stores/project-store"
@@ -825,6 +825,13 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
     availableModels,
   } = useAIChat()
 
+  // Refresh providers when panel opens to detect new Ollama models
+  const { refreshProviders } = useAIProvider()
+  useEffect(() => {
+    // Refresh on mount to detect newly downloaded models
+    refreshProviders()
+  }, [refreshProviders])
+
   // Get current provider from model ID
   const currentProvider = getProviderFromModelId(modelId)
   const CurrentProviderIcon = getProviderIcon(currentProvider)
@@ -958,7 +965,7 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
                       <SelectGroup>
                         <SelectLabel className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground px-2 py-1">
                           {group.isActive && (
-                            <span className="size-1.5 rounded-full bg-green-500" />
+                            <span className="size-1.5 rounded-full bg-status-success" />
                           )}
                           {group.label}
                         </SelectLabel>

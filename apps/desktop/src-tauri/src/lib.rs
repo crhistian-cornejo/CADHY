@@ -153,6 +153,8 @@ pub fn run() {
             commands::geometry::generate_chute_mesh,
             commands::geometry::export_mesh_to_file,
             commands::geometry::get_mesh_stats,
+            // CAD commands - Utilities
+            commands::cad::cad_shape_exists,
             // CAD commands - Primitives
             commands::cad::cad_create_box,
             commands::cad::cad_create_box_at,
@@ -218,7 +220,7 @@ pub fn run() {
             commands::curves::cad_create_wire_from_edges,
             commands::curves::cad_create_face_from_wire,
             // CAD commands - Tessellation
-            commands::cad::cad_tessellate,
+            commands::cad::cad_tessellate_binary,
             // CAD commands - Import/Export
             commands::cad::cad_import_step,
             commands::cad::cad_export_step,
@@ -230,11 +232,20 @@ pub fn run() {
             commands::cad::cad_measure_distance,
             commands::cad::cad_delete_shape,
             commands::cad::cad_clear_all,
+            commands::cad::cad_shape_exists,
             commands::cad::cad_shape_count,
             commands::cad::cad_simplify,
             commands::cad::cad_combine,
             // CAD commands - Topology
             commands::cad::cad_get_topology,
+            // Drawing commands - 2D Projections
+            commands::drawing::drawing_create_projection,
+            commands::drawing::drawing_generate_standard_views,
+            commands::drawing::drawing_create_view_by_name,
+            // Drawing export - 2D
+            commands::drawing_export::drawing_export_svg,
+            commands::drawing_export::drawing_export_dxf,
+            commands::drawing_export::drawing_export_pdf,
             // Chat persistence commands
             commands::chat::chat_init,
             commands::chat::chat_save_session,
@@ -256,6 +267,20 @@ pub fn run() {
             auth::gemini::auth_check_gemini_oauth,
             auth::gemini::auth_read_gemini_oauth_credentials,
             auth::gemini::auth_refresh_gemini_oauth,
+            // Credits management
+            commands::credits::credits_get_device_id,
+            commands::credits::credits_load_state,
+            commands::credits::credits_save_state,
+            commands::credits::credits_regenerate_if_needed,
+            // IFC Import/Export
+            commands::ifc::import_ifc,
+            commands::ifc::preview_ifc,
+            commands::ifc::export_ifc,
+            commands::ifc::get_ifc_versions,
+            // DXF Import
+            commands::dxf::import_dxf_file,
+            commands::dxf::preview_dxf,
+            commands::dxf::get_dxf_versions,
         ]);
 
     // Conditionally add updater plugin (OpenCode pattern)

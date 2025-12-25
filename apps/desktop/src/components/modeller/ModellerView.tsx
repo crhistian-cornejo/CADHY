@@ -23,17 +23,27 @@ import {
 import { Add01Icon, CubeIcon, File01Icon, FolderOpenIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { listen } from "@tauri-apps/api/event"
-import { motion, useAnimationFrame, useMotionTemplate, useMotionValue } from "motion/react"
+import {
+  type MotionValue,
+  motion,
+  useAnimationFrame,
+  useMotionTemplate,
+  useMotionValue,
+} from "motion/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { PanelErrorBoundary, ViewerErrorBoundary } from "@/components/common"
+import {
+  CADOperationsProvider,
+  ImportDXFDialog,
+  ImportIFCDialog,
+} from "@/components/modeller/dialogs"
 import { useCADOperationHotkeys, useGlobalHotkeyHandler } from "@/hooks"
 import { useLayoutActions, useShowModellerLeft, useShowModellerRight } from "@/stores/layout-store"
-import { useModellerStore, useObjects, useSelectedIds } from "@/stores/modeller"
+import { useModellerStore } from "@/stores/modeller"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
 import { BoxLoader, ChuteCreator, CreatePanel, TransitionCreator } from "./creators"
-import { CADOperationsProvider } from "./dialogs"
-import { CameraAnimationPanel } from "./panels"
+import { CameraAnimationPanel, HistoryPanel } from "./panels"
 import { PropertiesPanel } from "./properties"
 import { ScenePanel } from "./scene"
 import { Viewport3D, ViewportSettingsPanel } from "./viewport"
@@ -72,11 +82,12 @@ function GridPattern({
   offsetX,
   offsetY,
 }: {
-  offsetX: ReturnType<typeof useMotionValue>
-  offsetY: ReturnType<typeof useMotionValue>
+  offsetX: MotionValue<number>
+  offsetY: MotionValue<number>
 }) {
   return (
-    <svg className="w-full h-full">
+    <svg className="w-full h-full" aria-hidden="true">
+      <title>Grid pattern</title>
       <defs>
         <motion.pattern
           id="modeller-grid-pattern"
@@ -132,6 +143,7 @@ function AnimatedGridBackground() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       className="absolute inset-0 overflow-hidden"
+      aria-hidden="true"
     >
       {/* Base grid - very subtle */}
       <div className="absolute inset-0 opacity-[0.03]">
@@ -282,8 +294,14 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
   // Plasticity-style: OUTLINER first (scene), then ASSETS (props)
   const [activeTab, setActiveTab] = useState<LeftPanelTab>("create")
   const [showAnimationPanel, setShowAnimationPanel] = useState(false)
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false)
   const isCreatePanelOpen = useModellerStore((state) => state.isCreatePanelOpen)
   const { openCreatePanel, closeCreatePanel } = useModellerStore()
+
+  // Import dialog states
+  const [showImportIFCDialog, setShowImportIFCDialog] = useState(false)
+  const [showImportDXFDialog, setShowImportDXFDialog] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   // Sync activeTab with isCreatePanelOpen store state
   useEffect(() => {
@@ -294,7 +312,7 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
       // But if we are just here, we might want to default back to scene
       setActiveTab("scene")
     }
-  }, [isCreatePanelOpen])
+  }, [isCreatePanelOpen, activeTab])
 
   // Sync store state when manually clicking tabs
   const handleTabChange = (value: string) => {
@@ -306,8 +324,6 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
     }
   }
 
-  const _selectedIds = useSelectedIds()
-  const _objects = useObjects()
   const currentProject = useCurrentProject()
   const isLoading = useIsProjectLoading()
 
@@ -348,6 +364,46 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
   // Enable modeller-specific hotkeys (View Mode 1/2/3, etc.)
   useGlobalHotkeyHandler("modeller")
 
+  // Listen to Tauri file drop events
+  useEffect(() => {
+    const unlisten = listen<{ paths: string[] }>("tauri://file-drop", (event) => {
+      const paths = event.payload.paths
+      if (!paths || paths.length === 0) return
+
+      // Handle first dropped file
+      const filePath = paths[0]
+      const ext = filePath.split(".").pop()?.toLowerCase()
+
+      if (ext === "ifc" || ext === "ifczip") {
+        // IFC files - open import dialog
+        setShowImportIFCDialog(true)
+      } else if (ext === "dxf") {
+        // DXF files - open import dialog
+        setShowImportDXFDialog(true)
+      } else if (ext === "step" || ext === "stp") {
+        // STEP files - import directly using cad-service
+        // TODO: Call cad_import_step directly
+        console.log("STEP file dropped:", filePath)
+      }
+
+      setIsDragging(false)
+    })
+
+    const unlistenHover = listen("tauri://file-drop-hover", () => {
+      setIsDragging(true)
+    })
+
+    const unlistenCancelled = listen("tauri://file-drop-cancelled", () => {
+      setIsDragging(false)
+    })
+
+    return () => {
+      unlisten.then((fn) => fn())
+      unlistenHover.then((fn) => fn())
+      unlistenCancelled.then((fn) => fn())
+    }
+  }, [])
+
   // Show loading state while project is being opened
   if (isLoading) {
     return (
@@ -387,25 +443,25 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
                     onValueChange={handleTabChange}
                     className="flex flex-col h-full"
                   >
-                    <div className="flex items-center bg-background">
-                      <TabsList className="flex-1 h-11 p-1.5 bg-muted/20 rounded-full border-0 grid grid-cols-3 gap-1.5">
+                    <div className="flex items-center bg-background px-3 pt-2">
+                      <TabsList className="flex-1 h-9 p-1 bg-muted/20 dark:bg-muted/40 rounded-full border-0 grid grid-cols-3 gap-1">
                         <TabsTrigger
                           value="create"
-                          className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                          className="rounded-full text-xs font-medium"
                           title="Create primitives, channels and hydraulic structures"
                         >
                           Create
                         </TabsTrigger>
                         <TabsTrigger
                           value="props"
-                          className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                          className="rounded-full text-xs font-medium"
                           title={t("modeller.tabs.propsTooltip")}
                         >
                           {t("modeller.tabs.props", "Properties")}
                         </TabsTrigger>
                         <TabsTrigger
                           value="scene"
-                          className="h-full rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm font-medium transition-all"
+                          className="rounded-full text-xs font-medium"
                           title={t("modeller.tabs.sceneTooltip")}
                         >
                           {t("modeller.tabs.scene", "Scene")}
@@ -458,13 +514,33 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
             </ViewerErrorBoundary>
           </ResizablePanel>
 
-          {/* Right Panel - Viewport Settings */}
+          {/* Right Panel - Viewport Settings or Drawing Tools */}
           {showRightPanel && (
             <>
               <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
               <ResizablePanel id="right-panel" order={3} defaultSize={15} minSize={9} maxSize={25}>
-                <PanelErrorBoundary context="Viewport Settings Panel">
-                  <ViewportSettingsPanel />
+                <PanelErrorBoundary context="Right Panel">
+                  <ViewportSettingsPanel
+                    onToggleHistory={() => setShowHistoryPanel((prev) => !prev)}
+                  />
+                </PanelErrorBoundary>
+              </ResizablePanel>
+            </>
+          )}
+
+          {/* History Panel (optional, shown when needed) */}
+          {showHistoryPanel && (
+            <>
+              <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
+              <ResizablePanel
+                id="history-panel"
+                order={4}
+                defaultSize={20}
+                minSize={15}
+                maxSize={30}
+              >
+                <PanelErrorBoundary context="History Panel">
+                  <HistoryPanel />
                 </PanelErrorBoundary>
               </ResizablePanel>
             </>
@@ -476,7 +552,7 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
               <ResizableHandle className="w-px bg-transparent hover:bg-border/50 transition-colors" />
               <ResizablePanel
                 id="animation-panel"
-                order={4}
+                order={5}
                 defaultSize={18}
                 minSize={15}
                 maxSize={30}
@@ -508,6 +584,29 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
             </div>
           </div>
         )}
+
+        {/* Drag & Drop Overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 z-50 pointer-events-none">
+            <div className="absolute inset-4 rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 flex items-center justify-center">
+              <div className="text-center">
+                <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <HugeiconsIcon icon={File01Icon} className="size-8 text-primary" />
+                </div>
+                <p className="text-lg font-medium text-primary">
+                  {t("import.dropFile", "Drop file to import")}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t("import.supportedFormats", "IFC, DXF, STEP")}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Import Dialogs */}
+        <ImportIFCDialog open={showImportIFCDialog} onOpenChange={setShowImportIFCDialog} />
+        <ImportDXFDialog open={showImportDXFDialog} onOpenChange={setShowImportDXFDialog} />
       </div>
     </CADOperationsProvider>
   )

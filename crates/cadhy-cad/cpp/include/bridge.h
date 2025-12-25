@@ -231,6 +231,8 @@ inline namespace cxxbridge1 {
 #include <TopTools_ListIteratorOfListOfShape.hxx>
 #include <GCPnts_UniformDeflection.hxx>
 #include <GCPnts_TangentialDeflection.hxx>
+#include <GCPnts_AbscissaPoint.hxx>
+#include <GeomAdaptor_Curve.hxx>
 
 namespace cadhy_cad {
 

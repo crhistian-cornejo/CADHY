@@ -76,9 +76,9 @@ export function UpdateBadge() {
             className={cn(
               "h-7 gap-2 px-2.5 text-xs font-medium border-2 relative animate-in fade-in slide-in-from-top-2 duration-300",
               isPending &&
-                "border-orange-500/50 bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20",
+                "border-status-detecting-border bg-status-detecting-bg text-status-detecting hover:bg-status-detecting-bg/80",
               isInstalled &&
-                "border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                "border-status-success-border bg-status-success-bg text-status-success hover:bg-status-success-bg/80"
             )}
             onClick={handleClick}
             data-tauri-drag-region="false"
@@ -91,8 +91,8 @@ export function UpdateBadge() {
             {/* Pulse animation for pending updates */}
             {isPending && (
               <span className="absolute -top-0.5 -right-0.5 flex size-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-2 bg-orange-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-detecting opacity-75" />
+                <span className="relative inline-flex rounded-full size-2 bg-status-detecting" />
               </span>
             )}
           </Button>

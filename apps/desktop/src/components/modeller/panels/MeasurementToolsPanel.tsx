@@ -151,8 +151,8 @@ export function MeasurementToolsPanel() {
 
       {/* Current Measurement Instructions */}
       {mode !== "none" && (
-        <div className="rounded-2xl bg-blue-500/10 border border-blue-500/20 p-3 space-y-2">
-          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+        <div className="rounded-2xl bg-status-info-bg border border-status-info-border p-3 space-y-2">
+          <p className="text-xs text-status-info font-medium">
             {mode === "distance" && "Click 2 points to measure distance"}
             {mode === "area" &&
               "Click 3+ points to measure area (click first point again to close)"}
