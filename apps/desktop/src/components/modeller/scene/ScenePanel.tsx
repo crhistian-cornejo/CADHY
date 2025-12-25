@@ -92,6 +92,7 @@ interface SceneObjectItemProps {
   onDuplicate: (id: string) => void
   onFocus: (id: string) => void
   onColorChange?: (id: string, color: string) => void
+  isDraggable?: boolean
 }
 
 const SceneObjectItem = React.memo(function SceneObjectItem({
@@ -105,8 +106,21 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
   onDuplicate,
   onFocus,
   onColorChange,
+  isDraggable = false,
 }: SceneObjectItemProps) {
   const { t } = useTranslation()
+
+  const handleDragStart = (e: React.DragEvent) => {
+    if (!isDraggable) return
+    e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", object.id)
+    console.log("[DragDrop] Drag start:", object.id, object.name)
+    e.currentTarget.classList.add("opacity-50")
+  }
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove("opacity-50")
+  }
 
   // Get material info for preview
   const getMaterialInfo = (
@@ -136,6 +150,9 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
 
   return (
     <div
+      draggable={isDraggable}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onClick={(e) => onSelect(object.id, e.ctrlKey || e.metaKey || e.shiftKey)}
       onDoubleClick={(e) => {
         e.stopPropagation()
@@ -145,7 +162,8 @@ const SceneObjectItem = React.memo(function SceneObjectItem({
         "group flex items-center gap-1.5 px-2 py-1.5 rounded-2xl cursor-pointer transition-all",
         "hover:bg-muted/50",
         isSelected && "bg-primary/15 ring-1 ring-primary/40",
-        !object.visible && "opacity-50"
+        !object.visible && "opacity-50",
+        isDraggable && "cursor-move"
       )}
     >
       {/* Index number */}
@@ -365,6 +383,7 @@ interface AreaGroupProps {
   onColorChange?: (id: string, color: string) => void
   onRenameArea: (areaId: string) => void
   onDeleteArea: (areaId: string) => void
+  onDropObject?: (objectId: string, areaId: string) => void
 }
 
 const AreaGroup = React.memo(function AreaGroup({
@@ -380,16 +399,99 @@ const AreaGroup = React.memo(function AreaGroup({
   onColorChange,
   onRenameArea,
   onDeleteArea,
+  onDropObject,
 }: AreaGroupProps) {
   const { t } = useTranslation()
   const { toggleAreaCollapsed } = useModellerStore()
   const selectedInArea = objects.filter((o) => selectedIds.includes(o.id)).length
+  const [isDragOver, setIsDragOver] = React.useState(false)
+  const dragOverCounterRef = React.useRef(0)
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = "move"
+
+    if (!isDragOver) {
+      setIsDragOver(true)
+    }
+
+    // Expand area if collapsed when dragging over it
+    if (area.collapsed) {
+      toggleAreaCollapsed(area.id)
+    }
+  }
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragOverCounterRef.current++
+    setIsDragOver(true)
+
+    // Expand area if collapsed when dragging over it
+    if (area.collapsed) {
+      toggleAreaCollapsed(area.id)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragOverCounterRef.current--
+
+    // Only set dragOver to false when we've actually left the drop zone
+    if (dragOverCounterRef.current === 0) {
+      setIsDragOver(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragOverCounterRef.current = 0
+    setIsDragOver(false)
+
+    const objectId = e.dataTransfer.getData("text/plain")
+    console.log("[DragDrop] Drop event:", {
+      objectId,
+      areaId: area.id,
+      onDropObject: !!onDropObject,
+    })
+
+    if (objectId && onDropObject) {
+      console.log("[DragDrop] Calling onDropObject:", objectId, "->", area.id)
+      onDropObject(objectId, area.id)
+    } else {
+      console.warn("[DragDrop] Missing data:", { objectId, hasOnDropObject: !!onDropObject })
+    }
+  }
 
   return (
     <Collapsible open={!area.collapsed} onOpenChange={() => toggleAreaCollapsed(area.id)}>
       {/* Use a div wrapper to avoid button-in-button nesting */}
-      <div className="flex w-full items-center gap-2 px-2 py-1.5 hover:bg-muted/30 rounded-2xl transition-colors group">
-        <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0">
+      <div
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          "flex w-full items-center gap-2 px-2 py-1.5 hover:bg-muted/30 rounded-2xl transition-colors group",
+          isDragOver && "bg-primary/20 ring-2 ring-primary border-primary/50"
+        )}
+      >
+        <CollapsibleTrigger
+          className="flex items-center gap-2 flex-1 min-w-0"
+          onDragOver={(e) => {
+            // Prevent trigger from interfering with drop
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onDrop={(e) => {
+            // Prevent trigger from handling drop, let parent handle it
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        >
           <HugeiconsIcon
             icon={area.collapsed ? ArrowRight01Icon : ArrowDown01Icon}
             className="size-3 text-muted-foreground shrink-0"
@@ -452,10 +554,24 @@ const AreaGroup = React.memo(function AreaGroup({
         </div>
       </div>
       <CollapsibleContent>
-        <div className="ml-4 pl-2 border-l border-border/40 space-y-0.5 py-1">
+        <div
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={cn(
+            "ml-4 pl-2 border-l space-y-0.5 py-1 transition-colors min-h-[40px]",
+            isDragOver ? "bg-primary/10 border-primary/50 border-l-2" : "border-border/40"
+          )}
+        >
           {objects.length === 0 ? (
-            <div className="text-xs text-muted-foreground/50 py-2 px-2 italic">
-              {t("scenePanel.emptyArea")}
+            <div
+              className={cn(
+                "text-xs py-2 px-2 italic transition-colors",
+                isDragOver ? "text-primary font-medium" : "text-muted-foreground/50"
+              )}
+            >
+              {isDragOver ? t("scenePanel.dropHere") : t("scenePanel.emptyArea")}
             </div>
           ) : (
             objects.map((obj, idx) => (
@@ -548,6 +664,7 @@ const UnassignedGroup = React.memo(function UnassignedGroup({
               onDuplicate={onDuplicate}
               onFocus={onFocus}
               onColorChange={onColorChange}
+              isDraggable={true}
             />
           ))}
         </div>
@@ -574,6 +691,7 @@ export function ScenePanel({ className }: ScenePanelProps) {
     createArea,
     deleteArea,
     renameArea,
+    moveObjectToArea,
   } = useModellerStore()
 
   const [searchQuery, setSearchQuery] = useState("")
@@ -724,6 +842,20 @@ export function ScenePanel({ className }: ScenePanelProps) {
       deleteArea(areaId)
     },
     [deleteArea]
+  )
+
+  const handleDropObject = useCallback(
+    (objectId: string, areaId: string) => {
+      console.log("[DragDrop] handleDropObject called:", objectId, "->", areaId)
+      const obj = objects.find((o) => o.id === objectId)
+      if (!obj) {
+        console.error("[DragDrop] Object not found:", objectId)
+        return
+      }
+      console.log("[DragDrop] Moving object:", obj.name, "from area:", obj.areaId, "to:", areaId)
+      moveObjectToArea(objectId, areaId)
+    },
+    [moveObjectToArea, objects]
   )
 
   const objectTypeCounts = useMemo(() => {
@@ -917,6 +1049,7 @@ export function ScenePanel({ className }: ScenePanelProps) {
                 onColorChange={handleColorChange}
                 onRenameArea={handleRenameArea}
                 onDeleteArea={handleDeleteArea}
+                onDropObject={handleDropObject}
               />
             ))}
 

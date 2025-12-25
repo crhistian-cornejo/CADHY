@@ -12,7 +12,12 @@ import { useModellerStore } from "@/stores/modeller"
 import { useHotkey } from "./use-hotkey"
 
 export function useCADOperationHotkeys() {
-  const { openOperationDialog } = useCADOperationsContext()
+  const {
+    openOperationDialog,
+    executeBooleanUnion,
+    executeBooleanSubtract,
+    executeBooleanIntersect,
+  } = useCADOperationsContext()
 
   // ========== FILLET ==========
   useHotkey(
@@ -176,7 +181,7 @@ export function useCADOperationHotkeys() {
     }, [])
   )
 
-  // ========== BOOLEAN UNION (Coming Soon) ==========
+  // ========== BOOLEAN UNION ==========
   useHotkey(
     {
       id: "operations.union",
@@ -188,16 +193,18 @@ export function useCADOperationHotkeys() {
     },
     useCallback(() => {
       const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
+      const selectedObjects = state.objects.filter(
+        (o) => state.selectedIds.includes(o.id) && o.type === "shape"
+      )
       if (selectedObjects.length < 2) {
-        toast.error("Select at least 2 objects for boolean union")
+        toast.error("Selecciona al menos 2 sólidos para unir")
         return
       }
-      toast.info("Boolean Union - Coming soon!")
-    }, [])
+      executeBooleanUnion()
+    }, [executeBooleanUnion])
   )
 
-  // ========== BOOLEAN SUBTRACT (Coming Soon) ==========
+  // ========== BOOLEAN SUBTRACT ==========
   useHotkey(
     {
       id: "operations.subtract",
@@ -209,16 +216,18 @@ export function useCADOperationHotkeys() {
     },
     useCallback(() => {
       const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
+      const selectedObjects = state.objects.filter(
+        (o) => state.selectedIds.includes(o.id) && o.type === "shape"
+      )
       if (selectedObjects.length < 2) {
-        toast.error("Select at least 2 objects for boolean subtract")
+        toast.error("Selecciona al menos 2 sólidos: el primero es la base, los demás se restarán")
         return
       }
-      toast.info("Boolean Subtract - Coming soon!")
-    }, [])
+      executeBooleanSubtract()
+    }, [executeBooleanSubtract])
   )
 
-  // ========== BOOLEAN INTERSECT (Coming Soon) ==========
+  // ========== BOOLEAN INTERSECT ==========
   useHotkey(
     {
       id: "operations.intersect",
@@ -230,12 +239,14 @@ export function useCADOperationHotkeys() {
     },
     useCallback(() => {
       const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
+      const selectedObjects = state.objects.filter(
+        (o) => state.selectedIds.includes(o.id) && o.type === "shape"
+      )
       if (selectedObjects.length < 2) {
-        toast.error("Select at least 2 objects for boolean intersect")
+        toast.error("Selecciona al menos 2 sólidos para intersectar")
         return
       }
-      toast.info("Boolean Intersect - Coming soon!")
-    }, [])
+      executeBooleanIntersect()
+    }, [executeBooleanIntersect])
   )
 }

@@ -7,9 +7,11 @@
 
 import { Button, cn, formatKbd, Kbd, Tooltip, TooltipContent, TooltipTrigger } from "@cadhy/ui"
 import {
+  Alert01Icon,
   CheckmarkCircle02Icon,
   CpuIcon,
   CubeIcon,
+  FloppyDiskIcon,
   GridIcon,
   Loading01Icon,
   MagnetIcon,
@@ -24,6 +26,13 @@ import { useTranslation } from "react-i18next"
 import { usePlatform } from "@/hooks/use-platform"
 import { useUnits } from "@/hooks/use-units"
 import {
+  formatTimeAgo,
+  useAutoSaveCountdown,
+  useAutoSaveError,
+  useAutoSaveLastSaved,
+  useAutoSaveStatus,
+} from "@/stores/autosave-store"
+import {
   useActiveTool,
   useCameraView,
   useGridSettings,
@@ -33,7 +42,7 @@ import {
   useSelectionMode,
   useTransformMode,
 } from "@/stores/modeller"
-import { useIsProjectLoading } from "@/stores/project-store"
+import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
 import { useStatusNotification } from "@/stores/status-notification-store"
 
 // ============================================================================
@@ -100,6 +109,13 @@ export function StatusBar() {
   const { unitSystem, toggleUnitSystem, lengthLabel } = useUnits()
   const notification = useStatusNotification()
   const isLoadingProject = useIsProjectLoading()
+  const currentProject = useCurrentProject()
+
+  // Auto-save state
+  const autoSaveStatus = useAutoSaveStatus()
+  const autoSaveCountdown = useAutoSaveCountdown()
+  const autoSaveLastSaved = useAutoSaveLastSaved()
+  const autoSaveError = useAutoSaveError()
 
   // Modeller Store Hooks
   const objects = useObjects()
@@ -110,6 +126,18 @@ export function StatusBar() {
   const gridSettings = useGridSettings()
   const cameraView = useCameraView()
   const isDirty = useIsDirty()
+
+  // Format countdown for display
+  const countdownDisplay = useMemo(() => {
+    if (autoSaveCountdown === null) return null
+    if (autoSaveCountdown <= 0) return "0s"
+    return `${autoSaveCountdown}s`
+  }, [autoSaveCountdown])
+
+  // Get last saved display
+  const lastSavedDisplay = useMemo(() => {
+    return formatTimeAgo(autoSaveLastSaved)
+  }, [autoSaveLastSaved])
 
   // Dynamic Selection Summary
   const selectionSummary = useMemo(() => {
@@ -165,29 +193,83 @@ export function StatusBar() {
     >
       {/* Left Section - Status & Node Info */}
       <div className="flex items-center gap-2 overflow-hidden mr-4">
-        {/* Status Indicator */}
+        {/* Status Indicator with Auto-Save */}
         <div className="flex items-center gap-2">
           {isLoadingProject ? (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500">
               <HugeiconsIcon icon={Loading01Icon} className="size-3 animate-spin" />
               <span className="font-medium">{t("common.loading", "Loading...")}</span>
             </div>
-          ) : isDirty ? (
+          ) : autoSaveStatus === "saving" ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500">
+              <HugeiconsIcon icon={FloppyDiskIcon} className="size-3 animate-pulse" />
+              <span className="font-medium">{t("statusBar.saving", "Saving...")}</span>
+            </div>
+          ) : autoSaveStatus === "saved" ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 animate-in fade-in duration-300">
+              <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-3" />
+              <span className="font-medium">{t("statusBar.saved", "Saved")}</span>
+            </div>
+          ) : autoSaveStatus === "error" ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500">
+                    <HugeiconsIcon icon={Alert01Icon} className="size-3" />
+                    <span className="font-medium">{t("statusBar.saveError", "Save failed")}</span>
+                  </div>
+                }
+              />
+              <TooltipContent side="top" className="max-w-xs">
+                <div className="text-red-400">{autoSaveError || "Unknown error"}</div>
+              </TooltipContent>
+            </Tooltip>
+          ) : isDirty && currentProject ? (
             <Tooltip>
               <TooltipTrigger
                 render={
                   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500">
                     <div className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
                     <span className="font-medium">{t("statusBar.modified", "Modified")}</span>
+                    {countdownDisplay && (
+                      <span className="text-amber-400/70 text-xs tabular-nums ml-1">
+                        ({countdownDisplay})
+                      </span>
+                    )}
                   </div>
                 }
               />
               <TooltipContent side="top">
-                {t("statusBar.unsavedChanges", "Unsaved changes")}
+                <div>{t("statusBar.unsavedChanges", "Unsaved changes")}</div>
+                {countdownDisplay && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {t("statusBar.autoSaveIn", "Auto-save in")} {countdownDisplay}
+                  </div>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          ) : currentProject ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500/80">
+                    <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-3" />
+                    <span className="font-medium">{t("statusBar.ready", "Ready")}</span>
+                  </div>
+                }
+              />
+              <TooltipContent side="top">
+                {lastSavedDisplay ? (
+                  <div>
+                    {t("statusBar.lastSaved", "Last saved")}: {lastSavedDisplay}
+                  </div>
+                ) : (
+                  <div>{t("statusBar.allChangesSaved", "All changes saved")}</div>
+                )}
               </TooltipContent>
             </Tooltip>
           ) : (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500/80">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-2xl bg-muted/50 border border-border/30 text-muted-foreground">
               <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-3" />
               <span className="font-medium">{t("statusBar.ready", "Ready")}</span>
             </div>

@@ -48,6 +48,9 @@ pub mod analysis;
 pub mod config;
 pub mod curves;
 pub mod dimensions;
+pub mod drawing;
+#[cfg(feature = "dxf-import")]
+pub mod dxf_import;
 mod error;
 pub mod export;
 mod ffi;
@@ -71,6 +74,9 @@ pub use dimensions::{
     ArrowStyle, AutoDimensioner, Dimension, DimensionConfig, DimensionLine, DimensionSet,
     DimensionType, ExtensionLine,
 };
+pub use drawing::{
+    Drawing, DrawingView, Orientation, PaperSize, ProjectionAngle, SheetConfig, TitleBlockStyle,
+};
 pub use error::{OcctError, OcctResult};
 pub use export::Export;
 pub use ffi::ffi::{ExplodeResult, ExplodedPart};
@@ -92,4 +98,10 @@ pub use step_io::StepIO;
 pub use topology::{
     CurveType, EdgePoint, EdgeTessellation, FaceInfo as TopologyFaceInfo,
     SurfaceType as TopologySurfaceType, Topology, TopologyData, VertexInfo,
+};
+
+// DXF import (conditional on feature)
+#[cfg(feature = "dxf-import")]
+pub use dxf_import::{
+    import_dxf, DxfEntityInfo, DxfImportResult, DxfImportWithShapes, DxfImporter, DxfLayer,
 };

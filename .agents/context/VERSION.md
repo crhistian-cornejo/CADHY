@@ -6,9 +6,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Version** | `0.1.2` |
-| **Stage** | `beta` |
-| **Release Date** | 2025-12-19 |
+| **Version** | `0.1.3` |
+| **Stage** | `stable` |
+| **Release Date** | 2025-12-24 |
 | **Codename** | Foundation |
 
 ## Version Scheme
@@ -90,19 +90,20 @@ All components share the same version number:
 
 When generating code or documentation:
 
-1. **Always use current version** (`0.1.2`) in examples
+1. **Always use current version** (`0.1.3`) in examples
 2. **Check this file** at session start for version updates
-3. **Note the stage** (beta) - API may still change
+3. **Note the stage** (stable) - but still pre-1.0, breaking changes possible
 4. **Reference CHANGELOG.md** for recent changes
 
 ## Version History Summary
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 0.1.3 | 2025-12-24 | Preferences dialog, BIM enhancements, hotkeys improvements |
 | 0.1.2 | 2025-12-18 | Fix macOS app crash, consolidate toolbars, fix shape export |
 | 0.1.1 | 2025-12-18 | macOS standalone distribution fix (OCCT dylib bundling) - BROKEN |
 | 0.1.0-beta.1 | 2025-12-18 | Initial beta release |
 
 ---
 
-**Last Updated**: 2025-12-19
+**Last Updated**: 2025-12-24

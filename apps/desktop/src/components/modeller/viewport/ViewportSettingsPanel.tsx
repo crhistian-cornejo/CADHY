@@ -30,6 +30,7 @@ import {
 } from "@cadhy/ui"
 import {
   ArrowDown01Icon,
+  ClockIcon,
   Layers01Icon,
   Magnet01Icon,
   RefreshIcon,
@@ -304,9 +305,10 @@ function SliderRow({
 
 interface ViewportSettingsPanelProps {
   className?: string
+  onToggleHistory?: () => void
 }
 
-export function ViewportSettingsPanel({ className }: ViewportSettingsPanelProps) {
+export function ViewportSettingsPanel({ className, onToggleHistory }: ViewportSettingsPanelProps) {
   const viewportSettings = useViewportSettings()
   const gridSettings = useGridSettings()
   const snapMode = useSnapMode()
@@ -356,6 +358,10 @@ export function ViewportSettingsPanel({ className }: ViewportSettingsPanelProps)
       environmentBackground: false,
       backgroundBlurriness: 0.5,
       cameraType: "perspective",
+      reflection: 0,
+      brightness: 1,
+      contrast: 1,
+      rimLight: 0,
     })
   }
 
@@ -367,19 +373,36 @@ export function ViewportSettingsPanel({ className }: ViewportSettingsPanelProps)
           <HugeiconsIcon icon={Settings01Icon} className="size-4 text-muted-foreground" />
           <span className="text-xs font-medium">Viewport Settings</span>
         </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="h-6 w-6"
-              onClick={handleResetToDefaults}
-            >
-              <HugeiconsIcon icon={RefreshIcon} className="size-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left">Reset to defaults</TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-1">
+          {onToggleHistory && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-6 w-6"
+                  onClick={onToggleHistory}
+                >
+                  <HugeiconsIcon icon={ClockIcon} className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">Mostrar historial</TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-6 w-6"
+                onClick={handleResetToDefaults}
+              >
+                <HugeiconsIcon icon={RefreshIcon} className="size-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Reset to defaults</TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Scrollable content */}
@@ -434,18 +457,6 @@ export function ViewportSettingsPanel({ className }: ViewportSettingsPanelProps)
               </div>
             )}
 
-            {/* Environment Intensity */}
-            {viewportSettings.environmentEnabled && (
-              <SliderRow
-                label="Intensity"
-                value={viewportSettings.environmentIntensity ?? 1.0}
-                min={0}
-                max={2}
-                step={0.1}
-                onValueChange={(v) => updateViewport({ environmentIntensity: v })}
-              />
-            )}
-
             {/* Show Environment as Background */}
             {viewportSettings.environmentEnabled && (
               <ToggleRow
@@ -468,6 +479,59 @@ export function ViewportSettingsPanel({ className }: ViewportSettingsPanelProps)
                 displayValue={`${Math.round((viewportSettings.backgroundBlurriness ?? 0.5) * 100)}%`}
               />
             )}
+          </div>
+        </Section>
+
+        <Separator className="my-1" />
+
+        {/* Scene Settings Section */}
+        <Section title="Scene" icon={Sun01Icon}>
+          <div className="space-y-3">
+            <SliderRow
+              label="Intensity"
+              value={viewportSettings.environmentIntensity ?? 1.0}
+              min={0}
+              max={2}
+              step={0.1}
+              onValueChange={(v) => updateViewport({ environmentIntensity: v })}
+            />
+            <SliderRow
+              label="Reflection"
+              value={viewportSettings.reflection ?? 0}
+              min={0}
+              max={1}
+              step={0.05}
+              onValueChange={(v) => updateViewport({ reflection: v })}
+            />
+            <ToggleRow
+              label="Shadows"
+              checked={viewportSettings.shadows ?? true}
+              onCheckedChange={(v) => updateViewport({ shadows: v })}
+            />
+            <SliderRow
+              label="Brightness"
+              value={viewportSettings.brightness ?? 1}
+              min={0}
+              max={5}
+              step={0.1}
+              onValueChange={(v) => updateViewport({ brightness: v })}
+            />
+            <SliderRow
+              label="Contrast"
+              value={viewportSettings.contrast ?? 1}
+              min={0}
+              max={2}
+              step={0.05}
+              onValueChange={(v) => updateViewport({ contrast: v })}
+            />
+            <SliderRow
+              label="Rim Light"
+              value={viewportSettings.rimLight ?? 0}
+              min={0}
+              max={1}
+              step={0.05}
+              onValueChange={(v) => updateViewport({ rimLight: v })}
+            />
           </div>
         </Section>
 
@@ -662,25 +726,25 @@ export function ViewportSettingsPanel({ className }: ViewportSettingsPanelProps)
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs font-semibold gap-2 border-border/40 hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-500"
+                className="h-8 text-xs font-semibold gap-2 border-border/40 hover:border-status-info-border hover:bg-status-info-bg hover:text-status-info"
               >
-                <div className="size-2 rounded-full bg-red-500" />
+                <div className="size-2 rounded-full bg-axis-x" />
                 XY
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs font-semibold gap-2 border-border/40 hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-500"
+                className="h-8 text-xs font-semibold gap-2 border-border/40 hover:border-status-info-border hover:bg-status-info-bg hover:text-status-info"
               >
-                <div className="size-2 rounded-full bg-green-500" />
+                <div className="size-2 rounded-full bg-axis-y" />
                 YZ
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs font-semibold gap-2 border-border/40 hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-500"
+                className="h-8 text-xs font-semibold gap-2 border-border/40 hover:border-status-info-border hover:bg-status-info-bg hover:text-status-info"
               >
-                <div className="size-2 rounded-full bg-blue-500" />
+                <div className="size-2 rounded-full bg-axis-z" />
                 XZ
               </Button>
             </div>

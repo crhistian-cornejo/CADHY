@@ -84,6 +84,7 @@ export interface ModellerStore extends TemporarySlice, HelpersSlice, TopologySli
   history: HistoryEntry[]
   historyIndex: number
   pendingHistoryState: { objects: AnySceneObject[]; selection: string[] } | null
+  historyPreviewIndex: number | null
 
   // Scene (scene-slice)
   isDirty: boolean
@@ -187,11 +188,16 @@ export interface ModellerStore extends TemporarySlice, HelpersSlice, TopologySli
   // History (history-slice)
   undo: () => void
   redo: () => void
-  saveToHistory: (action: string) => void
+  saveToHistory: (action: string, details?: HistoryEntry["details"]) => void
   saveStateBeforeAction: () => void
-  commitToHistory: (action: string) => void
+  commitToHistory: (action: string, details?: HistoryEntry["details"]) => void
   clearPendingHistory: () => void
   clearHistory: () => void
+  setHistoryPreview: (index: number | null) => void
+  mergeHistory: (
+    index: number,
+    options: { deleteSketches: boolean; keepVariables: boolean }
+  ) => void
 
   // Scene management (scene-slice)
   loadScene: (scene: SceneData) => void

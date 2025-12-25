@@ -196,13 +196,13 @@ export function PerformanceSettingsPanel() {
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Memory Saved:</span>
-            <span className="font-mono text-green-500">{stats.instancing.memorySaved}</span>
+            <span className="font-mono text-status-success">{stats.instancing.memorySaved}</span>
           </div>
         </div>
 
         {stats.instancing.totalInstances > 0 && (
-          <div className="rounded-2xl bg-green-500/10 border border-green-500/20 p-2">
-            <p className="text-xs text-green-600 dark:text-green-400">
+          <div className="rounded-2xl bg-status-success-bg border border-status-success-border p-2">
+            <p className="text-xs text-status-success">
               ✓ Instancing active: {stats.instancing.instancedMeshCount} mesh
               {stats.instancing.instancedMeshCount !== 1 ? "es" : ""} optimized
             </p>

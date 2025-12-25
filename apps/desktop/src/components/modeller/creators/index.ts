@@ -1,4 +1,8 @@
 export { default as BoxLoader } from "./BoxLoader"
 export { default as ChuteCreator } from "./ChuteCreator"
 export { default as CreatePanel } from "./CreatePanel"
+export { default as HelixCreator } from "./HelixCreator"
+export { default as LoftCreator } from "./LoftCreator"
+export { default as SplineCreator } from "./SplineCreator"
+export { default as SweepCreator } from "./SweepCreator"
 export { default as TransitionCreator } from "./TransitionCreator"

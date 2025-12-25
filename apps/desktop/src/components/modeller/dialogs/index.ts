@@ -1,3 +1,6 @@
 export { default as ActiveOperationDialog } from "./ActiveOperationDialog"
 export { CADOperationsProvider, useCADOperationsContext } from "./CADOperationsProvider"
+export { DrawingConfigDialog } from "./DrawingConfigDialog"
 export { FloatingCADOperationsPanel } from "./FloatingCADOperationsPanel"
+export { default as ImportDXFDialog } from "./ImportDXFDialog"
+export { default as ImportIFCDialog } from "./ImportIFCDialog"

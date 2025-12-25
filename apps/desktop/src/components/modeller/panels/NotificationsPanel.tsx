@@ -64,23 +64,23 @@ const SEVERITY_CONFIG: Record<
 > = {
   info: {
     icon: InformationCircleIcon,
-    bgClass: "bg-blue-500/10",
-    borderClass: "border-blue-500/30",
-    textClass: "text-blue-500",
+    bgClass: "bg-status-info-bg",
+    borderClass: "border-status-info-border",
+    textClass: "text-status-info",
     badgeVariant: "secondary",
   },
   warning: {
     icon: Alert01Icon,
-    bgClass: "bg-amber-500/10",
-    borderClass: "border-amber-500/30",
-    textClass: "text-amber-500",
+    bgClass: "bg-status-warning-bg",
+    borderClass: "border-status-warning-border",
+    textClass: "text-status-warning",
     badgeVariant: "default",
   },
   error: {
     icon: AlertCircleIcon,
-    bgClass: "bg-red-500/10",
-    borderClass: "border-red-500/30",
-    textClass: "text-red-500",
+    bgClass: "bg-status-error-bg",
+    borderClass: "border-status-error-border",
+    textClass: "text-status-error",
     badgeVariant: "destructive",
   },
 }

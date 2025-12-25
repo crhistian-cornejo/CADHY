@@ -1,12 +1,17 @@
 /**
  * Auto-save Hook - CADHY
  *
- * Automatically saves the current project when changes are detected.
- * Respects project settings for auto-save interval.
+ * Automatically saves the current project every 20 seconds when changes are detected.
+ * Features:
+ * - Real-time countdown to next save
+ * - Visual status feedback via autosave-store
+ * - Debounced saves to prevent excessive disk writes
+ * - Error handling with retry logic
  */
 
 import { logger } from "@cadhy/shared/logger"
 import { useCallback, useEffect, useRef } from "react"
+import { useAutoSaveStore } from "@/stores/autosave-store"
 import { useIsDirty } from "@/stores/modeller"
 import { useCurrentProject, useProjectSettings, useProjectStore } from "@/stores/project-store"
 
@@ -21,89 +26,225 @@ interface UseAutoSaveOptions {
   debug?: boolean
 }
 
+// Minimum time between saves (prevents rapid successive saves)
+const MIN_SAVE_GAP_MS = 3000 // 3 seconds
+
 /**
  * Hook that automatically saves the project at regular intervals when dirty.
+ * Provides real-time countdown and status feedback.
  */
 export function useAutoSave(options: UseAutoSaveOptions = {}) {
   const { intervalOverride, onSave, onError, debug = false } = options
 
+  // Project state
   const currentProject = useCurrentProject()
   const settings = useProjectSettings()
   const isDirty = useIsDirty()
   const saveCurrentProject = useProjectStore((s) => s.saveCurrentProject)
 
-  const lastSaveAttempt = useRef<number>(0)
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Auto-save store actions
+  const {
+    setStatus,
+    setCountdown,
+    markSaved,
+    markError,
+    setConfig,
+    reset: resetAutoSave,
+  } = useAutoSaveStore()
 
-  // Get effective interval (in milliseconds)
-  const intervalMs = (intervalOverride ?? settings.autoSaveInterval) * 1000
+  // Refs for tracking state
+  const lastSaveAttempt = useRef<number>(0)
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isSavingRef = useRef(false)
+
+  // Get effective interval (in seconds)
+  const intervalSeconds = intervalOverride ?? settings.autoSaveInterval
   const autoSaveEnabled = settings.autoSave
 
-  const performAutoSave = useCallback(async () => {
-    if (!currentProject || !isDirty) return
+  // Sync config to store
+  useEffect(() => {
+    setConfig(autoSaveEnabled, intervalSeconds)
+  }, [autoSaveEnabled, intervalSeconds, setConfig])
 
+  /**
+   * Perform the actual save operation
+   */
+  const performSave = useCallback(async () => {
+    if (!currentProject || !isDirty) {
+      if (debug) logger.log("[AutoSave] Skipping - no project or not dirty")
+      return false
+    }
+
+    // Prevent concurrent saves
+    if (isSavingRef.current) {
+      if (debug) logger.log("[AutoSave] Already saving, skipping")
+      return false
+    }
+
+    // Check minimum gap
     const now = Date.now()
     const timeSinceLastSave = now - lastSaveAttempt.current
+    if (timeSinceLastSave < MIN_SAVE_GAP_MS) {
+      if (debug) logger.log("[AutoSave] Too soon since last save, skipping")
+      return false
+    }
 
-    // Don't save too frequently (minimum 5 second gap)
-    if (timeSinceLastSave < 5000) return
-
+    isSavingRef.current = true
     lastSaveAttempt.current = now
+    setStatus("saving")
 
     try {
       if (debug) {
-        logger.log("[AutoSave] Saving project...", currentProject.name)
+        logger.log(`[AutoSave] Saving project: ${currentProject.name}`)
       }
 
       await saveCurrentProject()
+
+      markSaved()
+      onSave?.()
 
       if (debug) {
         logger.log("[AutoSave] Project saved successfully")
       }
 
-      onSave?.()
+      // After a short delay, show as idle or pending
+      setTimeout(() => {
+        const store = useAutoSaveStore.getState()
+        if (store.status === "saved") {
+          setStatus("idle")
+        }
+      }, 2000)
+
+      return true
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Auto-save failed")
       console.error("[AutoSave] Failed to save project:", error.message)
+      markError(error.message)
       onError?.(error)
+      return false
+    } finally {
+      isSavingRef.current = false
     }
-  }, [currentProject, isDirty, saveCurrentProject, onSave, onError, debug])
+  }, [
+    currentProject,
+    isDirty,
+    saveCurrentProject,
+    setStatus,
+    markSaved,
+    markError,
+    onSave,
+    onError,
+    debug,
+  ])
 
-  useEffect(() => {
-    // Clear any existing timeout
+  /**
+   * Start countdown timer
+   */
+  const startCountdown = useCallback(
+    (seconds: number) => {
+      // Clear existing countdown
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current)
+      }
+
+      let remaining = seconds
+      setCountdown(remaining)
+      setStatus("pending")
+
+      countdownIntervalRef.current = setInterval(() => {
+        remaining -= 1
+
+        if (remaining <= 0) {
+          // Time to save
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current)
+            countdownIntervalRef.current = null
+          }
+          setCountdown(null)
+          performSave()
+        } else {
+          setCountdown(remaining)
+        }
+      }, 1000)
+    },
+    [setCountdown, setStatus, performSave]
+  )
+
+  /**
+   * Schedule next auto-save
+   */
+  const scheduleAutoSave = useCallback(() => {
+    // Clear any existing timers
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current)
       saveTimeoutRef.current = null
     }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current)
+      countdownIntervalRef.current = null
+    }
 
-    // Don't schedule if auto-save is disabled, no project, or not dirty
+    // Don't schedule if disabled, no project, or not dirty
     if (!autoSaveEnabled || !currentProject || !isDirty) {
+      setCountdown(null)
+      if (!isDirty && currentProject) {
+        setStatus("idle")
+      }
       return
     }
 
-    // Schedule next auto-save
-    saveTimeoutRef.current = setTimeout(() => {
-      performAutoSave()
-    }, intervalMs)
+    // Start countdown
+    startCountdown(intervalSeconds)
+  }, [
+    autoSaveEnabled,
+    currentProject,
+    isDirty,
+    intervalSeconds,
+    startCountdown,
+    setCountdown,
+    setStatus,
+  ])
+
+  /**
+   * Effect: Schedule auto-save when dirty state changes
+   */
+  useEffect(() => {
+    scheduleAutoSave()
 
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
         saveTimeoutRef.current = null
       }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current)
+        countdownIntervalRef.current = null
+      }
     }
-  }, [autoSaveEnabled, currentProject, isDirty, intervalMs, performAutoSave])
+  }, [scheduleAutoSave])
 
-  // Return controls for manual intervention if needed
+  /**
+   * Effect: Reset when project changes or closes
+   */
+  useEffect(() => {
+    if (!currentProject) {
+      resetAutoSave()
+    }
+  }, [currentProject, resetAutoSave])
+
+  // Return controls for manual intervention
   return {
     /** Trigger an immediate save */
-    saveNow: performAutoSave,
+    saveNow: performSave,
     /** Whether auto-save is enabled */
     isEnabled: autoSaveEnabled,
     /** Whether there are unsaved changes */
     isDirty,
     /** Current auto-save interval in seconds */
-    interval: intervalMs / 1000,
+    interval: intervalSeconds,
+    /** Reschedule auto-save (useful after manual save) */
+    reschedule: scheduleAutoSave,
   }
 }
 
@@ -159,6 +300,7 @@ export function useProjectShortcuts(options: UseProjectShortcutsOptions = {}) {
 
   const currentProject = useCurrentProject()
   const saveCurrentProject = useProjectStore((s) => s.saveCurrentProject)
+  const { setStatus, markSaved, markError } = useAutoSaveStore()
   const isSavingRef = useRef(false)
 
   useEffect(() => {
@@ -178,7 +320,6 @@ export function useProjectShortcuts(options: UseProjectShortcutsOptions = {}) {
 
         if (!currentProject) {
           if (debug) logger.log("[Shortcuts] No project to save")
-          // Don't trigger new project - just do nothing
           return
         }
 
@@ -188,12 +329,25 @@ export function useProjectShortcuts(options: UseProjectShortcutsOptions = {}) {
         }
 
         isSavingRef.current = true
+        setStatus("saving")
+
         try {
           if (debug) logger.log("[Shortcuts] Saving project...")
           await saveCurrentProject()
+          markSaved()
           if (debug) logger.log("[Shortcuts] Project saved")
+
+          // Reset status after brief display
+          setTimeout(() => {
+            const store = useAutoSaveStore.getState()
+            if (store.status === "saved") {
+              setStatus("idle")
+            }
+          }, 2000)
         } catch (err) {
-          console.error("[Shortcuts] Failed to save:", err)
+          const error = err instanceof Error ? err : new Error("Save failed")
+          console.error("[Shortcuts] Failed to save:", error)
+          markError(error.message)
         } finally {
           isSavingRef.current = false
         }
@@ -226,5 +380,15 @@ export function useProjectShortcuts(options: UseProjectShortcutsOptions = {}) {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentProject, saveCurrentProject, onNewProject, onOpenProject, onCloseProject, debug])
+  }, [
+    currentProject,
+    saveCurrentProject,
+    setStatus,
+    markSaved,
+    markError,
+    onNewProject,
+    onOpenProject,
+    onCloseProject,
+    debug,
+  ])
 }

@@ -24,6 +24,7 @@ import {
   updateProjectSettings as updateProjectSettingsService,
 } from "@/services/project-service"
 import { captureViewportThumbnailDelayed } from "@/services/thumbnail-service"
+import { useDrawingStore } from "./drawing-store"
 import { useLayoutStore } from "./layout-store"
 import { useModellerStore } from "./modeller"
 import { useRecentProjectsStore } from "./recent-projects-store"
@@ -58,7 +59,7 @@ const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
   precision: 4,
   theme: "system",
   autoSave: true,
-  autoSaveInterval: 300,
+  autoSaveInterval: 20, // Auto-save every 20 seconds
 }
 
 // ============================================================================
@@ -112,6 +113,9 @@ export const useProjectStore = create<ProjectStore>()(
           // Reset modeller store to clean state
           useModellerStore.getState().reset()
 
+          // Reset drawings store
+          useDrawingStore.getState().reset()
+
           // Update project state
           set({
             currentProject: projectInfo,
@@ -150,10 +154,20 @@ export const useProjectStore = create<ProjectStore>()(
           // Load scene into modeller store
           useModellerStore.getState().loadScene(projectData.scene)
 
-          // Update project state
+          // Load drawings into drawing store
+          if (projectData.drawings) {
+            useDrawingStore.getState().loadDrawings(projectData.drawings as any)
+          } else {
+            useDrawingStore.getState().reset()
+          }
+
+          // Update project state (force autoSaveInterval to 20 seconds)
           set({
             currentProject: projectData.info,
-            currentSettings: projectData.settings,
+            currentSettings: {
+              ...projectData.settings,
+              autoSaveInterval: 20, // Always 20 seconds
+            },
             isLoading: false,
           })
 
@@ -188,7 +202,8 @@ export const useProjectStore = create<ProjectStore>()(
         set({ isLoading: true, error: null })
         try {
           const sceneData = useModellerStore.getState().getSceneData()
-          const projectInfo = await saveProjectService(currentProject.path, sceneData)
+          const drawingsData = useDrawingStore.getState().getDrawingsData()
+          const projectInfo = await saveProjectService(currentProject.path, sceneData, drawingsData)
 
           // Mark modeller as clean
           useModellerStore.getState().markClean()
@@ -225,11 +240,13 @@ export const useProjectStore = create<ProjectStore>()(
         set({ isLoading: true, error: null })
         try {
           const sceneData = useModellerStore.getState().getSceneData()
+          const drawingsData = useDrawingStore.getState().getDrawingsData()
           const projectInfo = await saveProjectAsService(
             currentProject.path,
             newPath,
             newName,
-            sceneData
+            sceneData,
+            drawingsData
           )
 
           // Mark modeller as clean
@@ -271,6 +288,9 @@ export const useProjectStore = create<ProjectStore>()(
         // Reset modeller store
         useModellerStore.getState().reset()
 
+        // Reset drawings store
+        useDrawingStore.getState().reset()
+
         // Hide AI chat panel
         useLayoutStore.getState().setPanel("aiChat", false)
 
@@ -310,18 +330,25 @@ export const useProjectStore = create<ProjectStore>()(
     }),
     {
       name: "cadhy-projects",
-      version: 3, // Bump version to trigger migration
+      version: 6, // Bump version to trigger migration
       partialize: (state) => ({
         // Only persist settings - recent projects are in recent-projects-store
         currentSettings: state.currentSettings,
       }),
-      // Migration to remove old recentProjects data
       migrate: (persistedState: unknown, version: number) => {
+        const state = persistedState as Record<string, unknown>
+
+        // v3: Remove old recentProjects data
         if (version < 3) {
-          // Remove recentProjects from old persisted state
-          const state = persistedState as Record<string, unknown>
           delete state.recentProjects
         }
+
+        // v6: ALWAYS force autoSaveInterval to exactly 20 seconds
+        const settings = state.currentSettings as Record<string, unknown> | undefined
+        if (settings) {
+          settings.autoSaveInterval = 20
+        }
+
         return persistedState as ProjectStore
       },
     }

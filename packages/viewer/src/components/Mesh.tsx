@@ -1,5 +1,5 @@
 import type { MeshData } from "@cadhy/types"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import * as THREE from "three"
 
 interface MeshProps {
@@ -18,8 +18,17 @@ export function Mesh({ data, color = "#6366f1", wireframe = false, selected = fa
     if (data.uvs) {
       geo.setAttribute("uv", new THREE.BufferAttribute(data.uvs, 2))
     }
+    // Compute bounding sphere for better frustum culling
+    geo.computeBoundingSphere()
     return geo
   }, [data])
+
+  // Cleanup geometry on unmount or when data changes
+  useEffect(() => {
+    return () => {
+      geometry.dispose()
+    }
+  }, [geometry])
 
   return (
     <mesh>
@@ -27,7 +36,9 @@ export function Mesh({ data, color = "#6366f1", wireframe = false, selected = fa
       <meshStandardMaterial
         color={selected ? "#22c55e" : color}
         wireframe={wireframe}
-        side={THREE.DoubleSide}
+        side={THREE.FrontSide}
+        roughness={0.5}
+        metalness={0.5}
       />
     </mesh>
   )

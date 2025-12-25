@@ -20,9 +20,11 @@
   "dependencies": {
     "@ai-sdk/gateway": "^1.0.14",
     "@ai-sdk/google": "^2.0.51",
+    "@ai-sdk/openai": "^3.0.1",
     "@ai-sdk/react": "^2.0.105",
     "@cadhy/types": "workspace:*",
     "ai": "^5.0.107",
+    "ollama-ai-provider-v2": "^1.5.5",
     "zod": "^3.24.0"
   },
   "peerDependencies": {
