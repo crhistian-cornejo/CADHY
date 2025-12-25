@@ -51,12 +51,12 @@ export interface ShapeResult {
  * Mesh data from tessellation, ready for Three.js rendering
  */
 export interface CadMeshData {
-  /** Vertices as flat array [x1, y1, z1, x2, y2, z2, ...] */
-  vertices: number[]
-  /** Triangle indices as flat array [i1, i2, i3, ...] */
-  indices: number[]
-  /** Normals as flat array (if available) */
-  normals: number[] | null
+  /** Vertices as flat array [x1, y1, z1, x2, y2, z2, ...] using f32 */
+  vertices: number[] | Float32Array
+  /** Triangle indices as flat array [i1, i2, i3, ...] using u32 */
+  indices: number[] | Uint32Array
+  /** Normals as flat array (if available) using f32 */
+  normals: number[] | Float32Array | null
   /** Number of vertices */
   vertex_count: number
   /** Number of triangles */
@@ -90,6 +90,16 @@ export async function createBoxAt(
   height: number
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_create_box_at", { x, y, z, width, depth, height })
+}
+
+/**
+ * Check if a shape exists in the backend registry
+ */
+export async function shapeExists(shapeId: string): Promise<boolean> {
+  console.log("[CAD Service] Checking if shape exists:", shapeId)
+  const result = await invoke<boolean>("cad_shape_exists", { shapeId })
+  console.log("[CAD Service] Shape exists result:", result)
+  return result
 }
 
 /**
@@ -250,8 +260,8 @@ export async function createHelix(
  */
 export async function booleanFuse(shape1Id: string, shape2Id: string): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_boolean_fuse", {
-    shape1_id: shape1Id,
-    shape2_id: shape2Id,
+    shape1Id,
+    shape2Id,
   })
 }
 
@@ -261,8 +271,8 @@ export async function booleanFuse(shape1Id: string, shape2Id: string): Promise<S
  */
 export async function booleanCut(shape1Id: string, shape2Id: string): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_boolean_cut", {
-    shape1_id: shape1Id,
-    shape2_id: shape2Id,
+    shape1Id,
+    shape2Id,
   })
 }
 
@@ -272,8 +282,8 @@ export async function booleanCut(shape1Id: string, shape2Id: string): Promise<Sh
  */
 export async function booleanCommon(shape1Id: string, shape2Id: string): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_boolean_common", {
-    shape1_id: shape1Id,
-    shape2_id: shape2Id,
+    shape1Id,
+    shape2Id,
   })
 }
 
@@ -285,7 +295,7 @@ export async function booleanCommon(shape1Id: string, shape2Id: string): Promise
  * Apply fillet (rounded edges) to all edges of a shape
  */
 export async function fillet(shapeId: string, radius: number): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_fillet", { shape_id: shapeId, radius })
+  return invoke<ShapeResult>("cad_fillet", { shapeId, radius })
 }
 
 /**
@@ -300,8 +310,8 @@ export async function filletEdges(
   radii: number[]
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_fillet_edges", {
-    shape_id: shapeId,
-    edge_indices: edgeIndices,
+    shapeId,
+    edgeIndices,
     radii,
   })
 }
@@ -310,7 +320,7 @@ export async function filletEdges(
  * Apply chamfer (beveled edges) to all edges of a shape
  */
 export async function chamfer(shapeId: string, distance: number): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_chamfer", { shape_id: shapeId, distance })
+  return invoke<ShapeResult>("cad_chamfer", { shapeId, distance })
 }
 
 /**
@@ -325,8 +335,8 @@ export async function chamferEdges(
   distances: number[]
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_chamfer_edges", {
-    shape_id: shapeId,
-    edge_indices: edgeIndices,
+    shapeId,
+    edgeIndices,
     distances,
   })
 }
@@ -335,7 +345,7 @@ export async function chamferEdges(
  * Create a shell (hollow solid) from a shape
  */
 export async function shell(shapeId: string, thickness: number): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_shell", { shape_id: shapeId, thickness })
+  return invoke<ShapeResult>("cad_shell", { shapeId, thickness })
 }
 
 // ============================================================================
@@ -351,7 +361,7 @@ export async function translate(
   dy: number,
   dz: number
 ): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_translate", { shape_id: shapeId, dx, dy, dz })
+  return invoke<ShapeResult>("cad_translate", { shapeId, dx, dy, dz })
 }
 
 /**
@@ -372,14 +382,14 @@ export async function rotate(
   angleRadians: number
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_rotate", {
-    shape_id: shapeId,
-    origin_x: originX,
-    origin_y: originY,
-    origin_z: originZ,
-    axis_x: axisX,
-    axis_y: axisY,
-    axis_z: axisZ,
-    angle_radians: angleRadians,
+    shapeId,
+    originX,
+    originY,
+    originZ,
+    axisX,
+    axisY,
+    axisZ,
+    angleRadians,
   })
 }
 
@@ -394,10 +404,10 @@ export async function scale(
   factor: number
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_scale", {
-    shape_id: shapeId,
-    center_x: centerX,
-    center_y: centerY,
-    center_z: centerZ,
+    shapeId,
+    centerX,
+    centerY,
+    centerZ,
     factor,
   })
 }
@@ -418,13 +428,13 @@ export async function mirror(
   normalZ: number
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_mirror", {
-    shape_id: shapeId,
-    origin_x: originX,
-    origin_y: originY,
-    origin_z: originZ,
-    normal_x: normalX,
-    normal_y: normalY,
-    normal_z: normalZ,
+    shapeId,
+    originX,
+    originY,
+    originZ,
+    normalX,
+    normalY,
+    normalZ,
   })
 }
 
@@ -441,7 +451,7 @@ export async function extrude(
   dy: number,
   dz: number
 ): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_extrude", { shape_id: shapeId, dx, dy, dz })
+  return invoke<ShapeResult>("cad_extrude", { shapeId, dx, dy, dz })
 }
 
 /**
@@ -458,14 +468,14 @@ export async function revolve(
   angleRadians: number
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_revolve", {
-    shape_id: shapeId,
-    origin_x: originX,
-    origin_y: originY,
-    origin_z: originZ,
-    axis_x: axisX,
-    axis_y: axisY,
-    axis_z: axisZ,
-    angle_radians: angleRadians,
+    shapeId,
+    originX,
+    originY,
+    originZ,
+    axisX,
+    axisY,
+    axisZ,
+    angleRadians,
   })
 }
 
@@ -478,7 +488,7 @@ export async function loft(
   ruled: boolean
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_loft", {
-    profile_ids: profileIds,
+    profileIds,
     solid,
     ruled,
   })
@@ -489,8 +499,8 @@ export async function loft(
  */
 export async function pipe(profileId: string, spineId: string): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_pipe", {
-    profile_id: profileId,
-    spine_id: spineId,
+    profileId,
+    spineId,
   })
 }
 
@@ -503,9 +513,10 @@ export async function pipeShell(
   thickness: number
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_pipe_shell", {
-    profile_id: profileId,
-    spine_id: spineId,
-    thickness,
+    profileId,
+    spineId,
+    withContact: false,
+    withCorrection: false,
   })
 }
 
@@ -514,7 +525,7 @@ export async function pipeShell(
  */
 export async function offset(shapeId: string, offsetDistance: number): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_offset", {
-    shape_id: shapeId,
+    shapeId,
     offset: offsetDistance,
   })
 }
@@ -765,21 +776,21 @@ export async function createBSpline(points: Point3D[], closed: boolean): Promise
  * Create a Bezier curve from control points
  */
 export async function createBezier(controlPoints: Point3D[]): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_create_bezier", { control_points: controlPoints })
+  return invoke<ShapeResult>("cad_create_bezier", { controlPoints })
 }
 
 /**
  * Create a wire from multiple edges
  */
 export async function createWireFromEdges(edgeIds: string[]): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_create_wire_from_edges", { edge_ids: edgeIds })
+  return invoke<ShapeResult>("cad_create_wire_from_edges", { edgeIds })
 }
 
 /**
  * Create a face from a closed wire
  */
 export async function createFaceFromWire(wireId: string): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_create_face_from_wire", { wire_id: wireId })
+  return invoke<ShapeResult>("cad_create_face_from_wire", { wireId })
 }
 
 // ============================================================================
@@ -793,7 +804,70 @@ export async function createFaceFromWire(wireId: string): Promise<ShapeResult> {
  */
 export async function tessellate(shapeId: string, deflection = 0.1): Promise<CadMeshData> {
   logger.log("[cad-service] tessellate called with shapeId:", shapeId)
-  return invoke<CadMeshData>("cad_tessellate", { shape_id: shapeId, deflection })
+  if (!shapeId) {
+    throw new Error("shapeId is required for tessellation")
+  }
+
+  // Use the binary version for much better performance (Tauri 2.0 binary IPC)
+  const result = await invoke<number[] | Uint8Array>("cad_tessellate_binary", {
+    shapeId,
+    deflection,
+  })
+  // Tauri 2.x returns bytes as number[], convert to Uint8Array if needed
+  const binaryData = result instanceof Uint8Array ? result : new Uint8Array(result)
+  return decodeMeshBinary(binaryData)
+}
+
+/**
+ * Decodes binary mesh data from the backend
+ * Format matches the Rust implementation in cad_tessellate_binary
+ * Uses DataView to handle unaligned buffers (from Tauri 2.x number[] conversion)
+ */
+function decodeMeshBinary(data: Uint8Array): CadMeshData {
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  let offset = 0
+
+  // Read header (matching Rust's to_le_bytes)
+  const vertexCount = view.getUint32(offset, true)
+  offset += 4
+  const triangleCount = view.getUint32(offset, true)
+  offset += 4
+  const hasNormals = view.getUint8(offset) === 1
+  offset += 1
+
+  // Read vertices (f32 x vertexCount x 3) - copy to new aligned array
+  const vertexLen = vertexCount * 3
+  const vertices = new Float32Array(vertexLen)
+  for (let i = 0; i < vertexLen; i++) {
+    vertices[i] = view.getFloat32(offset, true)
+    offset += 4
+  }
+
+  // Read indices (u32 x triangleCount x 3) - copy to new aligned array
+  const indexLen = triangleCount * 3
+  const indices = new Uint32Array(indexLen)
+  for (let i = 0; i < indexLen; i++) {
+    indices[i] = view.getUint32(offset, true)
+    offset += 4
+  }
+
+  // Read normals (f32 x vertexCount x 3) - copy to new aligned array
+  let normals: Float32Array | null = null
+  if (hasNormals) {
+    normals = new Float32Array(vertexLen)
+    for (let i = 0; i < vertexLen; i++) {
+      normals[i] = view.getFloat32(offset, true)
+      offset += 4
+    }
+  }
+
+  return {
+    vertices,
+    indices,
+    normals,
+    vertex_count: vertexCount,
+    triangle_count: triangleCount,
+  }
 }
 
 // ============================================================================
@@ -872,8 +946,8 @@ export interface TopologyData {
 export async function getTopology(shapeId: string, edgeDeflection = 0.1): Promise<TopologyData> {
   logger.log("[cad-service] getTopology called with shapeId:", shapeId)
   return invoke<TopologyData>("cad_get_topology", {
-    shape_id: shapeId,
-    edge_deflection: edgeDeflection,
+    shapeId,
+    edgeDeflection,
   })
 }
 
@@ -885,14 +959,14 @@ export async function getTopology(shapeId: string, edgeDeflection = 0.1): Promis
  * Import a STEP file
  */
 export async function importStep(filePath: string): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_import_step", { file_path: filePath })
+  return invoke<ShapeResult>("cad_import_step", { filePath })
 }
 
 /**
  * Export a shape to STEP file
  */
 export async function exportStep(shapeId: string, filePath: string): Promise<string> {
-  return invoke<string>("cad_export_step", { shape_id: shapeId, file_path: filePath })
+  return invoke<string>("cad_export_step", { shapeId, filePath })
 }
 
 /**
@@ -903,7 +977,7 @@ export async function exportStl(
   filePath: string,
   deflection = 0.1
 ): Promise<string> {
-  return invoke<string>("cad_export_stl", { shape_id: shapeId, file_path: filePath, deflection })
+  return invoke<string>("cad_export_stl", { shapeId, filePath, deflection })
 }
 
 /**
@@ -914,7 +988,7 @@ export async function exportObj(
   filePath: string,
   deflection = 0.1
 ): Promise<string> {
-  return invoke<string>("cad_export_obj", { shape_id: shapeId, file_path: filePath, deflection })
+  return invoke<string>("cad_export_obj", { shapeId, filePath, deflection })
 }
 
 /**
@@ -925,7 +999,7 @@ export async function exportGlb(
   filePath: string,
   deflection = 0.1
 ): Promise<string> {
-  return invoke<string>("cad_export_glb", { shape_id: shapeId, file_path: filePath, deflection })
+  return invoke<string>("cad_export_glb", { shapeId, filePath, deflection })
 }
 
 // ============================================================================
@@ -936,7 +1010,7 @@ export async function exportGlb(
  * Analyze a shape (get topology info)
  */
 export async function analyze(shapeId: string): Promise<ShapeAnalysis> {
-  return invoke<ShapeAnalysis>("cad_analyze", { shape_id: shapeId })
+  return invoke<ShapeAnalysis>("cad_analyze", { shapeId })
 }
 
 /**
@@ -944,8 +1018,8 @@ export async function analyze(shapeId: string): Promise<ShapeAnalysis> {
  */
 export async function measureDistance(shape1Id: string, shape2Id: string): Promise<number> {
   return invoke<number>("cad_measure_distance", {
-    shape1_id: shape1Id,
-    shape2_id: shape2Id,
+    shape1Id,
+    shape2Id,
   })
 }
 
@@ -953,7 +1027,7 @@ export async function measureDistance(shape1Id: string, shape2Id: string): Promi
  * Delete a shape from the registry
  */
 export async function deleteShape(shapeId: string): Promise<void> {
-  return invoke<void>("cad_delete_shape", { shape_id: shapeId })
+  return invoke<void>("cad_delete_shape", { shapeId })
 }
 
 /**
@@ -984,9 +1058,9 @@ export async function simplify(
   unifyFaces = true
 ): Promise<ShapeResult> {
   return invoke<ShapeResult>("cad_simplify", {
-    shape_id: shapeId,
-    unify_edges: unifyEdges,
-    unify_faces: unifyFaces,
+    shapeId,
+    unifyEdges,
+    unifyFaces,
   })
 }
 
@@ -996,7 +1070,7 @@ export async function simplify(
  * @param shapeIds - Array of shape IDs to combine
  */
 export async function combine(shapeIds: string[]): Promise<ShapeResult> {
-  return invoke<ShapeResult>("cad_combine", { shape_ids: shapeIds })
+  return invoke<ShapeResult>("cad_combine", { shapeIds })
 }
 
 // ============================================================================
