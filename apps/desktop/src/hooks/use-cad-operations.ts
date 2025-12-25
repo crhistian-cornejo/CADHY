@@ -165,7 +165,7 @@ async function applyTransformToBackend(
 
 export function useCADOperations() {
   const selectedObjects = useSelectedObjects()
-  const { addObject, deleteObject } = useModellerStore()
+  const { addObject, deleteObject, select } = useModellerStore()
 
   const [dialogState, setDialogState] = useState<OperationDialogState>({
     open: false,
@@ -565,6 +565,7 @@ export function useCADOperations() {
       // Add the new fused object
       const newId = addObject(newObject)
       shapeIdMap.set(newId, finalId)
+      select(newId)
 
       // Save to history
       useModellerStore
@@ -663,6 +664,7 @@ export function useCADOperations() {
 
       const newId = addObject(newObject)
       shapeIdMap.set(newId, finalId)
+      select(newId)
 
       useModellerStore
         .getState()
@@ -759,6 +761,7 @@ export function useCADOperations() {
 
       const newId = addObject(newObject)
       shapeIdMap.set(newId, finalId)
+      select(newId)
 
       useModellerStore
         .getState()
