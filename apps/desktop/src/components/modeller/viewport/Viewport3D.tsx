@@ -10,23 +10,20 @@
  * - AI analyzing scene visual effect
  */
 
-import { AIGlowBorder, cn, Kbd } from "@cadhy/ui"
-import { Cancel01Icon, Mouse01Icon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
+import { AIGlowBorder, cn } from "@cadhy/ui"
 import { Canvas, type RootState } from "@react-three/fiber"
-import { Suspense, useCallback, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef } from "react"
 import * as THREE from "three"
 import { useSounds } from "@/hooks/use-sounds"
 import { registerViewportCanvas } from "@/services/thumbnail-service"
 import { useIsAnalyzingScene } from "@/stores/chat-store"
-import { useBoxSelectMode, useViewportSettings } from "@/stores/modeller"
+import { useViewportSettings } from "@/stores/modeller"
 import { ActiveOperationRenderer } from "./ActiveOperationRenderer"
 import { CommandProvider } from "./CommandProvider"
 import { Label3DContainer } from "./Label3D"
 import { MeshCacheStats } from "./MeshCacheStats"
 import { PlaybackControls } from "./PlaybackControls"
 import { SceneContent } from "./SceneContent"
-import { SimpleSelectionBox } from "./SimpleSelectionBox"
 import { ViewportOverlays } from "./ViewportOverlays"
 
 export interface Viewport3DProps {
@@ -44,9 +41,7 @@ export function Viewport3D({
 }: Viewport3DProps) {
   const viewportSettings = useViewportSettings()
   const isAnalyzingScene = useIsAnalyzingScene()
-  const isBoxSelectMode = useBoxSelectMode()
   const { playAiThinking, playAiComplete } = useSounds()
-  const [showBoxSelectHint, setShowBoxSelectHint] = useState(true)
 
   // Track previous analyzing state to play sounds on transitions
   const wasAnalyzingRef = useRef(false)
@@ -129,31 +124,8 @@ export function Viewport3D({
           {/* Floating toolbars and panels (Plasticity-style) */}
           <ViewportOverlays />
 
-          {/* Selection Box */}
-          <SimpleSelectionBox />
-
           {/* Mesh Cache Stats - Show when stats are enabled */}
           {showStats && <MeshCacheStats />}
-
-          {/* Box Select Hint - Show when Shift is held */}
-          {isBoxSelectMode && showBoxSelectHint && (
-            <div className="absolute left-1/2 top-4 -translate-x-1/2 flex items-center gap-2 rounded-2xl bg-background/95 backdrop-blur-sm border px-3 py-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 z-50">
-              <span className="text-sm text-muted-foreground">Hold</span>
-              <Kbd>Shift</Kbd>
-              <span className="text-sm text-muted-foreground">+ hold</span>
-              <HugeiconsIcon icon={Mouse01Icon} className="size-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                and drag on scene to select objects.
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowBoxSelectHint(false)}
-                className="ml-1 p-0.5 rounded-2xl hover:bg-muted transition-colors"
-              >
-                <HugeiconsIcon icon={Cancel01Icon} className="size-3.5 text-muted-foreground" />
-              </button>
-            </div>
-          )}
 
           {/* Playback Controls - Only show when animation panel is open */}
           {showAnimationPanel && <PlaybackControls />}

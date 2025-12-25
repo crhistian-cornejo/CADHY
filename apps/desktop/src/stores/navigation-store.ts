@@ -20,7 +20,9 @@ export type ViewId =
   | "examples"
   | "gallery"
   | "modeller"
+  | "drawings"
   | "mesh"
+  | "cadras"
   | "cfd"
   | "results"
 

@@ -6,6 +6,8 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  formatKbd,
+  Kbd,
   Separator,
   Tooltip,
   TooltipContent,
@@ -72,7 +74,6 @@ function ToolButton({
   onClick,
   variant = "ghost",
 }: ToolButtonProps) {
-  const isMac = getPlatformSync() === "macos"
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -92,13 +93,7 @@ function ToolButton({
       </TooltipTrigger>
       <TooltipContent side="top" className="flex items-center gap-2">
         <span className="font-medium">{label}</span>
-        {shortcut && (
-          <kbd className="rounded-2xl bg-muted px-1.5 py-0.5 text-xs font-mono opacity-80">
-            {shortcut
-              .replace("Alt+", isMac ? "\u2325" : "Alt+")
-              .replace("Ctrl+", isMac ? "\u2318" : "Ctrl+")}
-          </kbd>
-        )}
+        {shortcut && <Kbd variant="inverted">{formatKbd(shortcut)}</Kbd>}
       </TooltipContent>
     </Tooltip>
   )
@@ -270,9 +265,7 @@ export function ViewportBottomToolbar({
               <DropdownMenuItem onClick={onOpenSearch}>
                 <HugeiconsIcon icon={Search01Icon} className="mr-2 size-4" />
                 <span>{t("toolbar.search", "Search")}</span>
-                <kbd className="ml-auto text-xs text-muted-foreground">
-                  {isMac ? "\u2318K" : "Ctrl+K"}
-                </kbd>
+                <Kbd className="ml-auto">{formatKbd(isMac ? "Cmd+K" : "Ctrl+K")}</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {}}>
                 <HugeiconsIcon icon={Settings01Icon} className="mr-2 size-4" />

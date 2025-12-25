@@ -469,11 +469,11 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
   }
 
   return (
-    <Card className="mx-3 mb-3 p-3 space-y-3 border-green-500/30 bg-green-500/5">
+    <Card className="mx-3 mb-3 p-3 space-y-3 border-status-success-border bg-status-success-bg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="size-6 rounded-2xl bg-green-500/20 flex items-center justify-center">
-            <HugeiconsIcon icon={WaterfallDown01Icon} className="size-3.5 text-green-500" />
+          <div className="size-6 rounded-2xl bg-status-success-bg flex items-center justify-center">
+            <HugeiconsIcon icon={WaterfallDown01Icon} className="size-3.5 text-status-success" />
           </div>
           <span className="text-xs font-medium">{t("createPanel.transition", "Transition")}</span>
         </div>

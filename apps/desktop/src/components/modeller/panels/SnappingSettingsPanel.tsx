@@ -147,8 +147,8 @@ export function SnappingSettingsPanel() {
           <Separator />
 
           {/* Visual Indicator */}
-          <div className="rounded-2xl bg-green-500/10 border border-green-500/20 p-3">
-            <p className="text-xs text-green-600 dark:text-green-400">
+          <div className="rounded-2xl bg-status-success-bg border border-status-success-border p-3">
+            <p className="text-xs text-status-success">
               ✓ Snapping enabled - Green sphere indicates snap points
             </p>
           </div>

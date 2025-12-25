@@ -8,7 +8,14 @@
  * - Tone Mapping: ACES Filmic for cinematic color grading
  */
 
-import { Bloom, EffectComposer, SMAA, SSAO, ToneMapping } from "@react-three/postprocessing"
+import {
+  Bloom,
+  BrightnessContrast,
+  EffectComposer,
+  SMAA,
+  SSAO,
+  ToneMapping,
+} from "@react-three/postprocessing"
 import { BlendFunction, ToneMappingMode } from "postprocessing"
 import { memo } from "react"
 import * as THREE from "three"
@@ -28,6 +35,14 @@ export interface PostProcessingProps {
   enableBloom?: boolean
   /** Enable anti-aliasing */
   enableAA?: boolean
+  /** Reflection intensity (0-1) */
+  reflection?: number
+  /** Scene brightness multiplier (0-5) */
+  brightness?: number
+  /** Scene contrast multiplier (0-2) */
+  contrast?: number
+  /** Rim light intensity (0-1) */
+  rimLight?: number
 }
 
 // ============================================================================
@@ -117,11 +132,21 @@ export const PostProcessing = memo(function PostProcessing({
   enableSSAO = true,
   enableBloom = true,
   enableAA = true,
+  reflection = 0,
+  brightness = 1,
+  contrast = 1,
+  rimLight = 0,
 }: PostProcessingProps) {
   const config = QUALITY_CONFIG[quality]
 
   // Optimize multisampling based on effects enabled
   const effectiveMultisampling = enableSSAO || enableBloom ? config.multisampling : 0
+
+  // Calculate brightness/contrast adjustments
+  // Brightness: 0-5 maps to -1 to 1 (neutral at 1.0)
+  const brightnessAdjustment = (brightness - 1) * 0.5
+  // Contrast: 0-2 maps to -1 to 1 (neutral at 1.0)
+  const contrastAdjustment = (contrast - 1) * 0.5
 
   return (
     <EffectComposer multisampling={effectiveMultisampling} enableNormalPass={enableSSAO}>
@@ -156,6 +181,11 @@ export const PostProcessing = memo(function PostProcessing({
           radius={0.5}
           mipmapBlur
         />
+      )}
+
+      {/* Brightness & Contrast - Scene color adjustments */}
+      {(brightnessAdjustment !== 0 || contrastAdjustment !== 0) && (
+        <BrightnessContrast brightness={brightnessAdjustment} contrast={contrastAdjustment} />
       )}
 
       {/* Tone Mapping - ACES Filmic for cinematic look */}

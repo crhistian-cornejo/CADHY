@@ -3,7 +3,30 @@
 import type { BBox, Transform } from "./geometry"
 import type { MeshData } from "./mesh"
 
-export type ShapeType = "box" | "cylinder" | "sphere" | "cone" | "torus" | "compound"
+export type ShapeType =
+  | "box"
+  | "cylinder"
+  | "sphere"
+  | "cone"
+  | "torus"
+  | "compound"
+  // Advanced operations
+  | "loft"
+  | "pipe"
+  | "pipe_shell"
+  | "helix"
+  | "bspline"
+  | "bezier"
+  // Curves
+  | "circle"
+  | "rectangle"
+  | "ellipse"
+  | "polygon"
+  | "polyline"
+  | "wire"
+  | "line"
+  | "arc"
+  | "spline"
 
 export interface Shape {
   id: string

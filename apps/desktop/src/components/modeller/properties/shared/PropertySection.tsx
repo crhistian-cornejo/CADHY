@@ -38,8 +38,11 @@ export const PropertySection = React.memo(function PropertySection({
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="flex w-full items-center justify-between px-3 py-2 hover:bg-muted/50 transition-colors">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} data-slot="property-section">
+      <div
+        className="flex w-full items-center justify-between px-3 py-2 hover:bg-muted/50 transition-colors"
+        data-slot="property-section-header"
+      >
         <CollapsibleTrigger className="flex items-center gap-2 flex-1">
           <HugeiconsIcon
             icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon}
@@ -58,7 +61,9 @@ export const PropertySection = React.memo(function PropertySection({
         </div>
       </div>
       <CollapsibleContent>
-        <div className="px-3 pb-3 pt-1 space-y-2">{children}</div>
+        <div className="px-3 pb-3 pt-1 space-y-2" data-slot="property-section-content">
+          {children}
+        </div>
       </CollapsibleContent>
     </Collapsible>
   )

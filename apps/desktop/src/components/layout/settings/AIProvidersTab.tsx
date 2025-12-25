@@ -65,7 +65,7 @@ export function AIProvidersTab() {
             <div
               className={cn(
                 "size-2 rounded-full",
-                isDetecting ? "bg-yellow-500 animate-pulse" : "bg-green-500"
+                isDetecting ? "bg-status-detecting animate-pulse" : "bg-status-success"
               )}
             />
             <span className="text-xs font-medium">
@@ -94,8 +94,8 @@ export function AIProvidersTab() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="size-8 rounded-2xl bg-orange-500/10 flex items-center justify-center">
-              <span className="text-sm font-bold text-orange-600">O</span>
+            <div className="size-8 rounded-2xl bg-status-detecting-bg flex items-center justify-center">
+              <span className="text-sm font-bold text-status-detecting">O</span>
             </div>
             <div>
               <h4 className="text-xs font-medium">Ollama (Local)</h4>
@@ -107,7 +107,7 @@ export function AIProvidersTab() {
           {hasOllamaLocal ? (
             <Badge
               variant="outline"
-              className="text-xs bg-green-500/10 text-green-600 border-green-500/30"
+              className="text-xs bg-status-success-bg text-status-success border-status-success-border"
             >
               <HugeiconsIcon icon={Tick02Icon} className="size-3 mr-1" />
               {t("settings.ai.running", "Running")}
@@ -157,7 +157,7 @@ export function AIProvidersTab() {
         )}
 
         {hasOllamaLocal && ollamaModels.length === 0 && (
-          <div className="flex items-start gap-2 p-2 rounded-2xl bg-yellow-500/10 text-xs text-yellow-700 dark:text-yellow-400">
+          <div className="flex items-start gap-2 p-2 rounded-2xl bg-status-warning-bg text-xs text-status-warning">
             <HugeiconsIcon icon={AlertCircleIcon} className="size-3.5 mt-0.5 shrink-0" />
             <p>
               {t(

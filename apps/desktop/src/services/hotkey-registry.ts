@@ -141,6 +141,75 @@ export function formatKeysForDisplay(keys: string[]): string {
     .join(" / ")
 }
 
+/**
+ * Validate a shortcut string
+ * Returns null if valid, or an error message if invalid
+ */
+export function validateShortcut(shortcut: string): string | null {
+  if (!shortcut || shortcut.trim().length === 0) {
+    return "Shortcut cannot be empty"
+  }
+
+  const parsed = parseShortcut(shortcut)
+
+  // Must have at least one modifier or be a function key
+  const hasModifier = parsed.ctrl || parsed.meta || parsed.alt || parsed.shift
+  const isFunctionKey = /^F\d+$/.test(parsed.key)
+
+  if (!hasModifier && !isFunctionKey && parsed.key.length > 1) {
+    // Single character keys without modifiers are usually not good shortcuts
+    // (except function keys)
+    return "Single character keys should be used with a modifier"
+  }
+
+  // Must have a key
+  if (!parsed.key) {
+    return "Shortcut must include a key"
+  }
+
+  return null
+}
+
+/**
+ * Check if a shortcut is a system shortcut (should not be overridden)
+ */
+export function isSystemShortcut(shortcut: string): boolean {
+  const systemShortcuts = [
+    "Ctrl+Alt+Delete",
+    "Alt+F4",
+    "Cmd+Q", // macOS quit
+    "Cmd+W", // macOS close window (but we use it for close project)
+    "F11", // Fullscreen
+  ]
+
+  const normalized = normalizeShortcut(shortcut)
+  return systemShortcuts.some((sys) => normalizeShortcut(sys) === normalized)
+}
+
+/**
+ * Get a human-readable description of a shortcut
+ */
+export function describeShortcut(shortcut: string): string {
+  const parsed = parseShortcut(shortcut)
+  const isMac = getPlatformSync() === "macos"
+  const parts: string[] = []
+
+  if (parsed.ctrl || parsed.meta) {
+    parts.push(isMac ? "Command" : "Control")
+  }
+  if (parsed.alt) {
+    parts.push(isMac ? "Option" : "Alt")
+  }
+  if (parsed.shift) {
+    parts.push("Shift")
+  }
+  if (parsed.key) {
+    parts.push(parsed.key.charAt(0).toUpperCase() + parsed.key.slice(1))
+  }
+
+  return parts.join(" + ")
+}
+
 // ============================================================================
 // REGISTRY CLASS
 // ============================================================================

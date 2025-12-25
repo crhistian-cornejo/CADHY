@@ -53,11 +53,15 @@ impl ProjectionType {
             ProjectionType::Right => ([-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]),
             ProjectionType::Left => ([1.0, 0.0, 0.0], [0.0, 0.0, 1.0]),
             ProjectionType::Isometric => {
-                // Standard isometric: looking from (1, 1, 1) direction
+                // Standard isometric: looking from (1, 1, 1) direction toward origin
+                // Direction vector: normalized (-1, -1, -1)
                 let inv_sqrt3 = 1.0 / 3.0_f64.sqrt();
+                // Up vector: projection of world Z onto view plane, then normalized
+                // The up vector (-1/√6, -1/√6, 2/√6) keeps Z pointing "up" on screen
+                let inv_sqrt6 = 1.0 / 6.0_f64.sqrt();
                 (
                     [-inv_sqrt3, -inv_sqrt3, -inv_sqrt3],
-                    [-inv_sqrt3, -inv_sqrt3, 2.0 * inv_sqrt3],
+                    [-inv_sqrt6, -inv_sqrt6, 2.0 * inv_sqrt6],
                 )
             }
             ProjectionType::Custom { direction, up } => (*direction, *up),
@@ -96,6 +100,8 @@ pub enum LineType {
     HiddenOutline,
     /// Section cut line
     SectionCut,
+    /// Center/axis line (chain line)
+    Centerline,
 }
 
 impl LineType {
@@ -107,6 +113,7 @@ impl LineType {
                 | LineType::VisibleSmooth
                 | LineType::VisibleOutline
                 | LineType::SectionCut
+                | LineType::Centerline
         )
     }
 
@@ -114,6 +121,8 @@ impl LineType {
     pub fn svg_dash_array(&self) -> Option<&'static str> {
         match self {
             LineType::HiddenSharp | LineType::HiddenSmooth | LineType::HiddenOutline => Some("4,2"),
+            // Dash-dot pattern for centerlines
+            LineType::Centerline => Some("6,2,1,2"),
             _ => None,
         }
     }
@@ -125,6 +134,7 @@ impl LineType {
             LineType::VisibleOutline => 0.7,
             LineType::HiddenSharp => 0.25,
             LineType::VisibleSmooth | LineType::HiddenSmooth | LineType::HiddenOutline => 0.35,
+            LineType::Centerline => 0.18,
         }
     }
 }
@@ -632,6 +642,7 @@ pub fn project_shape(
             3 => LineType::HiddenSmooth,
             4 => LineType::VisibleOutline,
             5 => LineType::HiddenOutline,
+            6 => LineType::Centerline,
             _ => LineType::VisibleSharp,
         };
 

@@ -138,6 +138,28 @@
   /* Tooltip colors - consistent with theme surfaces */
   --tooltip: #ffffff;                       /* white - Light tooltip bg */
   --tooltip-foreground: #171717;            /* neutral-900 - Dark tooltip text */
+
+  /* Semantic status colors */
+  --status-success: oklch(0.65 0.18 145);   /* green */
+  --status-success-bg: oklch(0.65 0.18 145 / 0.1);
+  --status-success-border: oklch(0.65 0.18 145 / 0.3);
+  --status-warning: oklch(0.75 0.15 85);    /* yellow */
+  --status-warning-bg: oklch(0.75 0.15 85 / 0.1);
+  --status-warning-border: oklch(0.75 0.15 85 / 0.3);
+  --status-error: oklch(0.55 0.2 25);       /* red */
+  --status-error-bg: oklch(0.55 0.2 25 / 0.1);
+  --status-error-border: oklch(0.55 0.2 25 / 0.3);
+  --status-info: oklch(0.6 0.15 245);       /* blue */
+  --status-info-bg: oklch(0.6 0.15 245 / 0.1);
+  --status-info-border: oklch(0.6 0.15 245 / 0.3);
+  --status-detecting: oklch(0.75 0.15 55);  /* orange */
+  --status-detecting-bg: oklch(0.75 0.15 55 / 0.1);
+  --status-detecting-border: oklch(0.75 0.15 55 / 0.3);
+
+  /* Axis colors for 3D viewport */
+  --axis-x: oklch(0.55 0.2 25);             /* red */
+  --axis-y: oklch(0.65 0.18 145);           /* green */
+  --axis-z: oklch(0.6 0.15 245);            /* blue */
 }
 
 /* ============================================
@@ -145,44 +167,66 @@
    ============================================ */
 
 .dark {
-  /* Cursor/VSCode-style dark theme using Tailwind neutral palette */
-  /* No pure blacks - comfortable neutral grays */
-  --background: #171717;                    /* neutral-900 - Base background */
-  --foreground: #e5e5e5;                    /* neutral-200 - Main text */
-  --card: #262626;                          /* neutral-800 - Card surfaces */
-  --card-foreground: #e5e5e5;               /* neutral-200 */
-  --popover: #262626;                       /* neutral-800 - Popover bg */
-  --popover-foreground: #e5e5e5;            /* neutral-200 */
+  /* Cursor/VSCode-style dark theme - matching Cursor editor colors */
+  /* Based on VS Code Dark+ theme colors */
+  --background: #1e1e1e;                    /* Cursor/VSCode main background */
+  --foreground: #d4d4d4;                    /* Cursor/VSCode main text color */
+  --card: #252526;                          /* Cursor/VSCode panel background */
+  --card-foreground: #d4d4d4;               /* Panel text */
+  --popover: #252526;                       /* Popover matches panel */
+  --popover-foreground: #d4d4d4;            /* Popover text */
   --primary: oklch(0.42 0.18 266);          /* Violet accent */
   --primary-foreground: #fafafa;            /* neutral-50 */
-  --secondary: #262626;                     /* neutral-800 - Secondary surfaces */
-  --secondary-foreground: #e5e5e5;          /* neutral-200 */
-  --muted: #262626;                         /* neutral-800 - Muted backgrounds */
-  --muted-foreground: #a3a3a3;              /* neutral-400 - Muted text */
-  --accent: #404040;                        /* neutral-700 - Accent/hover surfaces */
-  --accent-foreground: #e5e5e5;             /* neutral-200 */
+  --secondary: #252526;                     /* Secondary surfaces match panels */
+  --secondary-foreground: #d4d4d4;          /* Secondary text */
+  --muted: #2d2d30;                         /* Cursor/VSCode muted background */
+  --muted-foreground: #858585;              /* Cursor/VSCode muted text */
+  --accent: #3e3e42;                        /* Cursor/VSCode accent/hover */
+  --accent-foreground: #d4d4d4;             /* Accent text */
   --destructive: #ef4444;                   /* red-500 */
-  --border: #404040;                        /* neutral-700 - Visible borders */
-  --input: #262626;                         /* neutral-800 - Input backgrounds */
-  --ring: #a3a3a3;                          /* neutral-400 */
+  --border: #3e3e42;                        /* Cursor/VSCode border color */
+  --input: #252526;                         /* Input backgrounds match panels */
+  --ring: #858585;                          /* Ring color */
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: #171717;                       /* neutral-900 - Sidebar bg */
-  --sidebar-foreground: #e5e5e5;            /* neutral-200 */
+  --sidebar: #1e1e1e;                       /* Sidebar matches main background */
+  --sidebar-foreground: #d4d4d4;            /* Sidebar text */
   --sidebar-primary: oklch(0.623 0.214 259.815);
   --sidebar-primary-foreground: #fafafa;    /* neutral-50 */
-  --sidebar-accent: #404040;                /* neutral-700 */
-  --sidebar-accent-foreground: #e5e5e5;     /* neutral-200 */
-  --sidebar-border: #404040;                /* neutral-700 - Solid borders */
-  --sidebar-ring: #a3a3a3;                  /* neutral-400 */
+  --sidebar-accent: #3e3e42;                /* Sidebar accent */
+  --sidebar-accent-foreground: #d4d4d4;     /* Sidebar accent text */
+  --sidebar-border: #3e3e42;                /* Sidebar borders */
+  --sidebar-ring: #858585;                  /* Sidebar ring */
   /* Custom toolbar background */
-  --toolbar-bg: #262626;                    /* neutral-800 - Elevated toolbar */
-  /* Tooltip colors - consistent with dark theme */
-  --tooltip: #404040;                       /* neutral-700 - Dark tooltip bg */
-  --tooltip-foreground: #e5e5e5;            /* neutral-200 - Light tooltip text */
+  --toolbar-bg: #252526;                    /* Toolbar matches panel background */
+  /* Tooltip colors - Cursor/VSCode style */
+  --tooltip: #3e3e42;                       /* Cursor/VSCode tooltip background */
+  --tooltip-foreground: #d4d4d4;            /* Cursor/VSCode tooltip text */
+
+  /* Semantic status colors - Dark mode (slightly brighter) */
+  --status-success: oklch(0.7 0.18 145);
+  --status-success-bg: oklch(0.7 0.18 145 / 0.15);
+  --status-success-border: oklch(0.7 0.18 145 / 0.35);
+  --status-warning: oklch(0.8 0.15 85);
+  --status-warning-bg: oklch(0.8 0.15 85 / 0.15);
+  --status-warning-border: oklch(0.8 0.15 85 / 0.35);
+  --status-error: oklch(0.6 0.2 25);
+  --status-error-bg: oklch(0.6 0.2 25 / 0.15);
+  --status-error-border: oklch(0.6 0.2 25 / 0.35);
+  --status-info: oklch(0.65 0.15 245);
+  --status-info-bg: oklch(0.65 0.15 245 / 0.15);
+  --status-info-border: oklch(0.65 0.15 245 / 0.35);
+  --status-detecting: oklch(0.8 0.15 55);
+  --status-detecting-bg: oklch(0.8 0.15 55 / 0.15);
+  --status-detecting-border: oklch(0.8 0.15 55 / 0.35);
+
+  /* Axis colors - Dark mode */
+  --axis-x: oklch(0.6 0.2 25);
+  --axis-y: oklch(0.7 0.18 145);
+  --axis-z: oklch(0.65 0.15 245);
 }
 
 /* ============================================
@@ -233,6 +277,28 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Semantic status colors for Tailwind */
+  --color-status-success: var(--status-success);
+  --color-status-success-bg: var(--status-success-bg);
+  --color-status-success-border: var(--status-success-border);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-bg: var(--status-warning-bg);
+  --color-status-warning-border: var(--status-warning-border);
+  --color-status-error: var(--status-error);
+  --color-status-error-bg: var(--status-error-bg);
+  --color-status-error-border: var(--status-error-border);
+  --color-status-info: var(--status-info);
+  --color-status-info-bg: var(--status-info-bg);
+  --color-status-info-border: var(--status-info-border);
+  --color-status-detecting: var(--status-detecting);
+  --color-status-detecting-bg: var(--status-detecting-bg);
+  --color-status-detecting-border: var(--status-detecting-border);
+
+  /* Axis colors for 3D viewport */
+  --color-axis-x: var(--axis-x);
+  --color-axis-y: var(--axis-y);
+  --color-axis-z: var(--axis-z);
 
   /* Accordion animations from shadcn */
   @keyframes accordion-down {

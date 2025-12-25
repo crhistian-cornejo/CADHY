@@ -236,10 +236,8 @@ export function DebugStatsPanel() {
       {perfStats.fps < 30 && (
         <>
           <Separator />
-          <div className="rounded-2xl bg-yellow-500/10 border border-yellow-500/20 p-3">
-            <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium mb-1">
-              ⚠ Low FPS Detected
-            </p>
+          <div className="rounded-2xl bg-status-warning-bg border border-status-warning-border p-3">
+            <p className="text-xs text-status-warning font-medium mb-1">⚠ Low FPS Detected</p>
             <p className="text-xs text-muted-foreground">
               Consider enabling LOD or reducing scene complexity
             </p>
@@ -250,10 +248,8 @@ export function DebugStatsPanel() {
       {perfStats.drawCalls > 100 && (
         <>
           <Separator />
-          <div className="rounded-2xl bg-orange-500/10 border border-orange-500/20 p-3">
-            <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mb-1">
-              ⚠ High Draw Calls
-            </p>
+          <div className="rounded-2xl bg-status-detecting-bg border border-status-detecting-border p-3">
+            <p className="text-xs text-status-detecting font-medium mb-1">⚠ High Draw Calls</p>
             <p className="text-xs text-muted-foreground">
               Consider using geometry instancing for repeated objects
             </p>
@@ -264,8 +260,8 @@ export function DebugStatsPanel() {
       {perfStats.fps >= 55 && perfStats.drawCalls < 50 && (
         <>
           <Separator />
-          <div className="rounded-2xl bg-green-500/10 border border-green-500/20 p-3">
-            <p className="text-xs text-green-600 dark:text-green-400">✓ Excellent performance</p>
+          <div className="rounded-2xl bg-status-success-bg border border-status-success-border p-3">
+            <p className="text-xs text-status-success">✓ Excellent performance</p>
           </div>
         </>
       )}

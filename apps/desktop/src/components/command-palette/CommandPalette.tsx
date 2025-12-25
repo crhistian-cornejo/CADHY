@@ -27,6 +27,7 @@ import {
   CommandShortcut,
   Kbd,
   KbdGroup,
+  toast,
 } from "@cadhy/ui"
 import {
   AiGenerativeIcon,
@@ -66,8 +67,10 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import * as React from "react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useCAD } from "@/hooks/use-cad"
+import { shapeIdMap, useCAD } from "@/hooks/use-cad"
 import { usePlatform } from "@/hooks/use-platform"
+import * as cadService from "@/services/cad-service"
+import { exportScene, hasExportableObjects } from "@/services/export-service"
 import { useLayoutStore } from "@/stores/layout-store"
 import { useModellerStore } from "@/stores/modeller"
 import { useNavigationStore } from "@/stores/navigation-store"
@@ -166,7 +169,7 @@ const modellerActions = {
     useModellerStore.getState().setTransformMode(mode),
   setViewportSettings: (settings: Record<string, unknown>) =>
     useModellerStore.getState().setViewportSettings(settings),
-  setSnapMode: (mode: "none" | "grid" | "object" | "vertex") =>
+  setSnapMode: (mode: "none" | "grid" | "vertex" | "edge" | "face" | "center") =>
     useModellerStore.getState().setSnapMode(mode),
   setCameraView: (view: "perspective" | "top" | "front" | "right" | "back" | "left" | "bottom") =>
     useModellerStore.getState().setCameraView(view),
@@ -201,6 +204,9 @@ export function CommandPalette({
   const selectedIds = useModellerStore((s) => s.selectedIds)
   const viewportSettings = useModellerStore((s) => s.viewportSettings)
   const snapMode = useModellerStore((s) => s.snapMode)
+  const openCreatePanel = useModellerStore((s) => s.openCreatePanel)
+  const openTransitionCreator = useModellerStore((s) => s.openTransitionCreator)
+  const openChuteCreator = useModellerStore((s) => s.openChuteCreator)
 
   // Theme store
   const theme = useThemeStore((s) => s.theme)
@@ -308,13 +314,28 @@ export function CommandPalette({
       {
         id: "file.export",
         label: t("shortcuts.export"),
-        description: "Export model to file",
+        description: "Export model to file (STL/OBJ)",
         icon: Download04Icon,
         shortcut: `${modKey}E`,
         category: "file",
-        keywords: ["export", "download", "stl", "obj"],
-        disabled: true, // TODO: Enable when export is implemented
-        action: closeAndRun(() => {}, "file.export"),
+        keywords: ["export", "download", "stl", "obj", "mesh"],
+        disabled: !hasExportableObjects(objects),
+        action: closeAndRun(async () => {
+          if (!hasExportableObjects(objects)) {
+            toast.error("No exportable objects in scene")
+            return
+          }
+          try {
+            const result = await exportScene(objects, "stl")
+            if (result.success && result.filePath) {
+              toast.success(`Exported to ${result.filePath}`)
+            } else {
+              toast.error(result.error || "Export failed")
+            }
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Export failed")
+          }
+        }, "file.export"),
       },
       {
         id: "file.close",
@@ -369,7 +390,9 @@ export function CommandPalette({
         category: "edit",
         keywords: ["duplicate", "copy", "clone"],
         disabled: selectedIds.length === 0,
-        action: closeAndRun(() => modellerActions.duplicateSelected(), "edit.duplicate"),
+        action: closeAndRun(() => {
+          modellerActions.duplicateSelected()
+        }, "edit.duplicate"),
       },
       {
         id: "edit.selectAll",
@@ -693,6 +716,367 @@ export function CommandPalette({
         action: closeAndRun(() => setTheme("system"), "theme.system"),
       },
 
+      // ===== CREATE OBJECTS =====
+      {
+        id: "create.channel",
+        label: "Create Channel",
+        description: "Create a hydraulic channel",
+        icon: WaveIcon,
+        category: "tools",
+        keywords: ["channel", "hydraulic", "create", "flow", "canal"],
+        action: closeAndRun(() => {
+          setView("modeller")
+          openCreatePanel()
+          setPanel("sidebar", true)
+        }, "create.channel"),
+      },
+      {
+        id: "create.transition",
+        label: "Create Transition",
+        description: "Create a transition between channels",
+        icon: WaveIcon,
+        category: "tools",
+        keywords: ["transition", "connect", "hydraulic", "create"],
+        action: closeAndRun(() => {
+          setView("modeller")
+          openTransitionCreator()
+          setPanel("sidebar", true)
+        }, "create.transition"),
+      },
+      {
+        id: "create.chute",
+        label: "Create Chute",
+        description: "Create a high-slope chute channel",
+        icon: WaveIcon,
+        category: "tools",
+        keywords: ["chute", "slope", "hydraulic", "create"],
+        action: closeAndRun(() => {
+          setView("modeller")
+          openChuteCreator()
+          setPanel("sidebar", true)
+        }, "create.chute"),
+      },
+      {
+        id: "create.box",
+        label: "Create Box",
+        description: "Create a box primitive (1m cube)",
+        icon: CubeIcon,
+        category: "tools",
+        keywords: ["box", "cube", "primitive", "shape", "create"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          await createBoxShape({ width: 1, depth: 1, height: 1, name: "Box" })
+        }, "create.box"),
+      },
+      {
+        id: "create.cylinder",
+        label: "Create Cylinder",
+        description: "Create a cylinder (r=0.5m, h=1m)",
+        icon: CircleIcon,
+        category: "tools",
+        keywords: ["cylinder", "primitive", "shape", "pipe", "create"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          await createCylinderShape({ radius: 0.5, height: 1, name: "Cylinder" })
+        }, "create.cylinder"),
+      },
+      {
+        id: "create.sphere",
+        label: "Create Sphere",
+        description: "Create a sphere (r=0.5m)",
+        icon: CircleIcon,
+        category: "tools",
+        keywords: ["sphere", "ball", "primitive", "shape", "create"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          await createSphereShape({ radius: 0.5, name: "Sphere" })
+        }, "create.sphere"),
+      },
+      {
+        id: "create.cone",
+        label: "Create Cone",
+        description: "Create a cone (r=0.5m, h=1m)",
+        icon: CubeIcon,
+        category: "tools",
+        keywords: ["cone", "primitive", "shape", "create"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          await createConeShape({ baseRadius: 0.5, height: 1, name: "Cone" })
+        }, "create.cone"),
+      },
+      {
+        id: "create.torus",
+        label: "Create Torus",
+        description: "Create a torus (donut shape)",
+        icon: CircleIcon,
+        category: "tools",
+        keywords: ["torus", "donut", "ring", "primitive", "shape", "create"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          await createTorusShape({ majorRadius: 0.5, minorRadius: 0.15, name: "Torus" })
+        }, "create.torus"),
+      },
+      {
+        id: "create.wedge",
+        label: "Create Wedge",
+        description: "Create a wedge (tapered box)",
+        icon: CubeIcon,
+        category: "tools",
+        keywords: ["wedge", "tapered", "primitive", "shape", "create"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          try {
+            const result = await cadService.createWedge(1, 1, 1, 0.5)
+            if (!result?.id) {
+              toast.error("Failed to create wedge: No shape ID returned")
+              return
+            }
+            const meshData = await cadService.tessellate(result.id, 0.1)
+            const addObject = useModellerStore.getState().addObject
+            const select = useModellerStore.getState().select
+
+            const shapeObject: Omit<
+              import("@/stores/modeller").ShapeObject,
+              "id" | "createdAt" | "updatedAt"
+            > = {
+              type: "shape",
+              name: "Wedge",
+              layerId: "default",
+              visible: true,
+              locked: false,
+              selected: false,
+              shapeType: "box",
+              parameters: { dx: 1, dy: 1, dz: 1, ltx: 0.5 },
+              mesh: {
+                vertices: new Float32Array(meshData.vertices),
+                indices: new Uint32Array(meshData.indices),
+                normals: meshData.normals
+                  ? new Float32Array(meshData.normals)
+                  : new Float32Array(0),
+              },
+              material: {
+                color: "#10b981",
+                opacity: 1,
+                metalness: 0.1,
+                roughness: 0.6,
+              },
+              transform: {
+                position: { x: 0, y: 0.5, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              metadata: {
+                backendShapeId: result.id,
+                analysis: result.analysis,
+              },
+            }
+
+            const sceneId = addObject(shapeObject)
+            shapeIdMap.set(sceneId, result.id)
+            select(sceneId)
+          } catch (error) {
+            toast.error(
+              `Failed to create wedge: ${error instanceof Error ? error.message : String(error)}`
+            )
+          }
+        }, "create.wedge"),
+      },
+      {
+        id: "create.helix",
+        label: "Create Helix",
+        description: "Create a helix (spiral wire)",
+        icon: CircleIcon,
+        category: "tools",
+        keywords: ["helix", "spiral", "spring", "primitive", "shape", "create"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          try {
+            const result = await cadService.createHelix(0.5, 0.3, 2, true)
+            if (!result?.id) {
+              toast.error("Failed to create helix: No shape ID returned")
+              return
+            }
+            const meshData = await cadService.tessellate(result.id, 0.1)
+            const addObject = useModellerStore.getState().addObject
+            const select = useModellerStore.getState().select
+
+            const shapeObject: Omit<
+              import("@/stores/modeller").ShapeObject,
+              "id" | "createdAt" | "updatedAt"
+            > = {
+              type: "shape",
+              name: "Helix",
+              layerId: "default",
+              visible: true,
+              locked: false,
+              selected: false,
+              shapeType: "helix",
+              parameters: { radius: 0.5, pitch: 0.3, height: 2, clockwise: 1 },
+              mesh: {
+                vertices: new Float32Array(meshData.vertices),
+                indices: new Uint32Array(meshData.indices),
+                normals: meshData.normals
+                  ? new Float32Array(meshData.normals)
+                  : new Float32Array(0),
+              },
+              material: {
+                color: "#f59e0b",
+                opacity: 1,
+                metalness: 0.3,
+                roughness: 0.4,
+              },
+              transform: {
+                position: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              metadata: {
+                backendShapeId: result.id,
+                analysis: result.analysis,
+              },
+            }
+
+            const sceneId = addObject(shapeObject)
+            shapeIdMap.set(sceneId, result.id)
+            select(sceneId)
+          } catch (error) {
+            toast.error(
+              `Failed to create helix: ${error instanceof Error ? error.message : String(error)}`
+            )
+          }
+        }, "create.helix"),
+      },
+      {
+        id: "create.pyramid",
+        label: "Create Pyramid",
+        description: "Create a pyramid (square base)",
+        icon: CubeIcon,
+        category: "tools",
+        keywords: ["pyramid", "primitive", "shape", "create"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          try {
+            const result = await cadService.createPyramid(1, 1, 1.5, 0, 0, 0, 0, 0, 1)
+            if (!result?.id) {
+              toast.error("Failed to create pyramid: No shape ID returned")
+              return
+            }
+            const meshData = await cadService.tessellate(result.id, 0.1)
+            const addObject = useModellerStore.getState().addObject
+            const select = useModellerStore.getState().select
+
+            const shapeObject: Omit<
+              import("@/stores/modeller").ShapeObject,
+              "id" | "createdAt" | "updatedAt"
+            > = {
+              type: "shape",
+              name: "Pyramid",
+              layerId: "default",
+              visible: true,
+              locked: false,
+              selected: false,
+              shapeType: "box",
+              parameters: { x: 1, y: 1, z: 1.5 },
+              mesh: {
+                vertices: new Float32Array(meshData.vertices),
+                indices: new Uint32Array(meshData.indices),
+                normals: meshData.normals
+                  ? new Float32Array(meshData.normals)
+                  : new Float32Array(0),
+              },
+              material: {
+                color: "#ef4444",
+                opacity: 1,
+                metalness: 0.1,
+                roughness: 0.6,
+              },
+              transform: {
+                position: { x: 0, y: 0.5, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              metadata: {
+                backendShapeId: result.id,
+                analysis: result.analysis,
+              },
+            }
+
+            const sceneId = addObject(shapeObject)
+            shapeIdMap.set(sceneId, result.id)
+            select(sceneId)
+          } catch (error) {
+            toast.error(
+              `Failed to create pyramid: ${error instanceof Error ? error.message : String(error)}`
+            )
+          }
+        }, "create.pyramid"),
+      },
+      {
+        id: "create.ellipsoid",
+        label: "Create Ellipsoid",
+        description: "Create an ellipsoid (3D ellipse)",
+        icon: CircleIcon,
+        category: "tools",
+        keywords: ["ellipsoid", "ellipse", "oval", "primitive", "shape", "create"],
+        action: closeAndRun(async () => {
+          setView("modeller")
+          try {
+            const result = await cadService.createEllipsoid(0, 0, 0, 0.5, 0.3, 0.4)
+            if (!result?.id) {
+              toast.error("Failed to create ellipsoid: No shape ID returned")
+              return
+            }
+            const meshData = await cadService.tessellate(result.id, 0.1)
+            const addObject = useModellerStore.getState().addObject
+            const select = useModellerStore.getState().select
+
+            const shapeObject: Omit<
+              import("@/stores/modeller").ShapeObject,
+              "id" | "createdAt" | "updatedAt"
+            > = {
+              type: "shape",
+              name: "Ellipsoid",
+              layerId: "default",
+              visible: true,
+              locked: false,
+              selected: false,
+              shapeType: "sphere",
+              parameters: { rx: 0.5, ry: 0.3, rz: 0.4 },
+              mesh: {
+                vertices: new Float32Array(meshData.vertices),
+                indices: new Uint32Array(meshData.indices),
+                normals: meshData.normals
+                  ? new Float32Array(meshData.normals)
+                  : new Float32Array(0),
+              },
+              material: {
+                color: "#8b5cf6",
+                opacity: 1,
+                metalness: 0.2,
+                roughness: 0.4,
+              },
+              transform: {
+                position: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+              },
+              metadata: {
+                backendShapeId: result.id,
+                analysis: result.analysis,
+              },
+            }
+
+            const sceneId = addObject(shapeObject)
+            shapeIdMap.set(sceneId, result.id)
+            select(sceneId)
+          } catch (error) {
+            toast.error(
+              `Failed to create ellipsoid: ${error instanceof Error ? error.message : String(error)}`
+            )
+          }
+        }, "create.ellipsoid"),
+      },
+
       // ===== TOOLS =====
       {
         id: "tools.settings",
@@ -702,7 +1086,11 @@ export function CommandPalette({
         shortcut: `${modKey},`,
         category: "tools",
         keywords: ["settings", "preferences", "options", "config"],
-        action: closeAndRun(() => onOpenSettings?.(), "tools.settings"),
+        action: closeAndRun(() => {
+          if (onOpenSettings) {
+            onOpenSettings()
+          }
+        }, "tools.settings"),
       },
 
       // ===== HELP =====
@@ -737,97 +1125,19 @@ export function CommandPalette({
       onOpenSettings,
       onOpenShortcuts,
       closeProject,
+      objects,
+      openCreatePanel,
+      openTransitionCreator,
+      openChuteCreator,
     ]
   )
 
   // ========== CREATE COMMANDS (> mode) ==========
-
-  const createCommands: CommandItemDef[] = useMemo(
-    () => [
-      {
-        id: "create.channel",
-        label: "Channel",
-        description: "Create a hydraulic channel",
-        icon: WaveIcon,
-        category: "tools",
-        keywords: ["channel", "hydraulic", "create", "flow"],
-        action: closeAndRun(() => {
-          setView("modeller")
-          setPanel("sidebar", true)
-        }, "create.channel"),
-      },
-      {
-        id: "create.box",
-        label: "Box",
-        description: "Create a box primitive (1m cube)",
-        icon: CubeIcon,
-        category: "tools",
-        keywords: ["box", "cube", "primitive", "shape"],
-        action: closeAndRun(async () => {
-          setView("modeller")
-          await createBoxShape({ width: 1, depth: 1, height: 1, name: "Box" })
-        }, "create.box"),
-      },
-      {
-        id: "create.cylinder",
-        label: "Cylinder",
-        description: "Create a cylinder (r=0.5m, h=1m)",
-        icon: CircleIcon,
-        category: "tools",
-        keywords: ["cylinder", "primitive", "shape", "pipe"],
-        action: closeAndRun(async () => {
-          setView("modeller")
-          await createCylinderShape({ radius: 0.5, height: 1, name: "Cylinder" })
-        }, "create.cylinder"),
-      },
-      {
-        id: "create.sphere",
-        label: "Sphere",
-        description: "Create a sphere (r=0.5m)",
-        icon: CircleIcon,
-        category: "tools",
-        keywords: ["sphere", "ball", "primitive", "shape"],
-        action: closeAndRun(async () => {
-          setView("modeller")
-          await createSphereShape({ radius: 0.5, name: "Sphere" })
-        }, "create.sphere"),
-      },
-      {
-        id: "create.cone",
-        label: "Cone",
-        description: "Create a cone (r=0.5m, h=1m)",
-        icon: CubeIcon,
-        category: "tools",
-        keywords: ["cone", "primitive", "shape"],
-        action: closeAndRun(async () => {
-          setView("modeller")
-          await createConeShape({ radius: 0.5, height: 1, name: "Cone" })
-        }, "create.cone"),
-      },
-      {
-        id: "create.torus",
-        label: "Torus",
-        description: "Create a torus (donut shape)",
-        icon: CircleIcon,
-        category: "tools",
-        keywords: ["torus", "donut", "ring", "primitive", "shape"],
-        action: closeAndRun(async () => {
-          setView("modeller")
-          await createTorusShape({ majorRadius: 0.5, minorRadius: 0.15, name: "Torus" })
-        }, "create.torus"),
-      },
-    ],
-    [
-      closeAndRun,
-      setView,
-      setPanel,
-      createBoxShape,
-      createCylinderShape,
-      createSphereShape,
-      createConeShape,
-      createTorusShape,
-    ]
-  )
+  // These are the same commands as in the main commands array, but filtered for create mode
+  const createCommands: CommandItemDef[] = useMemo(() => {
+    // Filter main commands to only show creation commands
+    return commands.filter((cmd) => cmd.id.startsWith("create."))
+  }, [commands])
 
   // ========== GO TO COMMANDS (# mode) ==========
 
@@ -966,9 +1276,9 @@ export function CommandPalette({
     <CommandDialog onOpenChange={onOpenChange} open={open}>
       <CommandDialogPopup>
         <Command
-          filter={filterItems}
+          filter={(item, query) => filterItems(item as CommandItemDef, query)}
           items={groupedCommands}
-          itemToStringValue={(item: CommandItemDef) => item.label}
+          itemToStringValue={(item) => (item as CommandItemDef).label}
           onValueChange={setSearch}
           value={search}
         >

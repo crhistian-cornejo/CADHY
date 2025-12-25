@@ -118,7 +118,7 @@ pub mod ffi {
         pub start_y: f64,
         pub end_x: f64,
         pub end_y: f64,
-        pub line_type: i32, // 0=VisibleSharp, 1=HiddenSharp, 2=VisibleSmooth, 3=HiddenSmooth, 4=VisibleOutline, 5=HiddenOutline
+        pub line_type: i32, // 0=VisibleSharp, 1=HiddenSharp, 2=VisibleSmooth, 3=HiddenSmooth, 4=VisibleOutline, 5=HiddenOutline, 6=Centerline
     }
 
     /// HLR projection result
@@ -334,7 +334,7 @@ pub mod ffi {
         pub curve_type: i32,
         /// Start vertex index
         pub start_vertex: u32,
-        /// End vertex index  
+        /// End vertex index
         pub end_vertex: u32,
         /// Edge length
         pub length: f64,

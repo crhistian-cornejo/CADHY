@@ -113,6 +113,12 @@ pub struct SceneData {
     pub camera_position: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub camera_target: Option<serde_json::Value>,
+    /// History entries for undo/redo - persisted with project
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub history: Option<serde_json::Value>,
+    /// Current position in history - persisted with project
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub history_index: Option<i32>,
 }
 
 /// Project data file - stored in project.json (heavier data)
@@ -123,6 +129,9 @@ pub struct ProjectData {
     pub scene: SceneData,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub results: Option<serde_json::Value>,
+    /// Technical drawings (planos técnicos)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub drawings: Option<serde_json::Value>,
 }
 
 /// Legacy single-file format for migration (v1)
@@ -152,6 +161,9 @@ pub struct ProjectFullData {
     pub info: ProjectInfo,
     pub settings: ProjectSettings,
     pub scene: SceneData,
+    /// Technical drawings (planos técnicos)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub drawings: Option<serde_json::Value>,
 }
 
 /// Create a new project (folder-based .cadhy format)
@@ -200,6 +212,7 @@ pub async fn create_project(
         settings: project_settings,
         scene,
         results: None,
+        drawings: None, // No drawings for new project
     };
 
     let project_path = cadhy_folder.join(paths::PROJECT);
@@ -320,6 +333,7 @@ fn open_folder_project(cadhy_folder: &Path) -> Result<ProjectFullData, String> {
         },
         settings: project_data.settings,
         scene: project_data.scene,
+        drawings: project_data.drawings,
     })
 }
 
@@ -350,6 +364,7 @@ fn open_legacy_project(file_path: &Path) -> Result<ProjectFullData, String> {
         },
         settings: legacy.settings,
         scene: legacy.scene,
+        drawings: None, // Legacy projects don't have drawings
     })
 }
 
@@ -372,27 +387,32 @@ fn is_valid_cadhy_folder(path: &Path) -> bool {
     path.join(paths::MANIFEST).exists()
 }
 
-/// Save project with scene data
+/// Save project with scene data and drawings
 /// Supports both folder-based (v2) and legacy file-based (v1) formats
 #[tauri::command]
 pub async fn save_project(
     path: String,
     scene: SceneData,
+    drawings: Option<serde_json::Value>,
     _state: State<'_, AppState>,
 ) -> Result<ProjectInfo, String> {
     let project_path = PathBuf::from(&path);
 
     if project_path.is_dir() {
         // v2 folder-based format
-        save_folder_project(&project_path, scene)
+        save_folder_project(&project_path, scene, drawings)
     } else {
-        // v1 legacy file format
+        // v1 legacy file format (doesn't support drawings)
         save_legacy_project(&project_path, scene)
     }
 }
 
 /// Save to folder-based .cadhy project (v2 format)
-fn save_folder_project(cadhy_folder: &Path, scene: SceneData) -> Result<ProjectInfo, String> {
+fn save_folder_project(
+    cadhy_folder: &Path,
+    scene: SceneData,
+    drawings: Option<serde_json::Value>,
+) -> Result<ProjectInfo, String> {
     let now = chrono::Utc::now().to_rfc3339();
 
     // Read and update manifest
@@ -421,6 +441,7 @@ fn save_folder_project(cadhy_folder: &Path, scene: SceneData) -> Result<ProjectI
         .map_err(|e| format!("Failed to parse project data: {}", e))?;
 
     project_data.scene = scene;
+    project_data.drawings = drawings;
 
     // Write project data (atomic)
     let temp_project = cadhy_folder.join("project.json.tmp");
@@ -480,13 +501,14 @@ pub async fn save_project_as(
     new_path: String,
     new_name: String,
     scene: SceneData,
+    drawings: Option<serde_json::Value>,
     _state: State<'_, AppState>,
 ) -> Result<ProjectInfo, String> {
     let old_project_path = PathBuf::from(&old_path);
     let new_cadhy_folder = PathBuf::from(&new_path);
 
     // Read existing project data (from either format)
-    let (old_manifest, old_project_data) = if old_project_path.is_dir() {
+    let (old_manifest, _old_project_data) = if old_project_path.is_dir() {
         // v2 folder format
         let manifest_path = old_project_path.join(paths::MANIFEST);
         let manifest_content = fs::read_to_string(&manifest_path)
@@ -523,6 +545,7 @@ pub async fn save_project_as(
             settings: legacy.settings,
             scene: legacy.scene,
             results: legacy.results,
+            drawings: None, // Legacy projects don't have drawings
         };
 
         (manifest, project_data)
@@ -555,11 +578,12 @@ pub async fn save_project_as(
     fs::write(&manifest_path, manifest_json)
         .map_err(|e| format!("Failed to write manifest: {}", e))?;
 
-    // Create new project data with updated scene
+    // Create new project data with updated scene and drawings
     let new_project_data = ProjectData {
-        settings: old_project_data.settings,
+        settings: _old_project_data.settings,
         scene,
-        results: old_project_data.results,
+        results: _old_project_data.results,
+        drawings,
     };
 
     let project_path = new_cadhy_folder.join(paths::PROJECT);

@@ -70,6 +70,15 @@ pub fn get_shape_from_registry(id: &str) -> Result<Shape, String> {
     get_shape(id)
 }
 
+/// Check if a shape exists in the registry
+pub fn shape_exists_in_registry(id: &str) -> bool {
+    if let Ok(registry) = get_registry().lock() {
+        registry.contains_key(id)
+    } else {
+        false
+    }
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -122,11 +131,11 @@ pub struct BoundingBoxResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CadMeshResult {
     /// Vertices as flat array [x1, y1, z1, x2, y2, z2, ...]
-    pub vertices: Vec<f64>,
+    pub vertices: Vec<f32>,
     /// Triangle indices as flat array [i1, i2, i3, ...]
     pub indices: Vec<u32>,
     /// Normals as flat array (if available)
-    pub normals: Option<Vec<f64>>,
+    pub normals: Option<Vec<f32>>,
     /// Number of vertices
     pub vertex_count: usize,
     /// Number of triangles
@@ -196,6 +205,16 @@ pub struct TopologyDataResult {
 }
 
 // =============================================================================
+// UTILITY COMMANDS
+// =============================================================================
+
+/// Check if a shape exists in the registry
+#[tauri::command(rename_all = "camelCase")]
+pub fn cad_shape_exists(shape_id: String) -> bool {
+    shape_exists_in_registry(&shape_id)
+}
+
+// =============================================================================
 // PRIMITIVE COMMANDS
 // =============================================================================
 
@@ -247,7 +266,7 @@ pub fn cad_create_cylinder(radius: f64, height: f64) -> Result<ShapeResult, Stri
 }
 
 /// Create a cylinder at a specific position with custom axis
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_create_cylinder_at(
     x: f64,
     y: f64,
@@ -296,7 +315,7 @@ pub fn cad_create_sphere_at(x: f64, y: f64, z: f64, radius: f64) -> Result<Shape
 }
 
 /// Create a cone or truncated cone
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_create_cone(
     base_radius: f64,
     top_radius: f64,
@@ -314,7 +333,7 @@ pub fn cad_create_cone(
 }
 
 /// Create a torus (donut shape)
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_create_torus(major_radius: f64, minor_radius: f64) -> Result<ShapeResult, String> {
     let shape = Primitives::make_torus(major_radius, minor_radius).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
@@ -340,7 +359,7 @@ pub fn cad_create_wedge(dx: f64, dy: f64, dz: f64, ltx: f64) -> Result<ShapeResu
 }
 
 /// Create a helix (spiral wire)
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_create_helix(
     radius: f64,
     pitch: f64,
@@ -363,7 +382,7 @@ pub fn cad_create_helix(
 // =============================================================================
 
 /// Boolean union (fuse) of two shapes
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_boolean_fuse(shape1_id: String, shape2_id: String) -> Result<ShapeResult, String> {
     let shape1 = get_shape(&shape1_id)?;
     let shape2 = get_shape(&shape2_id)?;
@@ -379,7 +398,7 @@ pub fn cad_boolean_fuse(shape1_id: String, shape2_id: String) -> Result<ShapeRes
 }
 
 /// Boolean difference (cut) - subtract shape2 from shape1
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_boolean_cut(shape1_id: String, shape2_id: String) -> Result<ShapeResult, String> {
     let shape1 = get_shape(&shape1_id)?;
     let shape2 = get_shape(&shape2_id)?;
@@ -395,7 +414,7 @@ pub fn cad_boolean_cut(shape1_id: String, shape2_id: String) -> Result<ShapeResu
 }
 
 /// Boolean intersection (common) of two shapes
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_boolean_common(shape1_id: String, shape2_id: String) -> Result<ShapeResult, String> {
     let shape1 = get_shape(&shape1_id)?;
     let shape2 = get_shape(&shape2_id)?;
@@ -415,7 +434,7 @@ pub fn cad_boolean_common(shape1_id: String, shape2_id: String) -> Result<ShapeR
 // =============================================================================
 
 /// Apply fillet to all edges of a shape
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_fillet(shape_id: String, radius: f64) -> Result<ShapeResult, String> {
     let shape = get_shape(&shape_id)?;
 
@@ -430,7 +449,7 @@ pub fn cad_fillet(shape_id: String, radius: f64) -> Result<ShapeResult, String> 
 }
 
 /// Apply chamfer to all edges of a shape
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_chamfer(shape_id: String, distance: f64) -> Result<ShapeResult, String> {
     let shape = get_shape(&shape_id)?;
 
@@ -445,7 +464,7 @@ pub fn cad_chamfer(shape_id: String, distance: f64) -> Result<ShapeResult, Strin
 }
 
 /// Apply fillet to specific edges (RECOMMENDED - more reliable than filleting all edges)
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_fillet_edges(
     shape_id: String,
     edge_indices: Vec<i32>,
@@ -465,7 +484,7 @@ pub fn cad_fillet_edges(
 }
 
 /// Apply chamfer to specific edges
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_chamfer_edges(
     shape_id: String,
     edge_indices: Vec<i32>,
@@ -485,7 +504,7 @@ pub fn cad_chamfer_edges(
 }
 
 /// Create a shell (hollow solid) from a shape
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_shell(shape_id: String, thickness: f64) -> Result<ShapeResult, String> {
     let shape = get_shape(&shape_id)?;
 
@@ -504,7 +523,7 @@ pub fn cad_shell(shape_id: String, thickness: f64) -> Result<ShapeResult, String
 // =============================================================================
 
 /// Translate a shape by a vector
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_translate(shape_id: String, dx: f64, dy: f64, dz: f64) -> Result<ShapeResult, String> {
     let shape = get_shape(&shape_id)?;
 
@@ -519,7 +538,7 @@ pub fn cad_translate(shape_id: String, dx: f64, dy: f64, dz: f64) -> Result<Shap
 }
 
 /// Rotate a shape around an axis
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_rotate(
     shape_id: String,
     origin_x: f64,
@@ -553,7 +572,7 @@ pub fn cad_rotate(
 }
 
 /// Scale a shape uniformly from a center point
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_scale(
     shape_id: String,
     center_x: f64,
@@ -575,7 +594,7 @@ pub fn cad_scale(
 }
 
 /// Mirror a shape across a plane
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_mirror(
     shape_id: String,
     origin_x: f64,
@@ -605,7 +624,7 @@ pub fn cad_mirror(
 // =============================================================================
 
 /// Extrude a profile shape along a direction
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_extrude(shape_id: String, dx: f64, dy: f64, dz: f64) -> Result<ShapeResult, String> {
     let shape = get_shape(&shape_id)?;
 
@@ -620,7 +639,7 @@ pub fn cad_extrude(shape_id: String, dx: f64, dy: f64, dz: f64) -> Result<ShapeR
 }
 
 /// Revolve a profile shape around an axis
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_revolve(
     shape_id: String,
     origin_x: f64,
@@ -654,7 +673,7 @@ pub fn cad_revolve(
 }
 
 /// Create a lofted solid/shell through multiple wire profiles
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_loft(profile_ids: Vec<String>, solid: bool, ruled: bool) -> Result<ShapeResult, String> {
     // Get all profile shapes from registry
     let profiles: Result<Vec<Shape>, String> = profile_ids.iter().map(|id| get_shape(id)).collect();
@@ -673,7 +692,7 @@ pub fn cad_loft(profile_ids: Vec<String>, solid: bool, ruled: bool) -> Result<Sh
 }
 
 /// Sweep a profile along a spine path (pipe operation)
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_pipe(profile_id: String, spine_id: String) -> Result<ShapeResult, String> {
     let profile = get_shape(&profile_id)?;
     let spine = get_shape(&spine_id)?;
@@ -689,7 +708,7 @@ pub fn cad_pipe(profile_id: String, spine_id: String) -> Result<ShapeResult, Str
 }
 
 /// Sweep a profile along a spine with more control (advanced pipe)
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_pipe_shell(
     profile_id: String,
     spine_id: String,
@@ -711,7 +730,7 @@ pub fn cad_pipe_shell(
 }
 
 /// Offset a solid shape
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_offset(shape_id: String, offset: f64) -> Result<ShapeResult, String> {
     let shape = get_shape(&shape_id)?;
 
@@ -729,42 +748,56 @@ pub fn cad_offset(shape_id: String, offset: f64) -> Result<ShapeResult, String> 
 // TESSELLATION / MESH
 // =============================================================================
 
-/// Tessellate a shape to get mesh data for rendering
-#[tauri::command]
-pub fn cad_tessellate(shape_id: String, deflection: f64) -> Result<CadMeshResult, String> {
-    println!("[cad_tessellate] Received shape_id: {}", shape_id);
+/// Tessellate a shape to get mesh data for rendering (High Performance Binary version)
+/// Returns raw bytes for faster transfer than JSON
+#[tauri::command(rename_all = "camelCase")]
+pub fn cad_tessellate_binary(shape_id: String, deflection: f64) -> Result<Vec<u8>, String> {
     let shape = get_shape(&shape_id)?;
-
     let mesh = shape.tessellate(deflection).map_err(|e| e.to_string())?;
 
-    // Convert MeshData to CadMeshResult
-    let vertices: Vec<f64> = mesh
-        .vertices
-        .iter()
-        .flat_map(|v| vec![v.x, v.y, v.z])
-        .collect();
+    let vertex_count = mesh.vertices.len() as u32;
+    let triangle_count = (mesh.indices.len() / 3) as u32;
+    let has_normals = !mesh.normals.is_empty();
 
-    let normals: Option<Vec<f64>> = if !mesh.normals.is_empty() {
-        Some(
-            mesh.normals
-                .iter()
-                .flat_map(|n| vec![n.x, n.y, n.z])
-                .collect(),
-        )
-    } else {
-        None
-    };
+    // Calculate total size:
+    // header: 4 (v_count) + 4 (t_count) + 1 (has_normals) = 9 bytes
+    // vertices: vertex_count * 3 * 4 bytes
+    // indices: triangle_count * 3 * 4 bytes
+    // normals: (if has) vertex_count * 3 * 4 bytes
+    let mut size = 9 + (vertex_count as usize * 3 * 4) + (triangle_count as usize * 3 * 4);
+    if has_normals {
+        size += vertex_count as usize * 3 * 4;
+    }
 
-    let vertex_count = mesh.vertices.len();
-    let triangle_count = mesh.indices.len() / 3;
+    let mut buffer = Vec::with_capacity(size);
 
-    Ok(CadMeshResult {
-        vertices,
-        indices: mesh.indices,
-        normals,
-        vertex_count,
-        triangle_count,
-    })
+    // Write header
+    buffer.extend_from_slice(&vertex_count.to_le_bytes());
+    buffer.extend_from_slice(&triangle_count.to_le_bytes());
+    buffer.push(if has_normals { 1 } else { 0 });
+
+    // Write vertices (f32)
+    for v in &mesh.vertices {
+        buffer.extend_from_slice(&(v.x as f32).to_le_bytes());
+        buffer.extend_from_slice(&(v.y as f32).to_le_bytes());
+        buffer.extend_from_slice(&(v.z as f32).to_le_bytes());
+    }
+
+    // Write indices (u32)
+    for &idx in &mesh.indices {
+        buffer.extend_from_slice(&idx.to_le_bytes());
+    }
+
+    // Write normals (f32)
+    if has_normals {
+        for n in &mesh.normals {
+            buffer.extend_from_slice(&(n.x as f32).to_le_bytes());
+            buffer.extend_from_slice(&(n.y as f32).to_le_bytes());
+            buffer.extend_from_slice(&(n.z as f32).to_le_bytes());
+        }
+    }
+
+    Ok(buffer)
 }
 
 // =============================================================================
@@ -772,7 +805,7 @@ pub fn cad_tessellate(shape_id: String, deflection: f64) -> Result<CadMeshResult
 // =============================================================================
 
 /// Import a STEP file
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub async fn cad_import_step(file_path: String) -> Result<ShapeResult, String> {
     let shape = StepIO::read(&file_path).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&shape);
@@ -785,7 +818,7 @@ pub async fn cad_import_step(file_path: String) -> Result<ShapeResult, String> {
 }
 
 /// Export a shape to STEP file
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub async fn cad_export_step(shape_id: String, file_path: String) -> Result<String, String> {
     let shape = get_shape(&shape_id)?;
 
@@ -794,7 +827,7 @@ pub async fn cad_export_step(shape_id: String, file_path: String) -> Result<Stri
 }
 
 /// Export a shape to STL file (binary)
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub async fn cad_export_stl(
     shape_id: String,
     file_path: String,
@@ -807,7 +840,7 @@ pub async fn cad_export_stl(
 }
 
 /// Export a shape to OBJ file
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub async fn cad_export_obj(
     shape_id: String,
     file_path: String,
@@ -820,7 +853,7 @@ pub async fn cad_export_obj(
 }
 
 /// Export a shape to glTF binary file
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub async fn cad_export_glb(
     shape_id: String,
     file_path: String,
@@ -837,7 +870,7 @@ pub async fn cad_export_glb(
 // =============================================================================
 
 /// Analyze a shape
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_analyze(shape_id: String) -> Result<ShapeAnalysisResult, String> {
     let shape = get_shape(&shape_id)?;
     let analysis = Analysis::analyze(&shape);
@@ -845,7 +878,7 @@ pub fn cad_analyze(shape_id: String) -> Result<ShapeAnalysisResult, String> {
 }
 
 /// Measure distance between two shapes
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_measure_distance(shape1_id: String, shape2_id: String) -> Result<f64, String> {
     let shape1 = get_shape(&shape1_id)?;
     let shape2 = get_shape(&shape2_id)?;
@@ -854,7 +887,7 @@ pub fn cad_measure_distance(shape1_id: String, shape2_id: String) -> Result<f64,
 }
 
 /// Delete a shape from the registry
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_delete_shape(shape_id: String) -> Result<(), String> {
     remove_shape(&shape_id)
 }
@@ -946,7 +979,7 @@ pub fn cad_create_vertex(x: f64, y: f64, z: f64) -> Result<ShapeResult, String> 
 
 /// Simplify a shape by unifying faces and edges
 /// CRITICAL: Use this after boolean operations to clean up geometry!
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_simplify(
     shape_id: String,
     unify_edges: bool,
@@ -965,7 +998,7 @@ pub fn cad_simplify(
 }
 
 /// Combine multiple shapes into a compound (assembly)
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_combine(shape_ids: Vec<String>) -> Result<ShapeResult, String> {
     let shapes: Result<Vec<Shape>, String> = shape_ids.iter().map(|id| get_shape(id)).collect();
     let shapes = shapes?;
@@ -987,7 +1020,7 @@ pub fn cad_combine(shape_ids: Vec<String>) -> Result<ShapeResult, String> {
 
 /// Get complete topology information from a shape
 /// Returns vertices, edges (tessellated), faces, and adjacency maps
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 pub fn cad_get_topology(
     shape_id: String,
     edge_deflection: f64,

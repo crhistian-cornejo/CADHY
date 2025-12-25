@@ -588,6 +588,17 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
     useCallback(() => useNavigationStore.getState().setView("results"), [])
   )
 
+  useHotkey(
+    {
+      id: "workspace.drawings",
+      name: "Drawings",
+      description: "Switch to Drawings workspace",
+      category: "workspace",
+      keys: ["Alt+D"],
+    },
+    useCallback(() => useNavigationStore.getState().setView("drawings"), [])
+  )
+
   // NOTE: CAD operation hotkeys (Fillet, Chamfer, etc.) are now registered
   // in useCADOperationHotkeys within CADOperationsProvider
 

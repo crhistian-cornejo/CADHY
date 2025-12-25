@@ -1,0 +1,32 @@
+[package]
+name = "cadhy-ifc"
+version.workspace = true
+edition.workspace = true
+description = "IFC (Industry Foundation Classes) import/export for CADHY"
+
+[dependencies]
+# IFC parsing - Pure Rust implementation
+# Note: ifc_rs may need to be replaced with custom parsing if not available
+# For now, we implement basic IFC parsing manually
+
+# Internal crates
+cadhy-core.workspace = true
+
+# Error handling
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Serialization
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+
+# Logging
+tracing.workspace = true
+
+# UUID for unique identifiers
+uuid = { workspace = true, features = ["v4"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tempfile = "3.10"
+
