@@ -18,6 +18,12 @@ interface CADOperationsContextValue {
   executeFillet: (radius: number) => Promise<boolean>
   executeChamfer: (distance: number) => Promise<boolean>
   executeShell: (thickness: number) => Promise<boolean>
+  // Boolean operations
+  executeBooleanUnion: () => Promise<boolean>
+  executeBooleanSubtract: () => Promise<boolean>
+  executeBooleanIntersect: () => Promise<boolean>
+  // Transform operations
+  executeMirror: (plane?: "yz" | "xz" | "xy", keepOriginal?: boolean) => Promise<boolean>
   dialogState: OperationDialogState
 }
 
@@ -50,6 +56,12 @@ export function CADOperationsProvider({ children }: CADOperationsProviderProps) 
     executeFillet,
     executeChamfer,
     executeShell,
+    // Boolean operations
+    executeBooleanUnion,
+    executeBooleanSubtract,
+    executeBooleanIntersect,
+    // Transform operations
+    executeMirror,
   } = useCADOperations()
 
   return (
@@ -59,6 +71,10 @@ export function CADOperationsProvider({ children }: CADOperationsProviderProps) 
         executeFillet,
         executeChamfer,
         executeShell,
+        executeBooleanUnion,
+        executeBooleanSubtract,
+        executeBooleanIntersect,
+        executeMirror,
         dialogState,
       }}
     >

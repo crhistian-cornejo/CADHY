@@ -486,18 +486,66 @@ export interface ViewportSettings {
   backgroundBlurriness: number
   /** Camera projection type - orthographic or perspective (independent of camera view position) */
   cameraType: CameraType
+  /** Reflection intensity (0-1) */
+  reflection: number
+  /** Scene brightness multiplier (0-5) */
+  brightness: number
+  /** Scene contrast multiplier (0-2) */
+  contrast: number
+  /** Rim light intensity (0-1) */
+  rimLight: number
 }
 
 // ============================================================================
 // HISTORY
 // ============================================================================
 
+export type HistoryOperationType =
+  | "sketch"
+  | "extrusion"
+  | "revolve"
+  | "loft"
+  | "sweep"
+  | "fillet"
+  | "chamfer"
+  | "offset"
+  | "shell"
+  | "boolean"
+  | "transform"
+  | "move"
+  | "rotate"
+  | "scale"
+  | "create"
+  | "delete"
+  | "duplicate"
+  | "update"
+  | "other"
+
 export interface HistoryEntry {
   id: string
   timestamp: number
   action: string
+  /** Type of operation for icon and categorization */
+  operationType?: HistoryOperationType
+  /** Optional parameters/metadata for the operation */
+  parameters?: Record<string, unknown>
   objects: AnySceneObject[]
   selection: string[]
+  /** Optional operation-specific details */
+  details?: {
+    /** Start center for transform operations */
+    startCenter?: { x: number; y: number; z: number }
+    /** Target bodies for operations */
+    targetBodies?: string[]
+    /** Target faces count */
+    targetFaces?: number
+    /** Target edges count */
+    targetEdges?: number
+    /** Copy mode for transform operations */
+    copy?: boolean
+    /** Other operation-specific parameters */
+    [key: string]: unknown
+  }
 }
 
 // ============================================================================
@@ -512,6 +560,10 @@ export interface SceneData {
   gridSettings?: GridSettings
   cameraPosition?: Vec3
   cameraTarget?: Vec3
+  /** History entries for undo/redo - persisted with project */
+  history?: HistoryEntry[]
+  /** Current position in history - persisted with project */
+  historyIndex?: number
 }
 
 // ============================================================================
@@ -570,6 +622,10 @@ export const DEFAULT_VIEWPORT_SETTINGS: ViewportSettings = {
   environmentBackground: false,
   backgroundBlurriness: 0.5,
   cameraType: "perspective", // Default to perspective projection
+  reflection: 0,
+  brightness: 1,
+  contrast: 1,
+  rimLight: 0,
 }
 
 // ============================================================================

@@ -65,6 +65,7 @@
     "workspace": "Espacio de Trabajo",
     "modeller": "Modelador 3D",
     "mesh": "Malla",
+    "cadras": "CADRas",
     "cfd": "CFD",
     "results": "Resultados"
   },
@@ -158,6 +159,14 @@
   "statusBar": {
     "ready": "Listo",
     "unsaved": "Sin guardar",
+    "modified": "Modificado",
+    "saving": "Guardando...",
+    "saved": "Guardado",
+    "saveError": "Error al guardar",
+    "autoSaveIn": "Auto-guardado en",
+    "lastSaved": "Último guardado",
+    "allChangesSaved": "Todos los cambios guardados",
+    "unsavedChanges": "Cambios sin guardar",
     "processing": "Procesando",
     "objects": "Objetos",
     "connections": "Conexiones",
@@ -172,7 +181,6 @@
     "low": "Bajo",
     "memoryUsage": "Uso de memoria",
     "gpu": "GPU",
-    "saved": "Guardado",
     "projectSaved": "Proyecto guardado exitosamente"
   },
   "panels": {
@@ -531,7 +539,8 @@
     "material": "Material",
     "materialColor": "Color de Material",
     "unassigned": "Sin asignar",
-    "emptyArea": "No hay objetos en esta área"
+    "emptyArea": "No hay objetos en esta área",
+    "dropHere": "Suelta aquí para agregar a esta área"
   },
   "designChecks": {
     "title": "Verificaciones de Diseño",
@@ -974,6 +983,206 @@
     "tooltipPending": "Actualización disponible - Clic para ver cambios",
     "tooltipInstalled": "App actualizada exitosamente - Ver novedades",
     "clickToViewChangelog": "Clic para ver el changelog completo en GitHub"
+  },
+  "drawings": {
+    "title": "Dibujos Técnicos",
+    "noActiveDrawing": "No hay dibujo activo",
+    "createDrawingToStart": "Crea un dibujo para usar las herramientas",
+    "selectOrCreate": "Selecciona un dibujo o crea uno nuevo",
+    "backToModeller": "Modelador",
+    "tools": {
+      "title": "Herramientas de dibujo",
+      "dimensions": "Cotas",
+      "geometries": "Geometrías",
+      "notes": "Notas",
+      "image": "Imagen",
+      "settings": "Configuración"
+    },
+    "dimensions": {
+      "title": "Herramientas de Cotas",
+      "auto": "Automática",
+      "autoDesc": "Detecta el tipo de cota según la selección",
+      "lineLength": "Longitud de línea",
+      "lineLengthDesc": "Selecciona una línea para acotar",
+      "pointToPoint": "Punto a punto",
+      "pointToPointDesc": "Selecciona dos puntos para medir",
+      "note": "Nota",
+      "noteDesc": "Añade una nota/etiqueta a la geometría",
+      "selected": "Cota {{index}} seleccionada",
+      "delete": "Eliminar",
+      "escToDeselect": "Esc para deseleccionar"
+    },
+    "annotations": {
+      "selected": "Nota seleccionada",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "placeholder": "Escribe tu nota..."
+    },
+    "geometries": {
+      "title": "Geometrías 2D",
+      "line": "Línea",
+      "circle": "Círculo",
+      "arc": "Arco",
+      "rectangle": "Rectángulo",
+      "polygon": "Polígono",
+      "spline": "Spline",
+      "comingSoon": "Próx."
+    },
+    "notes": {
+      "title": "Notas",
+      "comingSoon": "Herramientas de notas próximamente"
+    },
+    "images": {
+      "title": "Imagen",
+      "comingSoon": "Herramientas de imagen próximamente"
+    },
+    "settings": {
+      "scale": "Escala",
+      "scaleChangeInfo": "Cambiar la escala regenerará automáticamente todas las vistas",
+      "units": "Unidades",
+      "paperSize": "Tamaño de papel",
+      "custom": "Personalizado"
+    },
+    "views": {
+      "addBaseView": "Agregar Vista Base",
+      "selectOrientation": "Selecciona la orientación para la vista base",
+      "top": "Planta",
+      "front": "Alzado",
+      "right": "Perfil Derecho",
+      "left": "Perfil Izquierdo",
+      "bottom": "Inferior",
+      "back": "Posterior",
+      "isometric": "Isométrica",
+      "lockViews": "Bloquear vistas",
+      "unlockViews": "Desbloquear vistas",
+      "locked": "Bloqueado",
+      "lock": "Bloquear",
+      "fitViews": "Ajustar",
+      "fitViewsTooltip": "Reposicionar vistas en cuadrícula"
+    },
+    "viewport": {
+      "zoomTotal": "Zoom Total",
+      "zoomTotalTooltip": "Zoom completo (ver toda la hoja)",
+      "zoomLevel": "{{level}}%"
+    },
+    "titleBlock": {
+      "title": "TÍTULO",
+      "untitled": "Sin título",
+      "units": "UNIDADES",
+      "projectionAngle": "ÁNG. PROY.",
+      "size": "TAMAÑO",
+      "scale": "ESCALA",
+      "lastUpdate": "ÚLTIMA ACTUALIZACIÓN",
+      "sheet": "HOJA",
+      "madeIn": "Hecho en"
+    },
+    "unitLabels": {
+      "mm": "mm",
+      "cm": "cm",
+      "m": "Metro",
+      "in": "Pulgada",
+      "ft": "Pie"
+    },
+    "toolbar": {
+      "dimensionsTooltip": "Cotas",
+      "geometriesTooltip": "Geometrías",
+      "notesTooltip": "Notas",
+      "imageTooltip": "Imagen"
+    },
+    "themes": {
+      "blueprint": "Blueprint",
+      "white": "Blanco",
+      "black": "Negro"
+    },
+    "list": {
+      "title": "Dibujos",
+      "newDrawing": "Nuevo Dibujo",
+      "defaultName": "Dibujo {{date}}",
+      "createdSuccess": "Dibujo creado exitosamente",
+      "createError": "Error al crear dibujo: {{error}}",
+      "deleteConfirm": "¿Estás seguro de que quieres eliminar este dibujo?",
+      "noDrawings": "No hay dibujos",
+      "createToStart": "Crea un nuevo dibujo para comenzar",
+      "view": "vista",
+      "views": "vistas"
+    },
+    "properties": {
+      "title": "Propiedades",
+      "noActiveDrawing": "No hay dibujo activo",
+      "sheet": {
+        "title": "Hoja",
+        "orientation": "Orientación",
+        "landscape": "Horizontal",
+        "portrait": "Vertical",
+        "size": "Tamaño",
+        "scale": "Escala",
+        "projection": "Proyección",
+        "firstAngle": "Primer ángulo",
+        "thirdAngle": "Tercer ángulo",
+        "sheetTitle": "Título",
+        "untitled": "Sin título",
+        "viewsUpdated": "Vistas actualizadas",
+        "viewsError": "Error al regenerar vistas"
+      },
+      "dimensions": {
+        "title": "Cotas",
+        "units": "Unidades",
+        "mm": "Milímetros (mm)",
+        "cm": "Centímetros (cm)",
+        "m": "Metros (m)",
+        "in": "Pulgadas (in)",
+        "ft": "Pies (ft)",
+        "precision": "Precisión",
+        "integers": "0 (enteros)",
+        "textSize": "Tamaño texto",
+        "arrowSize": "Tamaño flecha",
+        "showUnit": "Mostrar unidad"
+      },
+      "display": {
+        "title": "Visualización",
+        "constructionLines": "Líneas de construcción",
+        "viewLabels": "Etiquetas de vistas",
+        "gridReferences": "Referencias de cuadrícula"
+      },
+      "lineWidths": {
+        "title": "Anchos de línea",
+        "visible": "Contornos visibles",
+        "hidden": "Líneas ocultas",
+        "dimension": "Líneas de cota",
+        "centerline": "Líneas de eje",
+        "section": "Líneas de corte"
+      },
+      "export": {
+        "title": "Exportar",
+        "dialogTitle": "Exportar dibujo ({{format}})",
+        "success": "Exportado: {{path}}",
+        "error": "Error al exportar: {{error}}",
+        "description": "Exporta el plano con grosores según \"Anchos de línea\" y tipos de línea (visible/oculta/eje/corte)."
+      }
+    },
+    "config": {
+      "dialogTitle": "Preferencias de dibujo",
+      "orientation": "Orientación",
+      "portrait": "Vertical",
+      "landscape": "Horizontal",
+      "paperSize": "Tamaño de la hoja",
+      "scale": "Escala de vista a hoja",
+      "projection": "Proyección",
+      "firstAngle": "Primer Ángulo",
+      "thirdAngle": "Tercer Ángulo",
+      "units": "Unidades",
+      "mm": "Milímetros (mm)",
+      "cm": "Centímetros (cm)",
+      "m": "Metros (m)",
+      "in": "Pulgadas (in)",
+      "ft": "Pies (ft)",
+      "titleBlock": "Bloque de título",
+      "simple": "Simple",
+      "standard": "Estándar",
+      "custom": "Personalizado",
+      "cancel": "Cancelar",
+      "done": "Listo"
+    }
   },
   "bim": {
     "identification": "Identificación",

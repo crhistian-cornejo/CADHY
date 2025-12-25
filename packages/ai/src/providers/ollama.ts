@@ -16,6 +16,7 @@
  */
 
 import type { LanguageModel } from "ai"
+import { createOllama } from "ollama-ai-provider-v2"
 
 // =============================================================================
 // TYPES
@@ -28,6 +29,43 @@ import type { LanguageModel } from "ai"
  * - 'hybrid': Local Ollama that can run cloud models (requires signin)
  */
 export type OllamaMode = "local" | "cloud" | "hybrid"
+
+/**
+ * Ollama model options for performance optimization
+ */
+export interface OllamaModelOptions {
+  /**
+   * Number of layers to offload to GPU (-1 = all layers)
+   * For M4 Mac with 24GB RAM, use -1 to use all GPU layers
+   * @default -1
+   */
+  num_gpu?: number
+  /**
+   * Context window size (affects memory usage)
+   * @default 4096
+   */
+  num_ctx?: number
+  /**
+   * Number of threads for CPU (0 = auto)
+   * @default 0
+   */
+  num_thread?: number
+  /**
+   * Temperature for sampling (0.0 - 1.0)
+   * @default 0.7
+   */
+  temperature?: number
+  /**
+   * Use Metal (GPU) acceleration on Mac
+   * @default true
+   */
+  use_mmap?: boolean
+  /**
+   * Use memory mapping for faster loading
+   * @default true
+   */
+  use_mlock?: boolean
+}
 
 /**
  * Configuration for the Ollama provider
@@ -53,6 +91,11 @@ export interface OllamaProviderConfig {
    * Custom headers to include in requests
    */
   headers?: Record<string, string>
+  /**
+   * Default model options for all models from this provider
+   * These can be overridden per-model when calling streamText
+   */
+  defaultModelOptions?: OllamaModelOptions
 }
 
 /**
@@ -437,6 +480,10 @@ export async function getOllamaProvider(
   config: OllamaProviderConfig = {}
 ): Promise<(modelId: string) => LanguageModel> {
   const mode = config.mode ?? "local"
+
+  // Ollama provider expects baseURL WITH /api suffix
+  // The provider appends paths like "/chat" to the baseURL
+  // So baseURL should be "http://localhost:11434/api" not "http://localhost:11434"
   const baseURL =
     config.baseURL ?? (mode === "cloud" ? `${OLLAMA_CLOUD_URL}/api` : `${OLLAMA_LOCAL_URL}/api`)
 
@@ -446,42 +493,19 @@ export async function getOllamaProvider(
     headers.Authorization = `Bearer ${config.apiKey}`
   }
 
-  // Dynamic import to avoid bundling issues
-  const importFn = new Function("specifier", "return import(specifier)")
+  // Use the official Ollama provider for AI SDK
+  // This provider correctly handles Ollama's model format (e.g., "qwen3:8b", "devstral-small-2:24b")
+  // and uses specification v2 which is compatible with AI SDK 5
+  const provider = createOllama({
+    baseURL,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
+  })
 
-  try {
-    const module = (await importFn("ollama-ai-provider-v2")) as {
-      createOllama: CreateOllamaFn
-    }
-    const createOllama = module.createOllama
-
-    const provider = createOllama({
-      baseURL,
-      headers: Object.keys(headers).length > 0 ? headers : undefined,
-    })
-
-    return (modelId: string) => provider(modelId)
-  } catch {
-    // Fallback: Use OpenAI-compatible provider since Ollama is OpenAI-compatible
-    const openaiModule = (await importFn("@ai-sdk/openai")) as {
-      createOpenAI: (config: {
-        baseURL: string
-        apiKey: string
-        headers?: Record<string, string>
-      }) => (modelId: string) => LanguageModel
-    }
-    const createOpenAI = openaiModule.createOpenAI
-
-    // Use the /v1 endpoint for OpenAI compatibility
-    const v1BaseURL = baseURL.replace("/api", "/v1")
-
-    const provider = createOpenAI({
-      baseURL: v1BaseURL,
-      apiKey: config.apiKey ?? "ollama", // Required but ignored for local
-      headers: Object.keys(headers).length > 0 ? headers : undefined,
-    })
-
-    return (modelId: string) => provider(modelId)
+  return (modelId: string) => {
+    // Remove "ollama/" prefix if present (some code paths add it)
+    // Ollama models use format like "qwen3:8b" or "devstral-small-2:24b"
+    const cleanModelId = modelId.startsWith("ollama/") ? modelId.slice(7) : modelId
+    return provider(cleanModelId)
   }
 }
 

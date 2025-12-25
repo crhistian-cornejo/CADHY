@@ -30,7 +30,9 @@ import {
   type ToolSet,
 } from "@cadhy/ai"
 import { logger } from "@cadhy/shared/logger"
+import { calculateCreditsAfterRequest, type TokenUsage } from "@cadhy/types/credits"
 import { invoke } from "@tauri-apps/api/core"
+import { useCreditsStore } from "@/stores/credits-store"
 import { useSettingsStore } from "@/stores/settings-store"
 
 // =============================================================================
@@ -257,8 +259,36 @@ async function getModel(modelId: string, apiKey?: string) {
     logger.log("[AI Service] Using Ollama Local...")
     try {
       const ollamaProvider = await getOllamaProvider({ mode: "local" })
-      // Use preferred Ollama model or default
-      const ollamaModelId = useSettingsStore.getState().ai.preferredOllamaModel || "qwen3:8b"
+
+      // Extract model ID from the provided modelId (remove "ollama/" prefix if present)
+      // modelId format: "ollama/devstral-small-2:24b" or "devstral-small-2:24b"
+      // Always use the modelId provided - never hardcode defaults
+      let ollamaModelId: string
+
+      if (modelId.startsWith("ollama/")) {
+        // Remove "ollama/" prefix: "ollama/devstral-small-2:24b" -> "devstral-small-2:24b"
+        ollamaModelId = modelId.slice(7)
+      } else if (modelId.includes("/")) {
+        // Model ID is a gateway model (e.g., "google/gemini-2.5-flash")
+        // This shouldn't happen when activeProvider is "ollama-local", but handle gracefully
+        const preferredModel = useSettingsStore.getState().ai.preferredOllamaModel
+        if (preferredModel) {
+          ollamaModelId = preferredModel
+          logger.log(
+            "[AI Service] ⚠ Gateway model detected in Ollama context, using preferred:",
+            ollamaModelId
+          )
+        } else {
+          throw new Error(
+            `Invalid model for Ollama Local. Please select an Ollama model from the selector. ` +
+              `Received: ${modelId}`
+          )
+        }
+      } else {
+        // Already in correct format: "devstral-small-2:24b"
+        ollamaModelId = modelId
+      }
+
       logger.log("[AI Service] ✓ Using Ollama Local with model:", ollamaModelId)
       return ollamaProvider(ollamaModelId)
     } catch (error) {
@@ -276,15 +306,47 @@ async function getModel(modelId: string, apiKey?: string) {
   // ============================================================================
   logger.log("[AI Service] Using Gateway for provider:", activeProvider)
 
-  const key = apiKey ?? (await getApiKey()) ?? undefined
-  if (!key) {
+  // Check if user has their own API key (BYOK - Bring Your Own Key)
+  const userApiKey = apiKey ?? (await getApiKey()) ?? undefined
+
+  if (userApiKey) {
+    // User has their own API key - no credits needed
+    logger.log("[AI Service] ✓ Using Gateway with user's API key (BYOK):", modelId)
+    const gateway = getGateway({ apiKey: userApiKey })
+    return gateway(modelId)
+  }
+
+  // No user API key - check credits for free tier
+  const creditsStore = useCreditsStore.getState()
+
+  // Ensure credits are loaded
+  if (!creditsStore.state) {
+    await creditsStore.loadCredits()
+  }
+
+  // Regenerate if needed
+  await creditsStore.regenerateIfNeeded()
+
+  // Check if credits are available
+  if (!creditsStore.checkCredits(modelId)) {
+    const info = creditsStore.getCreditsInfo()
     throw new Error(
-      "No API key configured. Please add your API key in Settings or set up Ollama Local."
+      `No credits available. You have ${info.available}/${info.dailyLimit} credits remaining. ` +
+        `Credits regenerate daily. ` +
+        `Options: 1) Use Ollama Local (free), 2) Add your own API key (BYOK), or 3) Upgrade to Pro.`
     )
   }
 
-  logger.log("[AI Service] ✓ Using Gateway with model:", modelId)
-  const gateway = getGateway({ apiKey: key })
+  // Use CADHY's gateway API key (from env)
+  const gatewayKey = import.meta.env.VITE_AI_GATEWAY_API_KEY
+  if (!gatewayKey) {
+    throw new Error(
+      "Gateway API key not configured. Please set up Ollama Local or add your own API key."
+    )
+  }
+
+  logger.log("[AI Service] ✓ Using Gateway with CADHY credits:", modelId)
+  const gateway = getGateway({ apiKey: gatewayKey })
   return gateway(modelId)
 }
 
@@ -333,13 +395,37 @@ export async function streamChat(
 
     // Stream the response
     // Note: In AI SDK 5.0+, maxSteps was replaced with stopWhen: stepCountIs(n)
-    const result = streamText({
+    const activeProvider = useSettingsStore.getState().ai.activeProvider
+    const isOllamaLocal = activeProvider === "ollama-local"
+
+    // For Ollama models on Mac M4, optimize performance
+    // The ollama-ai-provider-v2 passes options through experimental_providerOptions
+    const streamOptions: Parameters<typeof streamText>[0] = {
       model,
       system: options?.systemPrompt ?? HYDRAULIC_SYSTEM_PROMPT,
       messages: coreMessages,
       tools,
       abortSignal: abortController.signal,
-    })
+    }
+
+    // Add Ollama-specific optimizations for Mac M4 with 24GB RAM
+    if (isOllamaLocal) {
+      // Pass options directly to Ollama API
+      // These optimize GPU usage and memory management
+      ;(streamOptions as any).experimental_providerOptions = {
+        ollama: {
+          options: {
+            num_gpu: -1, // Use all GPU layers (Metal acceleration on Mac M4)
+            num_ctx: 4096, // Context window (balance between performance and memory)
+            num_thread: 0, // Auto-detect optimal CPU threads
+            use_mmap: true, // Memory mapping for faster model loading
+            use_mlock: true, // Lock memory to prevent swapping (keeps model in RAM)
+          },
+        },
+      }
+    }
+
+    const result = streamText(streamOptions)
 
     // Process the full stream to get text, tool calls, tool results, and usage
     let fullText = ""
@@ -437,6 +523,31 @@ export async function streamChat(
           "usage:",
           finalUsage
         )
+
+        // Consume credits if using CADHY gateway (not BYOK)
+        const activeProvider = useSettingsStore.getState().ai.activeProvider
+        const userApiKey = await getApiKey()
+        if (activeProvider === "gateway" && !userApiKey && finalUsage) {
+          const creditsStore = useCreditsStore.getState()
+          const usage: TokenUsage = {
+            inputTokens: finalUsage.inputTokens || 0,
+            outputTokens: finalUsage.outputTokens || 0,
+            reasoningTokens: finalUsage.reasoningTokens,
+            cachedInputTokens: finalUsage.cachedInputTokens,
+          }
+          const consumed = await creditsStore.consumeCreditsFromTokens(usage, modelId)
+          if (!consumed) {
+            logger.warn("[AI Service] Failed to consume credits after request")
+          } else {
+            const creditsUsed = calculateCreditsAfterRequest(
+              usage,
+              creditsStore.getModelPricing(modelId) || { input: 0, output: 0 },
+              creditsStore.state?.tier || "free"
+            )
+            logger.log(`[AI Service] Consumed ${creditsUsed} credits for ${modelId}`)
+          }
+        }
+
         callbacks.onFinish?.(fullText, toolResults, finalUsage)
       } catch (error) {
         console.error("[AI Service] Stream processing error:", error)

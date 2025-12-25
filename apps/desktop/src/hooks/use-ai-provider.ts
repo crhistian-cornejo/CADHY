@@ -20,8 +20,9 @@ import {
 // CONSTANTS
 // ============================================================================
 
-/** How often to re-check Ollama status (2 minutes) */
-const OLLAMA_CHECK_INTERVAL_MS = 2 * 60 * 1000
+/** How often to re-check Ollama status (30 seconds when active, 2 minutes otherwise) */
+const OLLAMA_CHECK_INTERVAL_MS = 30 * 1000 // 30 seconds for faster detection
+const OLLAMA_CHECK_INTERVAL_IDLE_MS = 2 * 60 * 1000 // 2 minutes when idle
 
 // ============================================================================
 // TYPES
@@ -148,8 +149,14 @@ export function useAIProvider(): AIProviderStatus & {
     const now = Date.now()
     const ollamaElapsed = now - ollamaStatus.lastChecked
 
-    return ollamaElapsed > OLLAMA_CHECK_INTERVAL_MS
-  }, [ai.ollamaLocalStatus])
+    // Use shorter interval if Ollama is active (user might have downloaded new models)
+    const interval =
+      ai.activeProvider === "ollama-local"
+        ? OLLAMA_CHECK_INTERVAL_MS
+        : OLLAMA_CHECK_INTERVAL_IDLE_MS
+
+    return ollamaElapsed > interval
+  }, [ai.ollamaLocalStatus, ai.activeProvider])
 
   // Initial detection on mount
   useEffect(() => {
@@ -157,6 +164,19 @@ export function useAIProvider(): AIProviderStatus & {
       refreshProviders()
     }
   }, [ai.activeProvider, refreshProviders, shouldRecheckProviders]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Polling: Re-check periodically when Ollama is active (to detect new models)
+  useEffect(() => {
+    if (ai.activeProvider !== "ollama-local") return
+
+    const intervalId = setInterval(() => {
+      if (shouldRecheckProviders()) {
+        refreshProviders()
+      }
+    }, OLLAMA_CHECK_INTERVAL_MS)
+
+    return () => clearInterval(intervalId)
+  }, [ai.activeProvider, refreshProviders, shouldRecheckProviders])
 
   // Compute derived status
   const ollamaStatus = ai.ollamaLocalStatus

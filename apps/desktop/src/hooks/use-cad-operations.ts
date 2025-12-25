@@ -8,6 +8,7 @@
 import { toast } from "@cadhy/ui"
 import { useCallback, useState } from "react"
 import * as cadService from "@/services/cad-service"
+import type { ShapeObject } from "@/stores/modeller"
 import { useModellerStore, useSelectedObjects } from "@/stores/modeller"
 import { shapeIdMap } from "./use-cad"
 
@@ -22,9 +23,149 @@ export interface OperationDialogState {
   interactiveMode: boolean
 }
 
+/**
+ * Get backend shape ID for a scene object
+ * First tries shapeIdMap, then metadata fallback
+ */
+function getBackendShapeId(objectId: string, metadata?: Record<string, unknown>): string | null {
+  let backendId = shapeIdMap.get(objectId)
+  if (!backendId && metadata?.backendShapeId) {
+    backendId = metadata.backendShapeId as string
+    shapeIdMap.set(objectId, backendId)
+  }
+  return backendId || null
+}
+
+/**
+ * Merge BIM information from multiple objects
+ * Combines metadata while preserving important fields
+ */
+function mergeBIMMetadata(
+  objects: ShapeObject[],
+  operationType: "union" | "subtract" | "intersect"
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = {
+    operation: `boolean-${operationType}`,
+    sourceIds: objects.map((obj) => obj.id),
+    sourceNames: objects.map((obj) => obj.name),
+    createdAt: Date.now(),
+  }
+
+  // Collect all BIM properties from sources
+  const bimProperties: Record<string, unknown>[] = []
+  for (const obj of objects) {
+    if (obj.metadata?.bim) {
+      bimProperties.push(obj.metadata.bim as Record<string, unknown>)
+    }
+    // Preserve IFC data if present
+    if (obj.metadata?.ifc) {
+      merged.ifc = merged.ifc || obj.metadata.ifc
+    }
+    // Preserve material info
+    if (obj.metadata?.material) {
+      merged.materialSources = merged.materialSources || []
+      ;(merged.materialSources as unknown[]).push(obj.metadata.material)
+    }
+  }
+
+  if (bimProperties.length > 0) {
+    merged.bim = {
+      combined: true,
+      sources: bimProperties,
+      // Sum volumes if available
+      totalVolume: bimProperties.reduce((sum, p) => sum + ((p.volume as number) || 0), 0),
+      // Sum areas if available
+      totalArea: bimProperties.reduce((sum, p) => sum + ((p.area as number) || 0), 0),
+    }
+  }
+
+  return merged
+}
+
+/**
+ * Apply frontend transform to a backend shape
+ * This creates a NEW transformed shape in the backend
+ */
+async function applyTransformToBackend(
+  backendId: string,
+  frontendTransform: {
+    position: { x: number; y: number; z: number }
+    rotation: { x: number; y: number; z: number }
+    scale: { x: number; y: number; z: number }
+  }
+): Promise<string> {
+  let currentId = backendId
+  const { position, rotation, scale: scaleVec } = frontendTransform
+
+  // Apply scale if not uniform (1, 1, 1)
+  const avgScale = (scaleVec.x + scaleVec.y + scaleVec.z) / 3
+  if (Math.abs(avgScale - 1) > 0.0001) {
+    const scaleResult = await cadService.scale(currentId, 0, 0, 0, avgScale)
+    currentId = scaleResult.id
+  }
+
+  // Apply rotation (X, Y, Z order - Euler angles in degrees)
+  if (Math.abs(rotation.x) > 0.0001) {
+    const rotateResult = await cadService.rotate(
+      currentId,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      cadService.degreesToRadians(rotation.x)
+    )
+    currentId = rotateResult.id
+  }
+  if (Math.abs(rotation.y) > 0.0001) {
+    const rotateResult = await cadService.rotate(
+      currentId,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      cadService.degreesToRadians(rotation.y)
+    )
+    currentId = rotateResult.id
+  }
+  if (Math.abs(rotation.z) > 0.0001) {
+    const rotateResult = await cadService.rotate(
+      currentId,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      cadService.degreesToRadians(rotation.z)
+    )
+    currentId = rotateResult.id
+  }
+
+  // Apply translation
+  if (
+    Math.abs(position.x) > 0.0001 ||
+    Math.abs(position.y) > 0.0001 ||
+    Math.abs(position.z) > 0.0001
+  ) {
+    const translateResult = await cadService.translate(
+      currentId,
+      position.x,
+      position.y,
+      position.z
+    )
+    currentId = translateResult.id
+  }
+
+  return currentId
+}
+
 export function useCADOperations() {
   const selectedObjects = useSelectedObjects()
-  const { addObject, deleteObject } = useModellerStore()
+  const { addObject, deleteObject, select } = useModellerStore()
 
   const [dialogState, setDialogState] = useState<OperationDialogState>({
     open: false,
@@ -43,6 +184,9 @@ export function useCADOperations() {
         toast.error("No objects selected")
         return false
       }
+
+      // Save state before action for proper undo
+      useModellerStore.getState().saveStateBeforeAction()
 
       const selectedObject = selectedObjects[0]
       console.log("[CAD Operations] === FILLET OPERATION ===")
@@ -103,6 +247,9 @@ export function useCADOperations() {
           const newId = addObject(newObject)
           shapeIdMap.set(newId, result.id)
 
+          // Save to history
+          useModellerStore.getState().commitToHistory(`Empalme: ${selectedObject.name}`)
+
           toast.success("Fillet applied successfully")
           return true
         }
@@ -122,6 +269,9 @@ export function useCADOperations() {
         toast.error("No objects selected")
         return false
       }
+
+      // Save state before action for proper undo
+      useModellerStore.getState().saveStateBeforeAction()
 
       const selectedObject = selectedObjects[0]
 
@@ -166,6 +316,9 @@ export function useCADOperations() {
           const newId = addObject(newObject)
           shapeIdMap.set(newId, result.id)
 
+          // Save to history
+          useModellerStore.getState().commitToHistory(`Chaflán: ${selectedObject.name}`)
+
           toast.success("Chamfer applied successfully")
           return true
         }
@@ -185,6 +338,9 @@ export function useCADOperations() {
         toast.error("No objects selected")
         return false
       }
+
+      // Save state before action for proper undo
+      useModellerStore.getState().saveStateBeforeAction()
 
       const selectedObject = selectedObjects[0]
 
@@ -228,6 +384,9 @@ export function useCADOperations() {
           deleteObject(selectedObject.id)
           const newId = addObject(newObject)
           shapeIdMap.set(newId, result.id)
+
+          // Save to history
+          useModellerStore.getState().commitToHistory(`Desfase de la cara: ${selectedObject.name}`)
 
           toast.success("Shell applied successfully")
           return true
@@ -312,6 +471,427 @@ export function useCADOperations() {
     setDialogState((prev) => ({ ...prev, interactiveMode: !prev.interactiveMode }))
   }, [])
 
+  // ============================================================================
+  // BOOLEAN OPERATIONS
+  // ============================================================================
+
+  /**
+   * Execute Boolean Union (Fuse) - Combines multiple objects into one
+   * Requires at least 2 selected shape objects
+   */
+  const executeBooleanUnion = useCallback(async () => {
+    // Filter to shape objects only
+    const shapeObjects = selectedObjects.filter((obj) => obj.type === "shape") as ShapeObject[]
+
+    if (shapeObjects.length < 2) {
+      toast.error("Selecciona al menos 2 sólidos para unir")
+      return false
+    }
+
+    // Save state before action for proper undo
+    useModellerStore.getState().saveStateBeforeAction()
+
+    try {
+      // Get backend IDs and apply transforms for all selected objects
+      const transformedIds: string[] = []
+      for (const obj of shapeObjects) {
+        const backendId = getBackendShapeId(obj.id, obj.metadata)
+        if (!backendId) {
+          toast.error(`No se encontró el ID del sólido "${obj.name}"`)
+          return false
+        }
+
+        // Verify shape exists in backend
+        const exists = await cadService.shapeExists(backendId)
+        if (!exists) {
+          toast.error(
+            `El sólido "${obj.name}" ya no existe en el backend. ` +
+              "Esto puede ocurrir si la aplicación fue reiniciada. " +
+              "Por favor, crea los sólidos nuevamente."
+          )
+          return false
+        }
+
+        // Apply frontend transform to backend shape
+        const transformedId = await applyTransformToBackend(backendId, obj.transform)
+        transformedIds.push(transformedId)
+      }
+
+      // Fuse all shapes sequentially
+      let resultId = transformedIds[0]
+      for (let i = 1; i < transformedIds.length; i++) {
+        const fuseResult = await cadService.booleanFuse(resultId, transformedIds[i])
+        resultId = fuseResult.id
+      }
+
+      // Simplify the result to clean up geometry
+      const simplifiedResult = await cadService.simplify(resultId, true, true)
+      const finalId = simplifiedResult.id
+
+      // Tessellate the final result
+      const meshData = await cadService.tessellate(finalId, 0.1)
+
+      // Merge BIM metadata from all source objects
+      const mergedMetadata = mergeBIMMetadata(shapeObjects, "union")
+      mergedMetadata.backendShapeId = finalId
+
+      // Use the first object's position and material as base
+      const baseObject = shapeObjects[0]
+      const newObject = {
+        type: "shape" as const,
+        shapeType: "compound" as const,
+        parameters: {},
+        mesh: {
+          vertices: new Float32Array(meshData.vertices),
+          indices: new Uint32Array(meshData.indices),
+          normals: meshData.normals ? new Float32Array(meshData.normals) : undefined,
+        },
+        metadata: mergedMetadata,
+        transform: {
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+        },
+        visible: true,
+        name: `Union (${shapeObjects.map((o) => o.name).join(" + ")})`,
+        material: baseObject.material,
+      }
+
+      // Delete all original objects
+      for (const obj of shapeObjects) {
+        deleteObject(obj.id)
+      }
+
+      // Add the new fused object
+      const newId = addObject(newObject)
+      shapeIdMap.set(newId, finalId)
+      select(newId)
+
+      // Save to history
+      useModellerStore
+        .getState()
+        .commitToHistory(`Unión: ${shapeObjects.map((o) => o.name).join(", ")}`)
+
+      toast.success(`${shapeObjects.length} sólidos unidos exitosamente`)
+      return true
+    } catch (error) {
+      toast.error(`Error en unión: ${error instanceof Error ? error.message : String(error)}`)
+      return false
+    }
+  }, [selectedObjects, addObject, deleteObject])
+
+  /**
+   * Execute Boolean Subtract - Subtracts tool objects from the base object
+   * First selected object is the base, rest are tools
+   */
+  const executeBooleanSubtract = useCallback(async () => {
+    const shapeObjects = selectedObjects.filter((obj) => obj.type === "shape") as ShapeObject[]
+
+    if (shapeObjects.length < 2) {
+      toast.error("Selecciona al menos 2 sólidos: el primero es la base, los demás se restarán")
+      return false
+    }
+
+    useModellerStore.getState().saveStateBeforeAction()
+
+    try {
+      // Get backend IDs and apply transforms for all selected objects
+      const transformedIds: string[] = []
+      for (const obj of shapeObjects) {
+        const backendId = getBackendShapeId(obj.id, obj.metadata)
+        if (!backendId) {
+          toast.error(`No se encontró el ID del sólido "${obj.name}"`)
+          return false
+        }
+
+        // Verify shape exists in backend
+        const exists = await cadService.shapeExists(backendId)
+        if (!exists) {
+          toast.error(
+            `El sólido "${obj.name}" ya no existe en el backend. ` +
+              "Por favor, crea los sólidos nuevamente."
+          )
+          return false
+        }
+
+        // Apply frontend transform to backend shape
+        const transformedId = await applyTransformToBackend(backendId, obj.transform)
+        transformedIds.push(transformedId)
+      }
+
+      // Cut all tool shapes from the base
+      let resultId = transformedIds[0]
+      for (let i = 1; i < transformedIds.length; i++) {
+        const cutResult = await cadService.booleanCut(resultId, transformedIds[i])
+        resultId = cutResult.id
+      }
+
+      // Simplify the result
+      const simplifiedResult = await cadService.simplify(resultId, true, true)
+      const finalId = simplifiedResult.id
+
+      const meshData = await cadService.tessellate(finalId, 0.1)
+
+      const mergedMetadata = mergeBIMMetadata(shapeObjects, "subtract")
+      mergedMetadata.backendShapeId = finalId
+
+      const baseObject = shapeObjects[0]
+      const toolNames = shapeObjects.slice(1).map((o) => o.name)
+
+      const newObject = {
+        type: "shape" as const,
+        shapeType: "compound" as const,
+        parameters: {},
+        mesh: {
+          vertices: new Float32Array(meshData.vertices),
+          indices: new Uint32Array(meshData.indices),
+          normals: meshData.normals ? new Float32Array(meshData.normals) : undefined,
+        },
+        metadata: mergedMetadata,
+        transform: {
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+        },
+        visible: true,
+        name: `${baseObject.name} - (${toolNames.join(", ")})`,
+        material: baseObject.material,
+      }
+
+      for (const obj of shapeObjects) {
+        deleteObject(obj.id)
+      }
+
+      const newId = addObject(newObject)
+      shapeIdMap.set(newId, finalId)
+      select(newId)
+
+      useModellerStore
+        .getState()
+        .commitToHistory(`Resta: ${baseObject.name} - ${toolNames.join(", ")}`)
+
+      toast.success(`Resta booleana aplicada exitosamente`)
+      return true
+    } catch (error) {
+      toast.error(`Error en resta: ${error instanceof Error ? error.message : String(error)}`)
+      return false
+    }
+  }, [selectedObjects, addObject, deleteObject])
+
+  /**
+   * Execute Boolean Intersect - Creates the common volume of all objects
+   * Requires at least 2 selected shape objects
+   */
+  const executeBooleanIntersect = useCallback(async () => {
+    const shapeObjects = selectedObjects.filter((obj) => obj.type === "shape") as ShapeObject[]
+
+    if (shapeObjects.length < 2) {
+      toast.error("Selecciona al menos 2 sólidos para intersectar")
+      return false
+    }
+
+    useModellerStore.getState().saveStateBeforeAction()
+
+    try {
+      // Get backend IDs and apply transforms for all selected objects
+      const transformedIds: string[] = []
+      for (const obj of shapeObjects) {
+        const backendId = getBackendShapeId(obj.id, obj.metadata)
+        if (!backendId) {
+          toast.error(`No se encontró el ID del sólido "${obj.name}"`)
+          return false
+        }
+
+        // Verify shape exists in backend
+        const exists = await cadService.shapeExists(backendId)
+        if (!exists) {
+          toast.error(
+            `El sólido "${obj.name}" ya no existe en el backend. ` +
+              "Por favor, crea los sólidos nuevamente."
+          )
+          return false
+        }
+
+        // Apply frontend transform to backend shape
+        const transformedId = await applyTransformToBackend(backendId, obj.transform)
+        transformedIds.push(transformedId)
+      }
+
+      // Intersect all shapes sequentially
+      let resultId = transformedIds[0]
+      for (let i = 1; i < transformedIds.length; i++) {
+        const commonResult = await cadService.booleanCommon(resultId, transformedIds[i])
+        resultId = commonResult.id
+      }
+
+      // Simplify the result
+      const simplifiedResult = await cadService.simplify(resultId, true, true)
+      const finalId = simplifiedResult.id
+
+      const meshData = await cadService.tessellate(finalId, 0.1)
+
+      const mergedMetadata = mergeBIMMetadata(shapeObjects, "intersect")
+      mergedMetadata.backendShapeId = finalId
+
+      const baseObject = shapeObjects[0]
+
+      const newObject = {
+        type: "shape" as const,
+        shapeType: "compound" as const,
+        parameters: {},
+        mesh: {
+          vertices: new Float32Array(meshData.vertices),
+          indices: new Uint32Array(meshData.indices),
+          normals: meshData.normals ? new Float32Array(meshData.normals) : undefined,
+        },
+        metadata: mergedMetadata,
+        transform: {
+          position: { x: 0, y: 0, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+        },
+        visible: true,
+        name: `Intersección (${shapeObjects.map((o) => o.name).join(" ∩ ")})`,
+        material: baseObject.material,
+      }
+
+      for (const obj of shapeObjects) {
+        deleteObject(obj.id)
+      }
+
+      const newId = addObject(newObject)
+      shapeIdMap.set(newId, finalId)
+      select(newId)
+
+      useModellerStore
+        .getState()
+        .commitToHistory(`Intersección: ${shapeObjects.map((o) => o.name).join(", ")}`)
+
+      toast.success(`Intersección booleana aplicada exitosamente`)
+      return true
+    } catch (error) {
+      toast.error(
+        `Error en intersección: ${error instanceof Error ? error.message : String(error)}`
+      )
+      return false
+    }
+  }, [selectedObjects, addObject, deleteObject])
+
+  // ============================================================================
+  // MIRROR OPERATION
+  // ============================================================================
+
+  /**
+   * Execute Mirror operation - Creates a mirrored copy of the selected object
+   * @param plane - Mirror plane: 'yz' (mirror X), 'xz' (mirror Y), 'xy' (mirror Z)
+   * @param keepOriginal - If true, keeps the original object; if false, replaces it
+   */
+  const executeMirror = useCallback(
+    async (plane: "yz" | "xz" | "xy" = "yz", keepOriginal = true) => {
+      const shapeObjects = selectedObjects.filter((obj) => obj.type === "shape") as ShapeObject[]
+
+      if (shapeObjects.length === 0) {
+        toast.error("Selecciona al menos un sólido para espejar")
+        return false
+      }
+
+      useModellerStore.getState().saveStateBeforeAction()
+
+      try {
+        const results: Array<{ newId: string; backendId: string; sourceObj: ShapeObject }> = []
+
+        for (const obj of shapeObjects) {
+          const backendId = getBackendShapeId(obj.id, obj.metadata)
+          if (!backendId) {
+            toast.error(`No se encontró el sólido "${obj.name}" en el backend`)
+            return false
+          }
+
+          // Calculate mirror plane based on object's position
+          const pos = obj.transform?.position || { x: 0, y: 0, z: 0 }
+
+          // Normal vector for the mirror plane
+          let normalX = 0,
+            normalY = 0,
+            normalZ = 0
+          switch (plane) {
+            case "yz": // Mirror across YZ plane (flip X)
+              normalX = 1
+              break
+            case "xz": // Mirror across XZ plane (flip Y)
+              normalY = 1
+              break
+            case "xy": // Mirror across XY plane (flip Z)
+              normalZ = 1
+              break
+          }
+
+          // Mirror the shape
+          const mirrorResult = await cadService.mirror(
+            backendId,
+            pos.x,
+            pos.y,
+            pos.z,
+            normalX,
+            normalY,
+            normalZ
+          )
+
+          // Tessellate the mirrored shape
+          const meshData = await cadService.tessellate(mirrorResult.id, 0.1)
+
+          const newObject = {
+            type: "shape" as const,
+            shapeType: obj.shapeType,
+            parameters: obj.parameters,
+            mesh: {
+              vertices: new Float32Array(meshData.vertices),
+              indices: new Uint32Array(meshData.indices),
+              normals: meshData.normals ? new Float32Array(meshData.normals) : undefined,
+            },
+            metadata: {
+              ...obj.metadata,
+              backendShapeId: mirrorResult.id,
+              operation: "mirror",
+              sourceId: obj.id,
+              mirrorPlane: plane,
+            },
+            transform: obj.transform,
+            visible: true,
+            name: `${obj.name} (Mirror)`,
+            material: obj.material,
+          }
+
+          // Add the mirrored object
+          const newId = addObject(newObject)
+          shapeIdMap.set(newId, mirrorResult.id)
+
+          results.push({ newId, backendId: mirrorResult.id, sourceObj: obj })
+        }
+
+        // Delete originals if not keeping them
+        if (!keepOriginal) {
+          for (const { sourceObj } of results) {
+            deleteObject(sourceObj.id)
+          }
+        }
+
+        // Save to history
+        const names = shapeObjects.map((o) => o.name).join(", ")
+        useModellerStore.getState().commitToHistory(`Mirror: ${names}`)
+
+        toast.success(
+          `${shapeObjects.length} objeto(s) espejado(s) exitosamente${keepOriginal ? " (original conservado)" : ""}`
+        )
+        return true
+      } catch (error) {
+        toast.error(`Error en espejo: ${error instanceof Error ? error.message : String(error)}`)
+        return false
+      }
+    },
+    [selectedObjects, addObject, deleteObject]
+  )
+
   return {
     dialogState,
     openOperationDialog,
@@ -319,8 +899,15 @@ export function useCADOperations() {
     applyOperation,
     setDialogValue: (value: string) => setDialogState((prev) => ({ ...prev, value })),
     toggleInteractiveMode,
+    // Boolean operations
+    executeBooleanUnion,
+    executeBooleanSubtract,
+    executeBooleanIntersect,
+    // Modification operations
     executeFillet,
     executeChamfer,
     executeShell,
+    // Transform operations
+    executeMirror,
   }
 }

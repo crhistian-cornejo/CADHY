@@ -12,6 +12,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  formatKbd,
+  Kbd,
+  KbdGroup,
   ScrollArea,
   Separator,
 } from "@cadhy/ui"
@@ -23,6 +26,7 @@ import {
   ViewIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import React from "react"
 import { useTranslation } from "react-i18next"
 
 import { usePlatform } from "@/hooks/use-platform"
@@ -195,16 +199,14 @@ function ShortcutRow({ keys, description }: { keys: string[]; description: strin
   return (
     <div className="flex items-center justify-between py-1">
       <span className="text-xs text-muted-foreground">{description}</span>
-      <div className="flex items-center gap-0.5">
+      <KbdGroup>
         {keys.map((key, i) => (
-          <span key={i} className="flex items-center gap-0.5">
-            <kbd className="min-w-[18px] h-5 px-1 inline-flex items-center justify-center rounded-2xl border border-border bg-muted text-xs font-mono">
-              {key}
-            </kbd>
+          <React.Fragment key={i}>
+            <Kbd>{formatKbd(key)}</Kbd>
             {i < keys.length - 1 && <span className="text-muted-foreground text-xs">+</span>}
-          </span>
+          </React.Fragment>
         ))}
-      </div>
+      </KbdGroup>
     </div>
   )
 }

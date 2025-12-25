@@ -11,9 +11,88 @@ import { loggers } from "@cadhy/shared"
 import { nanoid } from "nanoid"
 import type { StateCreator } from "zustand"
 import type { ModellerStore } from "./store-types"
-import type { AnySceneObject, HistoryEntry } from "./types"
+import type {
+  AnySceneObject,
+  ChannelObject,
+  ChuteObject,
+  HistoryEntry,
+  ShapeObject,
+  TransitionObject,
+} from "./types"
 
 const log = loggers.store
+
+// Helper function to restore TypedArrays in mesh data after JSON deserialization
+// Also ensures all object properties including transform are preserved
+function restoreHistoryObjects(objects: AnySceneObject[]): AnySceneObject[] {
+  return objects.map((obj) => {
+    // Ensure transform is properly structured (preserve position, rotation, scale)
+    const restoredObj = {
+      ...obj,
+      transform: {
+        position: obj.transform?.position ?? { x: 0, y: 0, z: 0 },
+        rotation: obj.transform?.rotation ?? { x: 0, y: 0, z: 0 },
+        scale: obj.transform?.scale ?? { x: 1, y: 1, z: 1 },
+      },
+    }
+
+    // Restore TypedArrays in mesh data if object has mesh
+    if (
+      restoredObj.type === "shape" ||
+      restoredObj.type === "channel" ||
+      restoredObj.type === "transition" ||
+      restoredObj.type === "chute"
+    ) {
+      const objWithMesh = restoredObj as
+        | ShapeObject
+        | ChannelObject
+        | TransitionObject
+        | ChuteObject
+      if (objWithMesh.mesh) {
+        const mesh = objWithMesh.mesh
+        // Check if arrays are regular arrays (from JSON) and convert to TypedArrays
+        // After JSON.parse(JSON.stringify()), TypedArrays become regular arrays
+        const meshVertices = mesh.vertices as Float32Array | number[] | unknown
+        const meshIndices = mesh.indices as Uint32Array | number[] | unknown
+        const meshNormals = mesh.normals as Float32Array | number[] | unknown | undefined
+
+        const restoredMesh = {
+          ...mesh,
+          vertices:
+            meshVertices instanceof Float32Array
+              ? meshVertices
+              : Array.isArray(meshVertices)
+                ? new Float32Array(meshVertices)
+                : new Float32Array(0),
+          indices:
+            meshIndices instanceof Uint32Array
+              ? meshIndices
+              : Array.isArray(meshIndices)
+                ? new Uint32Array(meshIndices)
+                : new Uint32Array(0),
+          normals: (() => {
+            if (meshNormals instanceof Float32Array) {
+              return meshNormals
+            }
+            if (Array.isArray(meshNormals)) {
+              return new Float32Array(meshNormals)
+            }
+            // Fallback: create normals array matching vertices length
+            if (meshVertices instanceof Float32Array) {
+              return new Float32Array(meshVertices.length)
+            }
+            if (Array.isArray(meshVertices)) {
+              return new Float32Array(meshVertices.length)
+            }
+            return new Float32Array(0)
+          })(),
+        }
+        return { ...objWithMesh, mesh: restoredMesh }
+      }
+    }
+    return restoredObj
+  })
+}
 
 // ============================================================================
 // SLICE STATE & ACTIONS
@@ -23,16 +102,25 @@ export interface HistorySliceState {
   history: HistoryEntry[]
   historyIndex: number
   pendingHistoryState: { objects: AnySceneObject[]; selection: string[] } | null
+  /** Index of history entry being previewed on hover (null if none) */
+  historyPreviewIndex: number | null
+}
+
+export interface MergeHistoryOptions {
+  deleteSketches: boolean
+  keepVariables: boolean
 }
 
 export interface HistorySliceActions {
   undo: () => void
   redo: () => void
-  saveToHistory: (action: string) => void
+  saveToHistory: (action: string, details?: HistoryEntry["details"]) => void
   saveStateBeforeAction: () => void
-  commitToHistory: (action: string) => void
+  commitToHistory: (action: string, details?: HistoryEntry["details"]) => void
   clearPendingHistory: () => void
   clearHistory: () => void
+  setHistoryPreview: (index: number | null) => void
+  mergeHistory: (index: number, options: MergeHistoryOptions) => void
 }
 
 export type HistorySlice = HistorySliceState & HistorySliceActions
@@ -45,6 +133,7 @@ export const initialHistoryState: HistorySliceState = {
   history: [],
   historyIndex: -1,
   pendingHistoryState: null,
+  historyPreviewIndex: null,
 }
 
 // ============================================================================
@@ -57,7 +146,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
 ) => ({
   ...initialHistoryState,
 
-  saveToHistory: (action) => {
+  saveToHistory: (action, details) => {
     const { objects, selectedIds, history, historyIndex } = get()
 
     // Remove any redo history (actions after current position)
@@ -70,6 +159,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
       action,
       objects: JSON.parse(JSON.stringify(objects)),
       selection: [...selectedIds],
+      details,
     })
 
     // Keep max 50 history entries
@@ -103,7 +193,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
   // Commit to history after an action completes
   // Uses pendingHistoryState (the "before" state) saved by saveStateBeforeAction
   // The history stores snapshots: undo goes to previous snapshot, redo goes to next
-  commitToHistory: (action) => {
+  commitToHistory: (action, details) => {
     const { objects, selectedIds, history, historyIndex, pendingHistoryState } = get()
 
     log.log(
@@ -117,7 +207,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
 
     if (!pendingHistoryState) {
       // No pending state - just save current state
-      get().saveToHistory(action)
+      get().saveToHistory(action, undefined)
       return
     }
 
@@ -134,6 +224,7 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
       action,
       objects: JSON.parse(JSON.stringify(objects)),
       selection: [...selectedIds],
+      details,
     })
 
     // Keep max 50 history entries
@@ -165,10 +256,15 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
 
     const previousEntry = history[historyIndex - 1]
     log.log("undo - restoring entry:", previousEntry.action)
+
+    // Restore TypedArrays in objects from history
+    const restoredObjects = restoreHistoryObjects(previousEntry.objects)
+
     set({
-      objects: previousEntry.objects,
+      objects: restoredObjects,
       selectedIds: previousEntry.selection,
       historyIndex: historyIndex - 1,
+      historyPreviewIndex: null, // Clear preview when navigating
       isDirty: true,
     })
   },
@@ -178,15 +274,58 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
     if (historyIndex >= history.length - 1) return
 
     const nextEntry = history[historyIndex + 1]
+
+    // Restore TypedArrays in objects from history
+    const restoredObjects = restoreHistoryObjects(nextEntry.objects)
+
     set({
-      objects: nextEntry.objects,
+      objects: restoredObjects,
       selectedIds: nextEntry.selection,
       historyIndex: historyIndex + 1,
+      historyPreviewIndex: null, // Clear preview when navigating
       isDirty: true,
     })
   },
 
   clearHistory: () => {
-    set({ history: [], historyIndex: -1 })
+    set({ history: [], historyIndex: -1, historyPreviewIndex: null })
+  },
+
+  setHistoryPreview: (index) => {
+    set({ historyPreviewIndex: index })
+  },
+
+  mergeHistory: (index, options) => {
+    const { history, historyIndex } = get()
+
+    if (index < 0 || index >= history.length) {
+      log.log("mergeHistory - invalid index:", index)
+      return
+    }
+
+    // Combine all steps up to the merge index
+    // Keep the state from the merge index point
+    const mergedEntry = history[index]
+
+    // Remove all entries after the merge index
+    const newHistory = history.slice(0, index + 1)
+
+    // Restore TypedArrays in objects from history
+    const restoredObjects = restoreHistoryObjects(mergedEntry.objects)
+
+    // Update current state to match merged entry
+    set({
+      history: newHistory,
+      historyIndex: index,
+      objects: restoredObjects,
+      selectedIds: mergedEntry.selection,
+      historyPreviewIndex: null,
+      isDirty: true,
+    })
+
+    log.log("mergeHistory - merged at index:", index, "new history length:", newHistory.length)
+
+    // TODO: Handle sketches and variables based on options
+    // This would require additional logic to identify and handle sketches/variables
   },
 })

@@ -8,6 +8,7 @@ members = [
     "crates/cadhy-mesh",
     "crates/cadhy-export",
     "crates/cadhy-project",
+    "crates/cadhy-ifc",
 ]
 
 [workspace.package]
@@ -23,6 +24,7 @@ cadhy-core = { path = "crates/cadhy-core" }
 cadhy-cad = { path = "crates/cadhy-cad" }
 cadhy-hydraulics = { path = "crates/cadhy-hydraulics" }
 cadhy-mesh = { path = "crates/cadhy-mesh" }
+cadhy-ifc = { path = "crates/cadhy-ifc" }
 
 # Tauri
 tauri = { version = "2", features = [] }

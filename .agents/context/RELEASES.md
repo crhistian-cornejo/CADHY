@@ -14,14 +14,17 @@ CADHY follows a milestone-based release approach:
 
 ## Current Release
 
-### v0.1.0-beta.1 "Foundation" (2025-12-18)
+### v0.1.3 "Foundation" (2025-12-24)
 
-**Status**: `CURRENT` | **Stage**: `Beta`
+**Status**: `CURRENT` | **Stage**: `Stable`
 
-The first beta release establishing all core systems.
+Latest stable release with preferences dialog and BIM enhancements.
 
 #### Highlights
 
+- **Preferences Dialog**: User settings and hotkey customization
+- **BIM Enhancements**: Improved BIM info section
+- **Hotkeys**: Enhanced keyboard shortcuts system
 - **CAD Engine**: OpenCASCADE 7.9.2 with primitives and boolean operations
 - **3D Viewer**: Three.js with camera controls and grid
 - **Hydraulic Analysis**: Manning equation, GVF, hydraulic jump
@@ -36,6 +39,21 @@ The first beta release establishing all core systems.
 | Rust Crates | 6 |
 | TypeScript Packages | 5 |
 | Test Coverage | Partial |
+
+---
+
+## Previous Releases
+
+### v0.1.2 (2025-12-18)
+- Fix macOS app crash
+- Consolidate toolbars
+- Fix shape export
+
+### v0.1.1 (2025-12-18) - BROKEN
+- macOS standalone distribution fix (OCCT dylib bundling)
+
+### v0.1.0-beta.1 (2025-12-18)
+- Initial beta release establishing all core systems
 
 ---
 
@@ -157,7 +175,7 @@ Migration guides will be added here as breaking changes occur.
 
 When discussing releases:
 
-1. **Current version is 0.1.0-beta.1** (beta stage)
+1. **Current version is 0.1.3** (stable, pre-1.0)
 2. **Breaking changes are allowed** until 1.0.0
 3. **Check VERSION.md** for exact version details
 4. **Reference this file** for roadmap context
@@ -165,4 +183,4 @@ When discussing releases:
 
 ---
 
-**Last Updated**: 2025-12-18
+**Last Updated**: 2025-12-24

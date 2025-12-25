@@ -48,11 +48,15 @@ export interface ProjectInfo {
   isDirty: boolean
 }
 
+/** Drawing data for persistence */
+export type DrawingsData = unknown // Serialized Drawing[] from drawing-store
+
 /** Full project data returned when opening a project */
 export interface ProjectFullData {
   info: ProjectInfo
   settings: ProjectSettings
   scene: SceneData
+  drawings?: DrawingsData
 }
 
 // ============================================================================
@@ -192,10 +196,14 @@ export async function openProject(path: string): Promise<ProjectFullData> {
 }
 
 /**
- * Saves scene data to existing project file
+ * Saves scene data and drawings to existing project file
  */
-export async function saveProject(path: string, scene: SceneData): Promise<ProjectInfo> {
-  const info = await invoke<ProjectInfo>("save_project", { path, scene })
+export async function saveProject(
+  path: string,
+  scene: SceneData,
+  drawings?: DrawingsData
+): Promise<ProjectInfo> {
+  const info = await invoke<ProjectInfo>("save_project", { path, scene, drawings })
   return info
 }
 
@@ -206,13 +214,15 @@ export async function saveProjectAs(
   oldPath: string,
   newPath: string,
   newName: string,
-  scene: SceneData
+  scene: SceneData,
+  drawings?: DrawingsData
 ): Promise<ProjectInfo> {
   const info = await invoke<ProjectInfo>("save_project_as", {
     oldPath,
     newPath,
     newName,
     scene,
+    drawings,
   })
   return info
 }

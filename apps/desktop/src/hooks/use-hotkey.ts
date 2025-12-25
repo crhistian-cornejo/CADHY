@@ -8,6 +8,23 @@ import { useCallback, useEffect, useSyncExternalStore } from "react"
 import { formatKeysForDisplay, hotkeyRegistry } from "@/services/hotkey-registry"
 import { type HotkeyCategory, type HotkeyDefinition, useHotkeyStore } from "@/stores/hotkey-store"
 
+// Cached snapshot for useSyncExternalStore
+let cachedHotkeys: HotkeyDefinition[] = []
+let cacheVersion = 0
+
+function updateCache() {
+  cachedHotkeys = hotkeyRegistry.getAll()
+  cacheVersion++
+}
+
+// Initialize cache
+updateCache()
+
+// Subscribe to registry changes to update cache
+hotkeyRegistry.subscribe(() => {
+  updateCache()
+})
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -76,7 +93,8 @@ export function useHotkey(options: UseHotkeyOptions, action: () => void): void {
 export function useHotkeyRegistry(): HotkeyDefinition[] {
   const subscribe = useCallback((callback: () => void) => hotkeyRegistry.subscribe(callback), [])
 
-  const getSnapshot = useCallback(() => hotkeyRegistry.getAll(), [])
+  // Return cached snapshot - this is stable between renders unless cache is updated
+  const getSnapshot = useCallback(() => cachedHotkeys, [])
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }

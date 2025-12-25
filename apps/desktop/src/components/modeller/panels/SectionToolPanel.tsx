@@ -192,8 +192,8 @@ export function SectionToolPanel() {
       {sections.length > 0 && (
         <>
           <Separator />
-          <div className="rounded-2xl bg-blue-500/10 border border-blue-500/20 p-3">
-            <p className="text-xs text-blue-600 dark:text-blue-400">
+          <div className="rounded-2xl bg-status-info-bg border border-status-info-border p-3">
+            <p className="text-xs text-status-info">
               💡 Tip: Drag sliders to move section planes and reveal interior details
             </p>
           </div>

@@ -135,7 +135,9 @@
 - `.agents/standards/BEST-PRACTICES.md` - Mejores prácticas
 
 ### Reportes
-- `.agents/reports/CHILLI3D-COMPARISON.md` - Comparación detallada
+- `.agents/reports/CHILLI3D-ARCHITECTURE-COMPARISON.md` - Comparación arquitectónica detallada
+- `.agents/reports/CHILLI3D-CADHY-COMPARISON.md` - Comparación de operaciones CAD
+- `.agents/reports/BVH-ICONS-STATUS.md` - Status de BVH y sistema de iconos
 - `.agents/reports/` - Otros reportes técnicos
 
 ### Referencias Externas

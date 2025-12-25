@@ -76,6 +76,8 @@ export function SceneContent({ showStats }: SceneContentProps) {
   const focusObjectId = useFocusObjectId()
   const clearFocus = useModellerStore((s) => s.clearFocus)
   const getObjectById = useModellerStore((s) => s.getObjectById)
+  const historyPreviewIndex = useModellerStore((s) => s.historyPreviewIndex)
+  const history = useModellerStore((s) => s.history)
 
   // CAD Operations for interactive edge gizmos
   const { dialogState, setDialogValue } = useCADOperations()
@@ -485,8 +487,16 @@ export function SceneContent({ showStats }: SceneContentProps) {
       isDraggingRef.current = false
       const objectName = draggedObjectNameRef.current
       draggedObjectNameRef.current = null
-      // Commit the transformation to history
-      useModellerStore.getState().commitToHistory(`Transform: ${objectName}`)
+      // Get selected objects for details
+      const selectedObjs = useModellerStore.getState().getSelectedObjects()
+      const selectedIds = useModellerStore.getState().selectedIds
+
+      // Commit the transformation to history with details
+      useModellerStore.getState().commitToHistory(`Movimiento/giro: ${objectName}`, {
+        targetBodies: selectedIds.length > 0 ? selectedIds : undefined,
+        targetFaces: selectedObjs.length > 0 ? selectedObjs.length : undefined,
+        copy: false, // TODO: Get from transform state
+      })
       logger.log("[Transform] Committed to history:", objectName)
     }
   }, [])
@@ -695,8 +705,18 @@ export function SceneContent({ showStats }: SceneContentProps) {
           position={[15, 20, 10]}
           intensity={1.2}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          shadow-mapSize-width={
+            viewportSettings.postProcessingQuality === "high" ||
+            viewportSettings.postProcessingQuality === "ultra"
+              ? 2048
+              : 1024
+          }
+          shadow-mapSize-height={
+            viewportSettings.postProcessingQuality === "high" ||
+            viewportSettings.postProcessingQuality === "ultra"
+              ? 2048
+              : 1024
+          }
           shadow-camera-near={0.5}
           shadow-camera-far={100}
           shadow-camera-left={-25}
@@ -705,6 +725,15 @@ export function SceneContent({ showStats }: SceneContentProps) {
           shadow-camera-bottom={-25}
           shadow-bias={-0.0001}
           shadow-normalBias={0.02}
+        />
+      )}
+
+      {/* Rim Light - Backlighting for edge definition */}
+      {(viewportSettings.rimLight ?? 0) > 0 && (
+        <directionalLight
+          position={[-15, -10, -10]}
+          intensity={(viewportSettings.rimLight ?? 0) * 0.5}
+          color="#ffffff"
         />
       )}
 
@@ -729,14 +758,19 @@ export function SceneContent({ showStats }: SceneContentProps) {
       {viewportSettings.showAxes && <axesHelper args={[5]} />}
 
       {/* Soft Shadows - Optimized and compatible */}
-      {viewportSettings.shadows && (
+      {viewportSettings.shadows && viewportSettings.postProcessingQuality !== "low" && (
         <ContactShadows
           position={[0, 0.005, 0]}
           opacity={0.5}
           scale={50}
           blur={2.5}
           far={20}
-          resolution={512}
+          resolution={
+            viewportSettings.postProcessingQuality === "high" ||
+            viewportSettings.postProcessingQuality === "ultra"
+              ? 512
+              : 256
+          }
           color="#000000"
         />
       )}
@@ -793,6 +827,33 @@ export function SceneContent({ showStats }: SceneContentProps) {
           )
         })}
       </group>
+
+      {/* History Preview Scene - Ghost Objects (Layer 1.5, RenderOrder 1.5) */}
+      {/* These objects show a preview of a past state when hovering over history entries */}
+      {historyPreviewIndex !== null && history[historyPreviewIndex] && (
+        <group name="history-preview-scene" renderOrder={1.5}>
+          {history[historyPreviewIndex].objects
+            .filter((obj) => obj.visible)
+            .map((object) => {
+              // Check if this object exists in current scene
+              const currentObject = visibleObjects.find((o) => o.id === object.id)
+              const isSelected = history[historyPreviewIndex].selection.includes(object.id)
+
+              return (
+                <SceneObjectMesh
+                  key={`history-preview-${object.id}`}
+                  object={object}
+                  isSelected={isSelected}
+                  isHovered={false}
+                  viewMode={viewportSettings.viewMode}
+                  onSelect={() => {}} // Preview objects aren't selectable
+                  onHover={() => {}}
+                  isGhostPreview={true}
+                />
+              )
+            })}
+        </group>
+      )}
 
       {/* Helpers Scene - Visual Aids (Layer 2, RenderOrder 2) */}
       {/* Grid, Axes, Gizmos, Measurements are rendered with higher priority */}
@@ -893,6 +954,10 @@ export function SceneContent({ showStats }: SceneContentProps) {
           enableSSAO={viewportSettings.ambientOcclusion ?? false}
           enableBloom
           enableAA={viewportSettings.antialiasing ?? true}
+          reflection={viewportSettings.reflection ?? 0}
+          brightness={viewportSettings.brightness ?? 1}
+          contrast={viewportSettings.contrast ?? 1}
+          rimLight={viewportSettings.rimLight ?? 0}
         />
       )}
 

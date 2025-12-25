@@ -54,6 +54,7 @@
     "longDescription": "CADHY is a civil-hydraulic engineering application for analyzing open channel flow, water profiles, and hydraulic structures.",
     "icon": [
       "icons/32x32.png",
+      "icons/64x64.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",

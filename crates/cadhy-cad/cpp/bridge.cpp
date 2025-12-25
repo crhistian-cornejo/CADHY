@@ -195,7 +195,7 @@ std::unique_ptr<OcctShape> make_helix_at(
 ) {
     try {
         if (radius <= 0 || pitch <= 0 || height <= 0) {
-            std::cerr << "make_helix: invalid parameters (radius=" << radius 
+            std::cerr << "make_helix: invalid parameters (radius=" << radius
                       << ", pitch=" << pitch << ", height=" << height << ")" << std::endl;
             return nullptr;
         }
@@ -204,48 +204,48 @@ std::unique_ptr<OcctShape> make_helix_at(
         gp_Pnt origin(x, y, z);
         gp_Dir direction(ax, ay, az);
         gp_Ax3 axis(origin, direction);
-        
+
         Handle(Geom_CylindricalSurface) cylinder = new Geom_CylindricalSurface(axis, radius);
-        
+
         // Calculate helix parameters
         // A helix on a cylinder is a line in the UV space
         // The line has slope = pitch / (2 * pi * radius) in UV coordinates
         double turns = height / pitch;
         double totalAngle = turns * 2.0 * M_PI;
-        
+
         // Create 2D line on the cylinder surface
         // The line goes from (0, 0) to (totalAngle, height) in UV space
         // For clockwise helix, we negate the angle direction
         double sign = clockwise ? 1.0 : -1.0;
-        
+
         // Create the 2D line: origin at (0,0), direction towards (sign*totalAngle, height)
         gp_Pnt2d lineOrigin(0.0, 0.0);
         gp_Dir2d lineDir(sign * totalAngle, height);
         Handle(Geom2d_Line) line2d = new Geom2d_Line(lineOrigin, lineDir);
-        
+
         // Calculate the parameter range
         // The length in UV space
         double uvLength = std::sqrt(totalAngle * totalAngle + height * height);
-        
+
         // Create edge on the cylindrical surface
         BRepBuilderAPI_MakeEdge edgeMaker(line2d, cylinder, 0.0, uvLength);
         edgeMaker.Build();
-        
+
         if (!edgeMaker.IsDone()) {
             std::cerr << "make_helix: failed to create edge on cylinder" << std::endl;
             return nullptr;
         }
-        
+
         // Convert edge to wire
         TopoDS_Edge edge = edgeMaker.Edge();
         BRepBuilderAPI_MakeWire wireMaker(edge);
         wireMaker.Build();
-        
+
         if (!wireMaker.IsDone()) {
             std::cerr << "make_helix: failed to create wire from edge" << std::endl;
             return nullptr;
         }
-        
+
         return std::make_unique<OcctShape>(wireMaker.Wire());
     } catch (const Standard_Failure& e) {
         std::cerr << "make_helix exception: " << e.GetMessageString() << std::endl;
@@ -564,7 +564,7 @@ std::unique_ptr<OcctShape> fillet_edges(
         for (size_t i = 0; i < edge_indices.size(); i++) {
             int32_t idx = edge_indices[i] + 1; // Convert to 1-based
             if (idx < 1 || idx > edgeMap.Extent()) {
-                std::cerr << "fillet_edges: edge index " << edge_indices[i] 
+                std::cerr << "fillet_edges: edge index " << edge_indices[i]
                           << " out of range (0-" << edgeMap.Extent() - 1 << ")" << std::endl;
                 continue;
             }
@@ -611,7 +611,7 @@ std::unique_ptr<OcctShape> chamfer_edges(
         for (size_t i = 0; i < edge_indices.size(); i++) {
             int32_t idx = edge_indices[i] + 1; // Convert to 1-based
             if (idx < 1 || idx > edgeMap.Extent()) {
-                std::cerr << "chamfer_edges: edge index " << edge_indices[i] 
+                std::cerr << "chamfer_edges: edge index " << edge_indices[i]
                           << " out of range (0-" << edgeMap.Extent() - 1 << ")" << std::endl;
                 continue;
             }
@@ -653,18 +653,18 @@ std::unique_ptr<OcctShape> add_draft(
         TopExp_Explorer faceExplorer(shape.get(), TopAbs_FACE);
         for (; faceExplorer.More(); faceExplorer.Next()) {
             const TopoDS_Face& face = TopoDS::Face(faceExplorer.Current());
-            
+
             // Check if face is suitable for drafting (non-planar or not perpendicular to direction)
             BRepAdaptor_Surface adaptor(face);
             if (adaptor.GetType() == GeomAbs_Plane) {
                 gp_Pln facePlane = adaptor.Plane();
                 gp_Dir faceNormal = facePlane.Axis().Direction();
-                
+
                 // Skip faces that are perpendicular to the draft direction
                 // (top/bottom faces that shouldn't be drafted)
                 double dotProduct = std::abs(faceNormal.Dot(direction));
                 if (dotProduct > 0.99) continue; // Nearly perpendicular
-                
+
                 // Skip faces that are parallel to the draft direction
                 // (already vertical faces)
                 if (dotProduct < 0.01) continue;
@@ -736,7 +736,7 @@ std::unique_ptr<OcctShape> thicken(
                 true        // ThickeningMode (creates solid from surface)
             );
             solidMaker.MakeOffsetShape();
-            
+
             if (!solidMaker.IsDone()) {
                 std::cerr << "thicken: solid creation failed" << std::endl;
                 return nullptr;
@@ -757,7 +757,7 @@ std::unique_ptr<OcctShape> thicken(
                 true  // ThickeningMode
             );
             solidMaker.MakeOffsetShape();
-            
+
             if (!solidMaker.IsDone()) {
                 std::cerr << "thicken: single-sided solid creation failed" << std::endl;
                 return nullptr;
@@ -1306,11 +1306,11 @@ std::unique_ptr<OcctShape> make_ellipse(
         gp_Pnt center(cx, cy, cz);
         gp_Dir normal(nx, ny, nz);
         gp_Ax2 axis(center, normal);
-        
+
         if (std::abs(rotation) > 1e-10) {
             axis.Rotate(gp_Ax1(center, normal), rotation);
         }
-        
+
         gp_Elips ellipse(axis, major_radius, minor_radius);
         BRepBuilderAPI_MakeEdge maker(ellipse);
         if (!maker.IsDone()) return nullptr;
@@ -1329,10 +1329,10 @@ std::unique_ptr<OcctShape> make_arc_3_points(
         gp_Pnt p1(x1, y1, z1);
         gp_Pnt p2(x2, y2, z2);
         gp_Pnt p3(x3, y3, z3);
-        
+
         GC_MakeArcOfCircle maker(p1, p2, p3);
         if (!maker.IsDone()) return nullptr;
-        
+
         BRepBuilderAPI_MakeEdge edgeMaker(maker.Value());
         if (!edgeMaker.IsDone()) return nullptr;
         return std::make_unique<OcctShape>(edgeMaker.Edge());
@@ -1347,16 +1347,16 @@ std::unique_ptr<OcctShape> make_bspline_interpolate(
 ) {
     try {
         if (points.size() < 2) return nullptr;
-        
+
         Handle(TColgp_HArray1OfPnt) pntArray = new TColgp_HArray1OfPnt(1, static_cast<int>(points.size()));
         for (size_t i = 0; i < points.size(); ++i) {
             pntArray->SetValue(static_cast<int>(i + 1), gp_Pnt(points[i].x, points[i].y, points[i].z));
         }
-        
+
         GeomAPI_Interpolate interpolator(pntArray, closed, 1e-6);
         interpolator.Perform();
         if (!interpolator.IsDone()) return nullptr;
-        
+
         Handle(Geom_BSplineCurve) curve = interpolator.Curve();
         BRepBuilderAPI_MakeEdge edgeMaker(curve);
         if (!edgeMaker.IsDone()) return nullptr;
@@ -1371,13 +1371,13 @@ std::unique_ptr<OcctShape> make_bezier(
 ) {
     try {
         if (control_points.size() < 2) return nullptr;
-        
+
         TColgp_Array1OfPnt poles(1, static_cast<int>(control_points.size()));
         for (size_t i = 0; i < control_points.size(); ++i) {
-            poles.SetValue(static_cast<int>(i + 1), 
+            poles.SetValue(static_cast<int>(i + 1),
                 gp_Pnt(control_points[i].x, control_points[i].y, control_points[i].z));
         }
-        
+
         Handle(Geom_BezierCurve) curve = new Geom_BezierCurve(poles);
         BRepBuilderAPI_MakeEdge edgeMaker(curve);
         if (!edgeMaker.IsDone()) return nullptr;
@@ -1428,7 +1428,7 @@ MeshResult tessellate(const OcctShape& shape, double deflection) {
             FaceInfo faceInfo;
             faceInfo.index = faceIndex;
             faceInfo.is_reversed = (face.Orientation() == TopAbs_REVERSED);
-            
+
             // Get surface type and properties
             BRepAdaptor_Surface surfAdaptor(face);
             GeomAbs_SurfaceType surfType = surfAdaptor.GetType();
@@ -1442,7 +1442,7 @@ MeshResult tessellate(const OcctShape& shape, double deflection) {
                 case GeomAbs_BSplineSurface: faceInfo.surface_type = 6; break;
                 default: faceInfo.surface_type = 7; break;
             }
-            
+
             // Get face normal at center (UV midpoint)
             double uMid = (surfAdaptor.FirstUParameter() + surfAdaptor.LastUParameter()) / 2.0;
             double vMid = (surfAdaptor.FirstVParameter() + surfAdaptor.LastVParameter()) / 2.0;
@@ -1457,22 +1457,22 @@ MeshResult tessellate(const OcctShape& shape, double deflection) {
             faceInfo.normal_x = faceNormal.X();
             faceInfo.normal_y = faceNormal.Y();
             faceInfo.normal_z = faceNormal.Z();
-            
+
             // Calculate face area
             GProp_GProps props;
             BRepGProp::SurfaceProperties(face, props);
             faceInfo.area = props.Mass();
-            
+
             // Count edges of this face
             int edgeCount = 0;
             for (TopExp_Explorer edgeExp(face, TopAbs_EDGE); edgeExp.More(); edgeExp.Next()) {
                 edgeCount++;
             }
             faceInfo.num_edges = edgeCount;
-            
+
             // Get face center of mass for position-based labeling
             gp_Pnt faceCenter = props.CentreOfMass();
-            
+
             // Determine semantic label based on normal direction, surface type, and position
             rust::String label;
             if (surfType == GeomAbs_Plane) {
@@ -1481,7 +1481,7 @@ MeshResult tessellate(const OcctShape& shape, double deflection) {
                 double ny = std::abs(faceInfo.normal_y);
                 double nz = std::abs(faceInfo.normal_z);
                 double tolerance = 0.9; // ~25 degrees tolerance
-                
+
                 if (nz > tolerance) {
                     // Face normal predominantly in Z direction
                     // Check if this is an inlet/outlet cap (at Z bounds of shape)
@@ -1512,7 +1512,7 @@ MeshResult tessellate(const OcctShape& shape, double deflection) {
                 label = "freeform";
             }
             faceInfo.label = label;
-            
+
             result.faces.push_back(faceInfo);
 
             // Process vertices
@@ -1605,7 +1605,7 @@ MeshResult tessellate_with_angle(const OcctShape& shape, double deflection, doub
             FaceInfo faceInfo;
             faceInfo.index = faceIndex;
             faceInfo.is_reversed = (face.Orientation() == TopAbs_REVERSED);
-            
+
             // Get surface type and properties
             BRepAdaptor_Surface surfAdaptor(face);
             GeomAbs_SurfaceType surfType = surfAdaptor.GetType();
@@ -1619,7 +1619,7 @@ MeshResult tessellate_with_angle(const OcctShape& shape, double deflection, doub
                 case GeomAbs_BSplineSurface: faceInfo.surface_type = 6; break;
                 default: faceInfo.surface_type = 7; break;
             }
-            
+
             // Get face normal at center
             double uMid = (surfAdaptor.FirstUParameter() + surfAdaptor.LastUParameter()) / 2.0;
             double vMid = (surfAdaptor.FirstVParameter() + surfAdaptor.LastVParameter()) / 2.0;
@@ -1634,22 +1634,22 @@ MeshResult tessellate_with_angle(const OcctShape& shape, double deflection, doub
             faceInfo.normal_x = faceNormal.X();
             faceInfo.normal_y = faceNormal.Y();
             faceInfo.normal_z = faceNormal.Z();
-            
+
             // Calculate face area
             GProp_GProps props;
             BRepGProp::SurfaceProperties(face, props);
             faceInfo.area = props.Mass();
-            
+
             // Count edges
             int edgeCount = 0;
             for (TopExp_Explorer edgeExp(face, TopAbs_EDGE); edgeExp.More(); edgeExp.Next()) {
                 edgeCount++;
             }
             faceInfo.num_edges = edgeCount;
-            
+
             // Get face center of mass for position-based labeling
             gp_Pnt faceCenter = props.CentreOfMass();
-            
+
             // Determine semantic label based on normal direction, surface type, and position
             rust::String label;
             if (surfType == GeomAbs_Plane) {
@@ -1657,7 +1657,7 @@ MeshResult tessellate_with_angle(const OcctShape& shape, double deflection, doub
                 double ny = std::abs(faceInfo.normal_y);
                 double nz = std::abs(faceInfo.normal_z);
                 double tolerance = 0.9;
-                
+
                 if (nz > tolerance) {
                     // Face normal predominantly in Z direction
                     // Check if this is an inlet/outlet cap (at Z bounds of shape)
@@ -1688,7 +1688,7 @@ MeshResult tessellate_with_angle(const OcctShape& shape, double deflection, doub
                 label = "freeform";
             }
             faceInfo.label = label;
-            
+
             result.faces.push_back(faceInfo);
 
             // Process vertices
@@ -1748,34 +1748,34 @@ MeshResult tessellate_with_angle(const OcctShape& shape, double deflection, doub
 
 rust::Vec<uint8_t> write_brep(const OcctShape& shape) {
     rust::Vec<uint8_t> result;
-    
+
     try {
         if (shape.is_null()) return result;
-        
+
         std::ostringstream stream;
         BRepTools::Write(shape.get(), stream);
         std::string data = stream.str();
-        
+
         result.reserve(data.size());
         for (char c : data) {
             result.push_back(static_cast<uint8_t>(c));
         }
     } catch (...) {}
-    
+
     return result;
 }
 
 std::unique_ptr<OcctShape> read_brep(rust::Slice<const uint8_t> data) {
     try {
         if (data.empty()) return nullptr;
-        
+
         std::string str(reinterpret_cast<const char*>(data.data()), data.size());
         std::istringstream stream(str);
-        
+
         TopoDS_Shape shape;
         BRep_Builder builder;
         BRepTools::Read(shape, stream, builder);
-        
+
         if (shape.IsNull()) return nullptr;
         return std::make_unique<OcctShape>(shape);
     } catch (...) {
@@ -1853,7 +1853,7 @@ bool write_step(const OcctShape& shape, rust::Str filename) {
 	        return nullptr;
 	    }
 	}
-	
+
 	bool write_iges(const OcctShape& shape, rust::Str filename) {
 	    try {
 	        if (shape.is_null()) return false;
@@ -2004,12 +2004,12 @@ bool write_stl(const OcctShape& shape, rust::Str filename, double deflection) {
     try {
         if (shape.is_null()) return false;
         std::string path(filename.data(), filename.size());
-        
+
         // Tessellate first
         BRepMesh_IncrementalMesh mesh(shape.get(), deflection);
         mesh.Perform();
         if (!mesh.IsDone()) return false;
-        
+
         // Use StlAPI for writing STL from shape
         StlAPI_Writer stlWriter;
         stlWriter.ASCIIMode() = true;
@@ -2023,12 +2023,12 @@ bool write_stl_binary(const OcctShape& shape, rust::Str filename, double deflect
     try {
         if (shape.is_null()) return false;
         std::string path(filename.data(), filename.size());
-        
+
         // Tessellate first
         BRepMesh_IncrementalMesh mesh(shape.get(), deflection);
         mesh.Perform();
         if (!mesh.IsDone()) return false;
-        
+
         // Use StlAPI for writing binary STL
         StlAPI_Writer stlWriter;
         stlWriter.ASCIIMode() = false;
@@ -2127,7 +2127,7 @@ bool check_shape_validity(const OcctShape& shape) {
 double get_shape_tolerance(const OcctShape& shape) {
     try {
         if (shape.is_null()) return -1.0;
-        
+
         // Calculate average tolerance from all edges
         double totalTol = 0.0;
         int count = 0;
@@ -2175,24 +2175,24 @@ std::unique_ptr<OcctShape> fix_shape_advanced(
             // Fix each wire's degenerated edges
             for (TopExp_Explorer wireExp(result, TopAbs_WIRE); wireExp.More(); wireExp.Next()) {
                 TopoDS_Wire wire = TopoDS::Wire(wireExp.Current());
-                
+
                 Handle(ShapeFix_Wire) wireFixer = new ShapeFix_Wire(wire, TopoDS_Face(), tol);
                 wireFixer->SetPrecision(tol);
-                
+
                 // Fix degenerated edges - removes or repairs edges with zero length
                 wireFixer->FixDegenerated();
-                
+
                 // Also fix connected edges that might have issues
                 wireFixer->FixConnected();
                 wireFixer->FixEdgeCurves();
             }
-            
+
             // Fix each edge individually for degeneration
             Handle(ShapeBuild_ReShape) reShape = new ShapeBuild_ReShape();
-            
+
             for (TopExp_Explorer edgeExp(result, TopAbs_EDGE); edgeExp.More(); edgeExp.Next()) {
                 TopoDS_Edge edge = TopoDS::Edge(edgeExp.Current());
-                
+
                 // Check if edge is degenerated
                 if (BRep_Tool::Degenerated(edge)) {
                     // ShapeFix_Edge works on edges in context of faces
@@ -2200,10 +2200,10 @@ std::unique_ptr<OcctShape> fix_shape_advanced(
                     // The wireframe fixer below will handle consolidation
                 }
             }
-            
+
             // Apply reshaping
             result = reShape->Apply(result);
-            
+
             // Run full shape fix again after degenerated edge handling
             Handle(ShapeFix_Shape) postFixer = new ShapeFix_Shape(result);
             postFixer->SetPrecision(tol);
@@ -2218,13 +2218,13 @@ std::unique_ptr<OcctShape> fix_shape_advanced(
             Handle(ShapeFix_Wireframe) wireframeFixer = new ShapeFix_Wireframe(result);
             wireframeFixer->SetPrecision(tol);
             wireframeFixer->SetLimitAngle(0.01); // ~0.57 degrees
-            
+
             // Fix small edges - merges or removes edges smaller than tolerance
             wireframeFixer->FixSmallEdges();
-            
+
             // Fix gaps between edges in wires
             wireframeFixer->FixWireGaps();
-            
+
             result = wireframeFixer->Shape();
         }
 
@@ -2235,13 +2235,13 @@ std::unique_ptr<OcctShape> fix_shape_advanced(
             // Analyze small faces
             ShapeAnalysis_CheckSmallFace smallFaceChecker;
             smallFaceChecker.SetTolerance(tol);
-            
+
             // Build list of faces to potentially remove/merge
             TopTools_ListOfShape facesToRemove;
-            
+
             for (TopExp_Explorer faceExp(result, TopAbs_FACE); faceExp.More(); faceExp.Next()) {
                 TopoDS_Face face = TopoDS::Face(faceExp.Current());
-                
+
                 // Check if face is small (spot face)
                 // Note: OCCT 7.9 CheckSpotFace signature: (face, tolerance) -> status
                 Standard_Integer spotStatus = smallFaceChecker.CheckSpotFace(face, tol);
@@ -2251,11 +2251,11 @@ std::unique_ptr<OcctShape> fix_shape_advanced(
                     // For now, we mark it for potential processing
                 }
             }
-            
+
             // Apply face fixes through ShapeFix_Face
             for (TopExp_Explorer faceExp(result, TopAbs_FACE); faceExp.More(); faceExp.Next()) {
                 TopoDS_Face face = TopoDS::Face(faceExp.Current());
-                
+
                 Handle(ShapeFix_Face) faceFixer = new ShapeFix_Face(face);
                 faceFixer->SetPrecision(tol);
                 faceFixer->FixOrientation();
@@ -2272,22 +2272,22 @@ std::unique_ptr<OcctShape> fix_shape_advanced(
         if (fix_self_intersection) {
             // First, detect self-intersections
             BOPAlgo_CheckerSI checker;
-            
+
             // Create arguments list properly
             TopTools_ListOfShape argsList;
             argsList.Append(result);
             checker.SetArguments(argsList);
-            
+
             checker.SetNonDestructive(true);
             checker.SetRunParallel(false); // Safer for cross-platform
             checker.SetFuzzyValue(tol);
             checker.Perform();
-            
+
             // Check if there are self-intersections
             if (checker.HasErrors()) {
                 // Self-intersections detected
                 // Apply healing passes to try to fix them
-                
+
                 // Pass 1: Increase tolerance slightly and re-fix
                 Handle(ShapeFix_Shape) toleranceFixer = new ShapeFix_Shape(result);
                 toleranceFixer->SetPrecision(tol * 2.0);
@@ -2295,18 +2295,18 @@ std::unique_ptr<OcctShape> fix_shape_advanced(
                 toleranceFixer->SetMaxTolerance(tol * 100.0);
                 toleranceFixer->Perform();
                 result = toleranceFixer->Shape();
-                
+
                 // Pass 2: Fix faces that might be causing intersection
                 for (TopExp_Explorer faceExp(result, TopAbs_FACE); faceExp.More(); faceExp.Next()) {
                     TopoDS_Face face = TopoDS::Face(faceExp.Current());
-                    
+
                     Handle(ShapeFix_Face) faceFixer = new ShapeFix_Face(face);
                     faceFixer->SetPrecision(tol * 2.0);
                     faceFixer->FixAddNaturalBound();
                     faceFixer->FixMissingSeam();
                     faceFixer->Perform();
                 }
-                
+
                 // Pass 3: Final shape healing
                 Handle(ShapeFix_Shape) finalFixer = new ShapeFix_Shape(result);
                 finalFixer->SetPrecision(tol);
@@ -2359,15 +2359,15 @@ DistanceResult compute_minimum_distance(const OcctShape& shape1, const OcctShape
         if (shape1.is_null() || shape2.is_null()) return result;
 
         BRepExtrema_DistShapeShape distCalc(shape1.get(), shape2.get());
-        
+
         if (!distCalc.IsDone() || distCalc.NbSolution() == 0) return result;
 
         result.distance = distCalc.Value();
-        
+
         // Get the closest points
         gp_Pnt pt1 = distCalc.PointOnShape1(1);
         gp_Pnt pt2 = distCalc.PointOnShape2(1);
-        
+
         result.point1_x = pt1.X();
         result.point1_y = pt1.Y();
         result.point1_z = pt1.Z();
@@ -2378,7 +2378,7 @@ DistanceResult compute_minimum_distance(const OcctShape& shape1, const OcctShape
         // Get support types
         BRepExtrema_SupportType type1 = distCalc.SupportTypeShape1(1);
         BRepExtrema_SupportType type2 = distCalc.SupportTypeShape2(1);
-        
+
         result.support_type1 = static_cast<int32_t>(type1);
         result.support_type2 = static_cast<int32_t>(type2);
         result.valid = true;
@@ -2411,15 +2411,15 @@ DistanceResult compute_point_to_shape_distance(
         BRepBuilderAPI_MakeVertex vertexMaker(gp_Pnt(px, py, pz));
         vertexMaker.Build();
         if (!vertexMaker.IsDone()) return result;
-        
+
         TopoDS_Vertex vertex = vertexMaker.Vertex();
-        
+
         BRepExtrema_DistShapeShape distCalc(vertex, shape.get());
-        
+
         if (!distCalc.IsDone() || distCalc.NbSolution() == 0) return result;
 
         result.distance = distCalc.Value();
-        
+
         // Get the closest point on shape
         gp_Pnt pt2 = distCalc.PointOnShape2(1);
         result.point2_x = pt2.X();
@@ -2598,13 +2598,13 @@ static void count_shape_topology(const TopoDS_Shape& shape, int& faces, int& edg
     faces = 0;
     edges = 0;
     vertices = 0;
-    
+
     for (TopExp_Explorer exp(shape, TopAbs_FACE); exp.More(); exp.Next()) faces++;
     for (TopExp_Explorer exp(shape, TopAbs_EDGE); exp.More(); exp.Next()) edges++;
     for (TopExp_Explorer exp(shape, TopAbs_VERTEX); exp.More(); exp.Next()) vertices++;
 }
 
-// Helper function to extract 2D edges from a TopoDS_Shape (improved with logging)
+// Helper function to extract 2D edges from a TopoDS_Shape (with curve tessellation)
 static int extract_2d_edges(
     const TopoDS_Shape& shape,
     int line_type,
@@ -2631,48 +2631,276 @@ static int extract_2d_edges(
             continue;
         }
 
-        // Get start and end points
-        gp_Pnt startPt = curve->Value(first);
-        gp_Pnt endPt = curve->Value(last);
+        // Check if curve is a straight line
+        GeomAdaptor_Curve adaptor(curve);
+        bool isLine = (adaptor.GetType() == GeomAbs_Line);
 
-        // For HLR output, Z should be near 0 (projected to XY plane)
-        Line2DFFI line;
-        line.start_x = startPt.X();
-        line.start_y = startPt.Y();
-        line.end_x = endPt.X();
-        line.end_y = endPt.Y();
-        line.line_type = line_type;
+        if (isLine) {
+            // For lines, just use start and end points
+            gp_Pnt startPt = curve->Value(first);
+            gp_Pnt endPt = curve->Value(last);
 
-        // Skip degenerate edges
-        double len = std::sqrt(
-            std::pow(line.end_x - line.start_x, 2) +
-            std::pow(line.end_y - line.start_y, 2)
-        );
-        if (len <= 1e-7) {
-            skipped_degenerate++;
-            continue;
+            Line2DFFI line;
+            line.start_x = startPt.X();
+            line.start_y = startPt.Y();
+            line.end_x = endPt.X();
+            line.end_y = endPt.Y();
+            line.line_type = line_type;
+
+            double len = std::sqrt(
+                std::pow(line.end_x - line.start_x, 2) +
+                std::pow(line.end_y - line.start_y, 2)
+            );
+            if (len <= 1e-7) {
+                skipped_degenerate++;
+                continue;
+            }
+
+            min_x = std::min({min_x, line.start_x, line.end_x});
+            min_y = std::min({min_y, line.start_y, line.end_y});
+            max_x = std::max({max_x, line.start_x, line.end_x});
+            max_y = std::max({max_y, line.start_y, line.end_y});
+
+            lines.push_back(line);
+            extracted++;
+        } else {
+            // For curves (arcs, B-splines, etc.), tessellate into line segments
+            // Calculate number of segments based on curve length and curvature
+            double paramRange = last - first;
+
+            // Estimate curve length for segment count
+            GCPnts_AbscissaPoint::Length(adaptor, first, last);
+            double curveLen = GCPnts_AbscissaPoint::Length(adaptor, first, last);
+
+            // Use more segments for longer/curved edges (min 8, max 64)
+            int numSegments = std::max(8, std::min(64, static_cast<int>(curveLen * 4)));
+            double step = paramRange / numSegments;
+
+            gp_Pnt prevPt = curve->Value(first);
+            for (int i = 1; i <= numSegments; i++) {
+                double param = first + i * step;
+                if (param > last) param = last;
+
+                gp_Pnt currPt = curve->Value(param);
+
+                Line2DFFI line;
+                line.start_x = prevPt.X();
+                line.start_y = prevPt.Y();
+                line.end_x = currPt.X();
+                line.end_y = currPt.Y();
+                line.line_type = line_type;
+
+                double len = std::sqrt(
+                    std::pow(line.end_x - line.start_x, 2) +
+                    std::pow(line.end_y - line.start_y, 2)
+                );
+                if (len > 1e-7) {
+                    min_x = std::min({min_x, line.start_x, line.end_x});
+                    min_y = std::min({min_y, line.start_y, line.end_y});
+                    max_x = std::max({max_x, line.start_x, line.end_x});
+                    max_y = std::max({max_y, line.start_y, line.end_y});
+
+                    lines.push_back(line);
+                    extracted++;
+                }
+
+                prevPt = currPt;
+            }
         }
-
-        // Update bounding box
-        min_x = std::min({min_x, line.start_x, line.end_x});
-        min_y = std::min({min_y, line.start_y, line.end_y});
-        max_x = std::max({max_x, line.start_x, line.end_x});
-        max_y = std::max({max_y, line.start_y, line.end_y});
-
-        lines.push_back(line);
-        extracted++;
     }
 
     // Log extraction results for debugging
-    std::cerr << "[HLR] extract_2d_edges type=" << line_type 
-              << ": extracted=" << extracted 
-              << ", null_curves=" << skipped_null_curve 
+    std::cerr << "[HLR] extract_2d_edges type=" << line_type
+              << ": extracted=" << extracted
+              << ", null_curves=" << skipped_null_curve
               << ", degenerate=" << skipped_degenerate << std::endl;
 
     return extracted;
 }
 
+// Helper: Project a 3D point to 2D using view direction and up vector
+static void project_point_to_2d(
+    double px, double py, double pz,
+    double dir_x, double dir_y, double dir_z,
+    double up_x, double up_y, double up_z,
+    double scale,
+    double& out_x, double& out_y
+) {
+    // Calculate right vector (cross product of up and direction)
+    double right_x = up_y * dir_z - up_z * dir_y;
+    double right_y = up_z * dir_x - up_x * dir_z;
+    double right_z = up_x * dir_y - up_y * dir_x;
+
+    // Normalize right vector
+    double right_len = std::sqrt(right_x*right_x + right_y*right_y + right_z*right_z);
+    if (right_len > 1e-10) {
+        right_x /= right_len;
+        right_y /= right_len;
+        right_z /= right_len;
+    }
+
+    // Recalculate up to ensure orthogonality (cross of dir and right)
+    double real_up_x = dir_y * right_z - dir_z * right_y;
+    double real_up_y = dir_z * right_x - dir_x * right_z;
+    double real_up_z = dir_x * right_y - dir_y * right_x;
+
+    // Project point: x = dot(point, right), y = dot(point, up)
+    out_x = (px * right_x + py * right_y + pz * right_z) * scale;
+    out_y = (px * real_up_x + py * real_up_y + pz * real_up_z) * scale;
+}
+
+// Helper: Add centerlines (axis lines) from cylindrical faces.
+// - For cylinders whose axis is mostly perpendicular to the view direction, we draw the projected axis segment.
+// - For cylinders whose axis is mostly parallel to the view direction (hole/cylinder seen "from the top"), we draw a center mark (cross).
+static int extract_centerlines_from_cylinders(
+    const OcctShape& shape,
+    double dir_x, double dir_y, double dir_z,
+    double up_x, double up_y, double up_z,
+    double point_scale,
+    rust::Vec<Line2DFFI>& lines,
+    double& min_x, double& min_y,
+    double& max_x, double& max_y
+) {
+    if (shape.is_null()) return 0;
+
+    // Normalize view direction
+    double vlen = std::sqrt(dir_x*dir_x + dir_y*dir_y + dir_z*dir_z);
+    if (vlen < 1e-12) return 0;
+    dir_x /= vlen; dir_y /= vlen; dir_z /= vlen;
+
+    int added = 0;
+
+    TopExp_Explorer faceExp(shape.get(), TopAbs_FACE);
+    for (; faceExp.More(); faceExp.Next()) {
+        TopoDS_Face face = TopoDS::Face(faceExp.Current());
+        BRepAdaptor_Surface surf(face, Standard_True);
+
+        if (surf.GetType() != GeomAbs_Cylinder) continue;
+
+        gp_Cylinder cyl = surf.Cylinder();
+        gp_Ax1 ax = cyl.Axis();
+        gp_Pnt origin = ax.Location();
+        gp_Dir axisDir = ax.Direction();
+
+        // Determine axis-aligned extent using the face's bounding box projected onto the axis
+        Bnd_Box bb;
+        BRepBndLib::Add(face, bb);
+        Standard_Real xmin, ymin, zmin, xmax, ymax, zmax;
+        bb.Get(xmin, ymin, zmin, xmax, ymax, zmax);
+
+        // If box is void, skip
+        if (xmin > xmax || ymin > ymax || zmin > zmax) continue;
+
+        // Project bounding box corners onto axis to find min/max parameter along axis
+        double tmin = std::numeric_limits<double>::max();
+        double tmax = std::numeric_limits<double>::lowest();
+        const double corners[8][3] = {
+            {xmin, ymin, zmin}, {xmax, ymin, zmin}, {xmin, ymax, zmin}, {xmax, ymax, zmin},
+            {xmin, ymin, zmax}, {xmax, ymin, zmax}, {xmin, ymax, zmax}, {xmax, ymax, zmax},
+        };
+
+        // Axis direction vector
+        const double ax_dx = axisDir.X();
+        const double ax_dy = axisDir.Y();
+        const double ax_dz = axisDir.Z();
+        const double ox = origin.X();
+        const double oy = origin.Y();
+        const double oz = origin.Z();
+
+        for (int i = 0; i < 8; i++) {
+            const double vx = corners[i][0] - ox;
+            const double vy = corners[i][1] - oy;
+            const double vz = corners[i][2] - oz;
+            const double t = vx * ax_dx + vy * ax_dy + vz * ax_dz;
+            tmin = std::min(tmin, t);
+            tmax = std::max(tmax, t);
+        }
+
+        // Expand slightly so the centerline extends beyond the face bounds (ISO-like)
+        const double radius = cyl.Radius();
+        const double pad = std::max(1e-3, radius * 0.25);
+        tmin -= pad;
+        tmax += pad;
+
+        // Check alignment with view direction
+        const double dot = std::abs(ax_dx * dir_x + ax_dy * dir_y + ax_dz * dir_z);
+
+        // Project cylinder axis origin to 2D (for center mark)
+        double cx2d = 0, cy2d = 0;
+        project_point_to_2d(ox, oy, oz, dir_x, dir_y, dir_z, up_x, up_y, up_z, point_scale, cx2d, cy2d);
+
+        if (dot > 0.95) {
+            // Axis is nearly parallel to view direction: draw center mark (cross) using radius as size cue
+            const double mark = std::max(2.0, radius * 0.8) * point_scale;
+
+            Line2DFFI h;
+            h.start_x = cx2d - mark;
+            h.start_y = cy2d;
+            h.end_x = cx2d + mark;
+            h.end_y = cy2d;
+            h.line_type = 6; // Centerline
+
+            Line2DFFI v;
+            v.start_x = cx2d;
+            v.start_y = cy2d - mark;
+            v.end_x = cx2d;
+            v.end_y = cy2d + mark;
+            v.line_type = 6; // Centerline
+
+            const double hlen = std::hypot(h.end_x - h.start_x, h.end_y - h.start_y);
+            const double vlen2 = std::hypot(v.end_x - v.start_x, v.end_y - v.start_y);
+            if (hlen > 1e-6) {
+                min_x = std::min({min_x, h.start_x, h.end_x});
+                min_y = std::min({min_y, h.start_y, h.end_y});
+                max_x = std::max({max_x, h.start_x, h.end_x});
+                max_y = std::max({max_y, h.start_y, h.end_y});
+                lines.push_back(h);
+                added++;
+            }
+            if (vlen2 > 1e-6) {
+                min_x = std::min({min_x, v.start_x, v.end_x});
+                min_y = std::min({min_y, v.start_y, v.end_y});
+                max_x = std::max({max_x, v.start_x, v.end_x});
+                max_y = std::max({max_y, v.start_y, v.end_y});
+                lines.push_back(v);
+                added++;
+            }
+        } else {
+            // Axis not parallel to view direction: draw projected axis segment across the face extents
+            gp_Pnt p1(ox + ax_dx * tmin, oy + ax_dy * tmin, oz + ax_dz * tmin);
+            gp_Pnt p2(ox + ax_dx * tmax, oy + ax_dy * tmax, oz + ax_dz * tmax);
+
+            double x1, y1, x2, y2;
+            project_point_to_2d(p1.X(), p1.Y(), p1.Z(), dir_x, dir_y, dir_z, up_x, up_y, up_z, point_scale, x1, y1);
+            project_point_to_2d(p2.X(), p2.Y(), p2.Z(), dir_x, dir_y, dir_z, up_x, up_y, up_z, point_scale, x2, y2);
+
+            Line2DFFI cl;
+            cl.start_x = x1;
+            cl.start_y = y1;
+            cl.end_x = x2;
+            cl.end_y = y2;
+            cl.line_type = 6; // Centerline
+
+            const double len2d = std::hypot(cl.end_x - cl.start_x, cl.end_y - cl.start_y);
+            if (len2d > 1e-6) {
+                min_x = std::min({min_x, cl.start_x, cl.end_x});
+                min_y = std::min({min_y, cl.start_y, cl.end_y});
+                max_x = std::max({max_x, cl.start_x, cl.end_x});
+                max_y = std::max({max_y, cl.start_y, cl.end_y});
+                lines.push_back(cl);
+                added++;
+            }
+        }
+    }
+
+    if (added > 0) {
+        std::cerr << "[HLR] Centerlines: added=" << added << std::endl;
+    }
+    return added;
+}
+
 // Fallback: Extract edges directly from shape bounding box (when HLR fails)
+// Creates a proper 3D box projection for any view direction including isometric
 static void extract_bbox_edges(
     const OcctShape& shape,
     rust::Vec<Line2DFFI>& lines,
@@ -2688,60 +2916,117 @@ static void extract_bbox_edges(
     double xmin, ymin, zmin, xmax, ymax, zmax;
     bbox.Get(xmin, ymin, zmin, xmax, ymax, zmax);
 
-    // Project bounding box edges based on view direction
-    // For front view (0, -1, 0): project to XZ plane
-    // For top view (0, 0, -1): project to XY plane
-    // For right view (-1, 0, 0): project to YZ plane
-
-    double p_xmin, p_ymin, p_xmax, p_ymax;
-
-    if (std::abs(dir_y) > 0.9) {
-        // Front/Back view - project to XZ
-        p_xmin = xmin * scale;
-        p_ymin = zmin * scale;
-        p_xmax = xmax * scale;
-        p_ymax = zmax * scale;
-    } else if (std::abs(dir_z) > 0.9) {
-        // Top/Bottom view - project to XY
-        p_xmin = xmin * scale;
-        p_ymin = ymin * scale;
-        p_xmax = xmax * scale;
-        p_ymax = ymax * scale;
-    } else if (std::abs(dir_x) > 0.9) {
-        // Left/Right view - project to YZ
-        p_xmin = ymin * scale;
-        p_ymin = zmin * scale;
-        p_xmax = ymax * scale;
-        p_ymax = zmax * scale;
-    } else {
-        // Default/oblique view - project to XY
-        p_xmin = xmin * scale;
-        p_ymin = ymin * scale;
-        p_xmax = xmax * scale;
-        p_ymax = ymax * scale;
+    // Normalize direction
+    double dir_len = std::sqrt(dir_x*dir_x + dir_y*dir_y + dir_z*dir_z);
+    if (dir_len > 1e-10) {
+        dir_x /= dir_len;
+        dir_y /= dir_len;
+        dir_z /= dir_len;
     }
 
-    // Create 4 edges for bounding box rectangle
-    Line2DFFI edges[4];
-    // Bottom edge
-    edges[0] = {p_xmin, p_ymin, p_xmax, p_ymin, 4}; // outline type
-    // Right edge
-    edges[1] = {p_xmax, p_ymin, p_xmax, p_ymax, 4};
-    // Top edge
-    edges[2] = {p_xmax, p_ymax, p_xmin, p_ymax, 4};
-    // Left edge
-    edges[3] = {p_xmin, p_ymax, p_xmin, p_ymin, 4};
-
-    for (int i = 0; i < 4; i++) {
-        lines.push_back(edges[i]);
+    // Calculate up vector (try to keep Z-up, fallback to Y-up)
+    double up_x = 0, up_y = 0, up_z = 1;
+    if (std::abs(dir_z) > 0.9) {
+        // Looking down/up Z axis, use Y as up
+        up_x = 0; up_y = 1; up_z = 0;
     }
 
-    min_x = p_xmin;
-    min_y = p_ymin;
-    max_x = p_xmax;
-    max_y = p_ymax;
+    // Define 8 corners of bounding box
+    double corners[8][3] = {
+        {xmin, ymin, zmin}, // 0: front-bottom-left
+        {xmax, ymin, zmin}, // 1: front-bottom-right
+        {xmax, ymax, zmin}, // 2: back-bottom-right
+        {xmin, ymax, zmin}, // 3: back-bottom-left
+        {xmin, ymin, zmax}, // 4: front-top-left
+        {xmax, ymin, zmax}, // 5: front-top-right
+        {xmax, ymax, zmax}, // 6: back-top-right
+        {xmin, ymax, zmax}, // 7: back-top-left
+    };
 
-    std::cerr << "[HLR] Fallback: generated bbox outline with 4 edges" << std::endl;
+    // Project all corners to 2D
+    double projected[8][2];
+    min_x = std::numeric_limits<double>::max();
+    min_y = std::numeric_limits<double>::max();
+    max_x = std::numeric_limits<double>::lowest();
+    max_y = std::numeric_limits<double>::lowest();
+
+    for (int i = 0; i < 8; i++) {
+        project_point_to_2d(
+            corners[i][0], corners[i][1], corners[i][2],
+            dir_x, dir_y, dir_z,
+            up_x, up_y, up_z,
+            scale,
+            projected[i][0], projected[i][1]
+        );
+        min_x = std::min(min_x, projected[i][0]);
+        min_y = std::min(min_y, projected[i][1]);
+        max_x = std::max(max_x, projected[i][0]);
+        max_y = std::max(max_y, projected[i][1]);
+    }
+
+    // Define 12 edges of the box (pairs of corner indices)
+    int edge_pairs[12][2] = {
+        // Bottom face
+        {0, 1}, {1, 2}, {2, 3}, {3, 0},
+        // Top face
+        {4, 5}, {5, 6}, {6, 7}, {7, 4},
+        // Vertical edges
+        {0, 4}, {1, 5}, {2, 6}, {3, 7}
+    };
+
+    // Determine visibility of each face based on view direction
+    // Face normals: -Z (bottom), +Z (top), -Y (front), +Y (back), -X (left), +X (right)
+    bool bottom_visible = dir_z > 0;
+    bool top_visible = dir_z < 0;
+    bool front_visible = dir_y > 0;
+    bool back_visible = dir_y < 0;
+    bool left_visible = dir_x > 0;
+    bool right_visible = dir_x < 0;
+
+    // Add all 12 edges with appropriate visibility
+    for (int i = 0; i < 12; i++) {
+        int i0 = edge_pairs[i][0];
+        int i1 = edge_pairs[i][1];
+
+        // Determine if this edge is visible (at least one adjacent face is visible)
+        bool visible = false;
+        if (i < 4) {
+            // Bottom face edges
+            visible = bottom_visible ||
+                     (i == 0 && front_visible) || (i == 1 && right_visible) ||
+                     (i == 2 && back_visible) || (i == 3 && left_visible);
+        } else if (i < 8) {
+            // Top face edges
+            visible = top_visible ||
+                     (i == 4 && front_visible) || (i == 5 && right_visible) ||
+                     (i == 6 && back_visible) || (i == 7 && left_visible);
+        } else {
+            // Vertical edges
+            int corner = i - 8;
+            visible = (corner == 0 && (front_visible || left_visible)) ||
+                     (corner == 1 && (front_visible || right_visible)) ||
+                     (corner == 2 && (back_visible || right_visible)) ||
+                     (corner == 3 && (back_visible || left_visible));
+        }
+
+        Line2DFFI line;
+        line.start_x = projected[i0][0];
+        line.start_y = projected[i0][1];
+        line.end_x = projected[i1][0];
+        line.end_y = projected[i1][1];
+        line.line_type = visible ? 0 : 1; // 0 = visible sharp, 1 = hidden sharp
+
+        // Skip degenerate lines
+        double len = std::sqrt(
+            (line.end_x - line.start_x) * (line.end_x - line.start_x) +
+            (line.end_y - line.start_y) * (line.end_y - line.start_y)
+        );
+        if (len > 1e-6) {
+            lines.push_back(line);
+        }
+    }
+
+    std::cerr << "[HLR] Fallback: generated 3D box projection with " << lines.size() << " edges" << std::endl;
 }
 
 HLRProjectionResult compute_hlr_projection(
@@ -2767,7 +3052,7 @@ HLRProjectionResult compute_hlr_projection(
         // Count topology for debugging
         int faces, edges, vertices;
         count_shape_topology(shape.get(), faces, edges, vertices);
-        std::cerr << "[HLR] Input shape: " << faces << " faces, " 
+        std::cerr << "[HLR] Input shape: " << faces << " faces, "
                   << edges << " edges, " << vertices << " vertices" << std::endl;
 
         if (faces == 0 && edges == 0) {
@@ -2811,10 +3096,10 @@ HLRProjectionResult compute_hlr_projection(
         Handle(HLRBRep_Algo) hlr = new HLRBRep_Algo();
         hlr->Add(shape.get());
         hlr->Projector(projector);
-        
+
         std::cerr << "[HLR] Calling Update()..." << std::endl;
         hlr->Update();
-        
+
         std::cerr << "[HLR] Calling Hide()..." << std::endl;
         hlr->Hide();
 
@@ -2858,6 +3143,20 @@ HLRProjectionResult compute_hlr_projection(
             extract_bbox_edges(shape, result.lines, result.min_x, result.min_y, result.max_x, result.max_y, dir_x, dir_y, dir_z, scale);
         }
 
+        // Add centerlines (axis lines) from cylindrical faces.
+        // Important: When HLR extraction succeeded, scaling is applied later in a single pass.
+        // When we used the bbox fallback, scaling has already been applied, so we project centerlines with `scale`.
+        const double point_scale = (totalExtracted > 0) ? 1.0 : scale;
+        extract_centerlines_from_cylinders(
+            shape,
+            dir_x, dir_y, dir_z,
+            up_x, up_y, up_z,
+            point_scale,
+            result.lines,
+            result.min_x, result.min_y,
+            result.max_x, result.max_y
+        );
+
         // Apply scale (only if we didn't use fallback which already applies scale)
         if (scale != 1.0 && !result.lines.empty() && totalExtracted > 0) {
             for (auto& line : result.lines) {
@@ -2881,7 +3180,7 @@ HLRProjectionResult compute_hlr_projection(
         }
 
         std::cerr << "[HLR] Final result: " << result.lines.size() << " lines, bbox=("
-                  << result.min_x << "," << result.min_y << ")-(" 
+                  << result.min_x << "," << result.min_y << ")-("
                   << result.max_x << "," << result.max_y << ")" << std::endl;
 
     } catch (const Standard_Failure& e) {
@@ -3211,7 +3510,7 @@ HLRProjectionResultV2 compute_hlr_projection_v2(
         result.num_arcs = numArcs;
         result.num_polylines = numPolylines;
 
-        std::cerr << "[HLR-V2] Extracted: " << numLines << " lines, " 
+        std::cerr << "[HLR-V2] Extracted: " << numLines << " lines, "
                   << numArcs << " arcs, " << numPolylines << " polylines" << std::endl;
 
         // Apply scale
@@ -3332,33 +3631,33 @@ static void generate_hatch_lines_for_region(
     // For each potential hatch line
     for (int i = -num_lines; i <= num_lines; i++) {
         double offset = i * spacing;
-        
+
         // Hatch line passes through this point with direction (cos_a, sin_a)
         double hx = cx + offset * sin_a;
         double hy = cy - offset * cos_a;
-        
+
         // Find intersections with all polygon edges
         std::vector<double> intersections;
-        
+
         size_t n = boundary.size();
         for (size_t j = 0; j < n; j++) {
             size_t k = (j + 1) % n;
-            
+
             double x1 = boundary[j].first;
             double y1 = boundary[j].second;
             double x2 = boundary[k].first;
             double y2 = boundary[k].second;
-            
+
             // Edge direction
             double dx = x2 - x1;
             double dy = y2 - y1;
-            
+
             // Parametric intersection
             double denom = dx * sin_a - dy * cos_a;
             if (std::abs(denom) < 1e-10) continue;  // Parallel
-            
+
             double t_edge = ((hx - x1) * sin_a - (hy - y1) * cos_a) / denom;
-            
+
             if (t_edge >= 0.0 && t_edge <= 1.0) {
                 // Find parameter along hatch line
                 double ix = x1 + t_edge * dx;
@@ -3367,23 +3666,23 @@ static void generate_hatch_lines_for_region(
                 intersections.push_back(t_hatch);
             }
         }
-        
+
         // Sort intersections and pair them up
         std::sort(intersections.begin(), intersections.end());
-        
+
         // Create hatch line segments (every other pair)
         for (size_t j = 0; j + 1 < intersections.size(); j += 2) {
             double t1 = intersections[j];
             double t2 = intersections[j + 1];
-            
+
             HatchLineFFI line;
             line.start_x = hx + t1 * cos_a;
             line.start_y = hy + t1 * sin_a;
             line.end_x = hx + t2 * cos_a;
             line.end_y = hy + t2 * sin_a;
-            
+
             // Skip very short lines
-            double len = std::sqrt(std::pow(line.end_x - line.start_x, 2) + 
+            double len = std::sqrt(std::pow(line.end_x - line.start_x, 2) +
                                    std::pow(line.end_y - line.start_y, 2));
             if (len > 1e-6) {
                 hatch_lines.push_back(line);
@@ -3433,7 +3732,7 @@ SectionWithHatchResult compute_section_with_hatch(
         gp_Dir normal(normal_x, normal_y, normal_z);
         gp_Pln plane(origin, normal);
 
-        std::cerr << "[Section] Computing section at (" << origin_x << ", " 
+        std::cerr << "[Section] Computing section at (" << origin_x << ", "
                   << origin_y << ", " << origin_z << ")" << std::endl;
 
         // Compute section
@@ -3465,7 +3764,7 @@ SectionWithHatchResult compute_section_with_hatch(
         TopoDS_Compound openWires = freeBounds.GetOpenWires();
 
         int closedCount = 0, openCount = 0;
-        
+
         // Process closed wires (these become hatch regions)
         for (TopExp_Explorer exp(closedWires, TopAbs_WIRE); exp.More(); exp.Next()) {
             TopoDS_Wire wire = TopoDS::Wire(exp.Current());
@@ -3560,8 +3859,8 @@ SectionWithHatchResult compute_section_with_hatch(
 
         result.num_regions = closedCount;
 
-        std::cerr << "[Section] Found " << closedCount << " closed wires, " 
-                  << openCount << " open wires, " 
+        std::cerr << "[Section] Found " << closedCount << " closed wires, "
+                  << openCount << " open wires, "
                   << result.num_hatch_lines << " hatch lines" << std::endl;
 
         // Handle empty result
@@ -3937,19 +4236,19 @@ TopologyResult get_full_topology(const OcctShape& shape, double edge_deflection)
         // =====================
         TopTools_IndexedDataMapOfShapeListOfShape faceEdgeMap;
         TopExp::MapShapesAndAncestors(shape.get(), TopAbs_EDGE, TopAbs_FACE, faceEdgeMap);
-        
+
         for (int i = 1; i <= faceMap.Extent(); i++) {
             const TopoDS_Face& face = TopoDS::Face(faceMap(i));
-            
+
             FaceTopologyInfo faceInfo;
             faceInfo.index = static_cast<uint32_t>(i - 1);
             faceInfo.is_reversed = (face.Orientation() == TopAbs_REVERSED);
             faceInfo.boundary_edges = rust::Vec<uint32_t>();
-            
+
             // Get surface type
             BRepAdaptor_Surface adaptor(face);
             GeomAbs_SurfaceType surfType = adaptor.GetType();
-            
+
             switch (surfType) {
                 case GeomAbs_Plane: faceInfo.surface_type = 0; break;
                 case GeomAbs_Cylinder: faceInfo.surface_type = 1; break;
@@ -3963,27 +4262,27 @@ TopologyResult get_full_topology(const OcctShape& shape, double edge_deflection)
                 case GeomAbs_OffsetSurface: faceInfo.surface_type = 9; break;
                 default: faceInfo.surface_type = 10; break;
             }
-            
+
             // Get area
             GProp_GProps props;
             BRepGProp::SurfaceProperties(face, props);
             faceInfo.area = props.Mass();
-            
+
             // Get center point (mass center of surface)
             gp_Pnt center = props.CentreOfMass();
             faceInfo.center_x = center.X();
             faceInfo.center_y = center.Y();
             faceInfo.center_z = center.Z();
-            
+
             // Get normal at center
             // Project center onto surface to get UV parameters
             double uMid = (adaptor.FirstUParameter() + adaptor.LastUParameter()) / 2.0;
             double vMid = (adaptor.FirstVParameter() + adaptor.LastVParameter()) / 2.0;
-            
+
             gp_Pnt pnt;
             gp_Vec d1u, d1v;
             adaptor.D1(uMid, vMid, pnt, d1u, d1v);
-            
+
             gp_Vec normal = d1u.Crossed(d1v);
             if (normal.Magnitude() > 1e-10) {
                 normal.Normalize();
@@ -3994,11 +4293,11 @@ TopologyResult get_full_topology(const OcctShape& shape, double edge_deflection)
             } else {
                 normal = gp_Vec(0, 0, 1); // fallback
             }
-            
+
             faceInfo.normal_x = normal.X();
             faceInfo.normal_y = normal.Y();
             faceInfo.normal_z = normal.Z();
-            
+
             // Get boundary edges
             int edgeCount = 0;
             for (TopExp_Explorer edgeExp(face, TopAbs_EDGE); edgeExp.More(); edgeExp.Next()) {
@@ -4010,7 +4309,7 @@ TopologyResult get_full_topology(const OcctShape& shape, double edge_deflection)
                 }
             }
             faceInfo.num_edges = edgeCount;
-            
+
             result.faces.push_back(faceInfo);
         }
 
@@ -4040,7 +4339,7 @@ ExplodedPart get_exploded_part_info(
     ExplodedPart part;
     part.index = index;
     part.shape_type = static_cast<int32_t>(subShape.ShapeType());
-    
+
     // Calculate center of mass of this sub-shape
     GProp_GProps props;
     if (subShape.ShapeType() <= TopAbs_SOLID) {
@@ -4049,16 +4348,16 @@ ExplodedPart get_exploded_part_info(
         BRepGProp::SurfaceProperties(subShape, props);
     }
     gp_Pnt subCenter = props.CentreOfMass();
-    
+
     // Store original center
     part.center_x = subCenter.X();
     part.center_y = subCenter.Y();
     part.center_z = subCenter.Z();
-    
+
     // Calculate direction vector from parent center to sub-shape center
     gp_Vec direction(parentCenter, subCenter);
     double magnitude = direction.Magnitude();
-    
+
     if (magnitude > 1e-10) {
         // Normalize and scale by distance
         direction.Normalize();
@@ -4073,27 +4372,27 @@ ExplodedPart get_exploded_part_info(
         part.offset_y = std::sin(angle) * distance;
         part.offset_z = 0.0;
     }
-    
+
     // Tessellate the sub-shape for rendering
     BRepMesh_IncrementalMesh mesh(subShape, deflection);
     mesh.Perform();
-    
+
     // Extract mesh data for this part
     part.vertices = rust::Vec<Vertex>();
     part.normals = rust::Vec<Vertex>();
     part.triangles = rust::Vec<Triangle>();
-    
+
     size_t vertexOffset = 0;
     TopExp_Explorer faceExplorer(subShape, TopAbs_FACE);
-    
+
     for (; faceExplorer.More(); faceExplorer.Next()) {
         const TopoDS_Face& face = TopoDS::Face(faceExplorer.Current());
         TopLoc_Location location;
         Handle(Poly_Triangulation) triangulation = BRep_Tool::Triangulation(face, location);
         if (triangulation.IsNull()) continue;
-        
+
         gp_Trsf transform = location.Transformation();
-        
+
         // Process vertices
         for (int i = 1; i <= triangulation->NbNodes(); i++) {
             gp_Pnt point = triangulation->Node(i).Transformed(transform);
@@ -4102,7 +4401,7 @@ ExplodedPart get_exploded_part_info(
             v.y = point.Y();
             v.z = point.Z();
             part.vertices.push_back(v);
-            
+
             Vertex n;
             if (triangulation->HasNormals()) {
                 gp_Vec normalVec = triangulation->Normal(i);
@@ -4119,14 +4418,14 @@ ExplodedPart get_exploded_part_info(
             }
             part.normals.push_back(n);
         }
-        
+
         // Process triangles
         bool reversed = (face.Orientation() == TopAbs_REVERSED);
         for (int i = 1; i <= triangulation->NbTriangles(); i++) {
             const Poly_Triangle& tri = triangulation->Triangle(i);
             Standard_Integer n1, n2, n3;
             tri.Get(n1, n2, n3);
-            
+
             Triangle t;
             if (reversed) {
                 t.v1 = static_cast<uint32_t>(vertexOffset + n1 - 1);
@@ -4141,7 +4440,7 @@ ExplodedPart get_exploded_part_info(
         }
         vertexOffset += triangulation->NbNodes();
     }
-    
+
     return part;
 }
 
@@ -4157,22 +4456,22 @@ ExplodeResult explode_shape(
     result.parent_center_y = 0.0;
     result.parent_center_z = 0.0;
     result.success = false;
-    
+
     try {
         if (shape.is_null()) {
             std::cerr << "[Explode] Shape is null" << std::endl;
             return result;
         }
-        
+
         // Calculate parent center of mass
         GProp_GProps parentProps;
         BRepGProp::VolumeProperties(shape.get(), parentProps);
         gp_Pnt parentCenter = parentProps.CentreOfMass();
-        
+
         result.parent_center_x = parentCenter.X();
         result.parent_center_y = parentCenter.Y();
         result.parent_center_z = parentCenter.Z();
-        
+
         // Determine topology type to explore based on level
         // Level 0: Solids (highest level for assembled parts)
         // Level 1: Shells
@@ -4190,19 +4489,19 @@ ExplodeResult explode_shape(
                 exploreType = TopAbs_FACE;
                 break;
         }
-        
+
         // First pass: check if we have any sub-shapes at this level
         TopExp_Explorer checkExp(shape.get(), exploreType);
         int count = 0;
         for (; checkExp.More(); checkExp.Next()) {
             count++;
         }
-        
+
         // If no sub-shapes found at requested level, try the next level down
         if (count == 0 && level < 2) {
             return explode_shape(shape, level + 1, distance, deflection);
         }
-        
+
         // If still no sub-shapes, return the whole shape as one part
         if (count == 0) {
             ExplodedPart wholePart = get_exploded_part_info(
@@ -4212,30 +4511,30 @@ ExplodeResult explode_shape(
             result.success = true;
             return result;
         }
-        
+
         // Extract sub-shapes
         uint32_t index = 0;
         TopExp_Explorer explorer(shape.get(), exploreType);
-        
+
         for (; explorer.More(); explorer.Next(), index++) {
             const TopoDS_Shape& subShape = explorer.Current();
-            
+
             ExplodedPart part = get_exploded_part_info(
                 subShape, index, parentCenter, distance, deflection
             );
             result.parts.push_back(part);
         }
-        
+
         result.success = true;
-        std::cerr << "[Explode] Successfully extracted " << result.parts.size() 
+        std::cerr << "[Explode] Successfully extracted " << result.parts.size()
                   << " parts at level " << level << std::endl;
-                  
+
     } catch (const Standard_Failure& e) {
         std::cerr << "[Explode] Exception: " << e.GetMessageString() << std::endl;
     } catch (...) {
         std::cerr << "[Explode] Unknown exception" << std::endl;
     }
-    
+
     return result;
 }
 
@@ -4245,47 +4544,15 @@ rust::Vec<ExplodedPart> get_shape_components(
     double deflection
 ) {
     rust::Vec<ExplodedPart> parts;
-    
+
     try {
         if (shape.is_null()) return parts;
-        
+
         // Calculate parent center
         GProp_GProps parentProps;
         BRepGProp::VolumeProperties(shape.get(), parentProps);
         gp_Pnt parentCenter = parentProps.CentreOfMass();
-        
-        TopAbs_ShapeEnum exploreType;
-        switch (level) {
-            case 0: exploreType = TopAbs_SOLID; break;
-            case 1: exploreType = TopAbs_SHELL; break;
-            case 2: 
-            default: exploreType = TopAbs_FACE; break;
-        }
-        
-        uint32_t index = 0;
-        TopExp_Explorer explorer(shape.get(), exploreType);
-        
-        for (; explorer.More(); explorer.Next(), index++) {
-            const TopoDS_Shape& subShape = explorer.Current();
-            
-            // Get part info with zero distance (original positions)
-            ExplodedPart part = get_exploded_part_info(
-                subShape, index, parentCenter, 0.0, deflection
-            );
-            parts.push_back(part);
-        }
-        
-    } catch (...) {
-        std::cerr << "[GetComponents] Unknown exception" << std::endl;
-    }
-    
-    return parts;
-}
 
-int32_t count_shape_components(const OcctShape& shape, int32_t level) {
-    try {
-        if (shape.is_null()) return 0;
-        
         TopAbs_ShapeEnum exploreType;
         switch (level) {
             case 0: exploreType = TopAbs_SOLID; break;
@@ -4293,13 +4560,45 @@ int32_t count_shape_components(const OcctShape& shape, int32_t level) {
             case 2:
             default: exploreType = TopAbs_FACE; break;
         }
-        
+
+        uint32_t index = 0;
+        TopExp_Explorer explorer(shape.get(), exploreType);
+
+        for (; explorer.More(); explorer.Next(), index++) {
+            const TopoDS_Shape& subShape = explorer.Current();
+
+            // Get part info with zero distance (original positions)
+            ExplodedPart part = get_exploded_part_info(
+                subShape, index, parentCenter, 0.0, deflection
+            );
+            parts.push_back(part);
+        }
+
+    } catch (...) {
+        std::cerr << "[GetComponents] Unknown exception" << std::endl;
+    }
+
+    return parts;
+}
+
+int32_t count_shape_components(const OcctShape& shape, int32_t level) {
+    try {
+        if (shape.is_null()) return 0;
+
+        TopAbs_ShapeEnum exploreType;
+        switch (level) {
+            case 0: exploreType = TopAbs_SOLID; break;
+            case 1: exploreType = TopAbs_SHELL; break;
+            case 2:
+            default: exploreType = TopAbs_FACE; break;
+        }
+
         int32_t count = 0;
         TopExp_Explorer explorer(shape.get(), exploreType);
         for (; explorer.More(); explorer.Next()) {
             count++;
         }
-        
+
         return count;
     } catch (...) {
         return 0;

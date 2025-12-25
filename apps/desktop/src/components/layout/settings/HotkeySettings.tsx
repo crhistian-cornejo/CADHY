@@ -1,13 +1,14 @@
 /**
  * Hotkey Settings Component - CADHY
  *
- * Allows users to view and customize keyboard shortcuts.
- * Features:
+ * Advanced keyboard shortcut customization interface with:
  * - View all shortcuts organized by category
- * - Edit shortcut bindings inline
+ * - Edit shortcut bindings with visual key capture
  * - Detect and warn about conflicts
  * - Reset individual or all shortcuts
  * - Export/Import shortcut configurations
+ * - Preset management (save/load configurations)
+ * - Search and filter shortcuts
  */
 
 import {
@@ -18,29 +19,35 @@ import {
   Button,
   Input,
   ScrollArea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@cadhy/ui"
 import {
-  AlertCircleIcon,
+  Add01Icon,
   Cursor01Icon,
+  Delete01Icon,
   Download04Icon,
   Edit01Icon,
   File01Icon,
   GridIcon,
   Move01Icon,
   RefreshIcon,
+  Settings01Icon,
   Settings02Icon,
-  Tick02Icon,
   Upload04Icon,
   ViewIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { useTranslation } from "react-i18next"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 
+import { KeyCaptureInput } from "@/components/common/KeyCaptureInput"
 import { usePlatform } from "@/hooks/use-platform"
 import { DEFAULT_HOTKEYS, type DefaultHotkey } from "@/services/default-hotkeys"
 import { hotkeyRegistry, normalizeShortcut } from "@/services/hotkey-registry"
-import { type HotkeyCategory, useCollapsedCategories, useHotkeyStore } from "@/stores/hotkey-store"
+import { type HotkeyCategory, useHotkeyStore } from "@/stores/hotkey-store"
 
 // ============================================================================
 // TYPES
@@ -48,8 +55,15 @@ import { type HotkeyCategory, useCollapsedCategories, useHotkeyStore } from "@/s
 
 interface EditingState {
   id: string
-  keys: string
+  keys: string[]
   conflict: string | null
+}
+
+interface HotkeyPreset {
+  id: string
+  name: string
+  bindings: Record<string, string[]>
+  createdAt: number
 }
 
 // ============================================================================
@@ -64,6 +78,8 @@ const CATEGORY_ICONS: Record<HotkeyCategory, typeof File01Icon> = {
   navigation: Cursor01Icon,
   workspace: GridIcon,
   tools: Settings02Icon,
+  operations: Settings01Icon,
+  selection: Cursor01Icon,
 }
 
 // ============================================================================
@@ -71,11 +87,13 @@ const CATEGORY_ICONS: Record<HotkeyCategory, typeof File01Icon> = {
 // ============================================================================
 
 export function HotkeySettings() {
-  const { t } = useTranslation()
   const { isMacOS } = usePlatform()
 
   const [searchQuery, setSearchQuery] = useState("")
   const [editing, setEditing] = useState<EditingState | null>(null)
+  const [presets, setPresets] = useState<HotkeyPreset[]>([])
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
+  const [presetName, setPresetName] = useState("")
 
   const {
     customBindings,
@@ -84,12 +102,27 @@ export function HotkeySettings() {
     resetAllToDefault,
     exportBindings,
     importBindings,
-    toggleCategory,
   } = useHotkeyStore()
 
-  const _collapsedCategories = useCollapsedCategories()
-
   const modKey = isMacOS ? "Cmd" : "Ctrl"
+
+  // Load presets from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("cadhy-hotkey-presets")
+    if (stored) {
+      try {
+        setPresets(JSON.parse(stored))
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+  }, [])
+
+  // Save presets to localStorage
+  const savePresets = useCallback((newPresets: HotkeyPreset[]) => {
+    setPresets(newPresets)
+    localStorage.setItem("cadhy-hotkey-presets", JSON.stringify(newPresets))
+  }, [])
 
   // Get current keys for a hotkey (custom or default)
   const getCurrentKeys = useCallback(
@@ -123,75 +156,53 @@ export function HotkeySettings() {
     })).filter((category) => category.hotkeys.length > 0)
   }, [searchQuery])
 
-  // Handle key capture for editing
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (!editing) return
-
-      e.preventDefault()
-      e.stopPropagation()
-
-      // Build shortcut string from event
-      const parts: string[] = []
-
-      if (e.ctrlKey || e.metaKey) {
-        parts.push(isMacOS ? "Cmd" : "Ctrl")
-      }
-      if (e.altKey) {
-        parts.push(isMacOS ? "Option" : "Alt")
-      }
-      if (e.shiftKey) {
-        parts.push("Shift")
-      }
-
-      // Skip if only modifier keys
-      const key = e.key
-      if (!["Control", "Alt", "Shift", "Meta"].includes(key)) {
-        // Normalize key
-        let normalizedKey = key
-        if (key === " ") normalizedKey = "Space"
-        else if (key.length === 1) normalizedKey = key.toUpperCase()
-
-        parts.push(normalizedKey)
-
-        const newKeys = parts.join("+")
-        const normalized = normalizeShortcut(newKeys)
-
-        // Check for conflicts
-        const conflict = hotkeyRegistry.getConflict(normalized, editing.id)
-
-        setEditing({
-          ...editing,
-          keys: newKeys,
-          conflict: conflict ? `Conflicts with: ${conflict.name}` : null,
-        })
-      }
-    },
-    [editing, isMacOS]
-  )
-
   // Start editing a hotkey
-  const startEditing = useCallback((hotkey: DefaultHotkey) => {
-    setEditing({
-      id: hotkey.id,
-      keys: "",
-      conflict: null,
-    })
-  }, [])
+  const startEditing = useCallback(
+    (hotkey: DefaultHotkey) => {
+      const currentKeys = getCurrentKeys(hotkey)
+      setEditing({
+        id: hotkey.id,
+        keys: currentKeys,
+        conflict: null,
+      })
+    },
+    [getCurrentKeys]
+  )
 
   // Cancel editing
   const cancelEditing = useCallback(() => {
     setEditing(null)
   }, [])
 
-  // Save edited hotkey
-  const saveEditing = useCallback(() => {
-    if (!editing || !editing.keys || editing.conflict) return
+  // Handle key capture change
+  const handleKeyCaptureChange = useCallback(
+    (id: string, newKeys: string[]) => {
+      if (newKeys.length === 0) return
 
-    rebindHotkey(editing.id, [editing.keys])
-    hotkeyRegistry.rebind(editing.id, [editing.keys])
-    setEditing(null)
-  }, [editing, rebindHotkey])
+      // Check for conflicts
+      const conflicts: string[] = []
+      newKeys.forEach((key) => {
+        const normalized = normalizeShortcut(key)
+        const conflict = hotkeyRegistry.getConflict(normalized, id)
+        if (conflict) {
+          conflicts.push(`"${key}" conflicts with: ${conflict.name}`)
+        }
+      })
+
+      if (conflicts.length > 0) {
+        setEditing((prev) =>
+          prev && prev.id === id ? { ...prev, keys: newKeys, conflict: conflicts.join("; ") } : prev
+        )
+        return
+      }
+
+      // No conflicts - save
+      rebindHotkey(id, newKeys)
+      hotkeyRegistry.rebind(id, newKeys)
+      setEditing(null)
+    },
+    [rebindHotkey]
+  )
 
   // Reset a single hotkey
   const handleReset = useCallback(
@@ -233,18 +244,79 @@ export function HotkeySettings() {
 
       try {
         const text = await file.text()
-        const success = importBindings(text)
-        if (success) {
-          hotkeyRegistry.importBindings(JSON.parse(text))
+        const data = JSON.parse(text)
+
+        // Check if it's a preset (has name) or just bindings
+        if (data.name && data.bindings) {
+          // It's a preset
+          const preset: HotkeyPreset = {
+            id: `preset-${Date.now()}`,
+            name: data.name,
+            bindings: data.bindings,
+            createdAt: data.createdAt || Date.now(),
+          }
+          savePresets([...presets, preset])
+          // Also apply the bindings
+          importBindings(JSON.stringify(data.bindings))
+          hotkeyRegistry.importBindings(data.bindings)
         } else {
-          alert("Invalid hotkey configuration file")
+          // Just bindings
+          const success = importBindings(text)
+          if (success) {
+            hotkeyRegistry.importBindings(data)
+          } else {
+            alert("Invalid hotkey configuration file")
+          }
         }
       } catch {
         alert("Failed to import hotkey configuration")
       }
     }
     input.click()
-  }, [importBindings])
+  }, [importBindings, presets, savePresets])
+
+  // Save current configuration as preset
+  const handleSavePreset = useCallback(() => {
+    if (!presetName.trim()) {
+      alert("Please enter a preset name")
+      return
+    }
+
+    const preset: HotkeyPreset = {
+      id: `preset-${Date.now()}`,
+      name: presetName.trim(),
+      bindings: customBindings,
+      createdAt: Date.now(),
+    }
+
+    savePresets([...presets, preset])
+    setPresetName("")
+  }, [presetName, customBindings, presets, savePresets])
+
+  // Load preset
+  const handleLoadPreset = useCallback(
+    (presetId: string) => {
+      const preset = presets.find((p) => p.id === presetId)
+      if (!preset) return
+
+      importBindings(JSON.stringify(preset.bindings))
+      hotkeyRegistry.importBindings(preset.bindings)
+      setSelectedPreset(presetId)
+    },
+    [presets, importBindings]
+  )
+
+  // Delete preset
+  const handleDeletePreset = useCallback(
+    (presetId: string) => {
+      if (!window.confirm("Delete this preset?")) return
+      savePresets(presets.filter((p) => p.id !== presetId))
+      if (selectedPreset === presetId) {
+        setSelectedPreset(null)
+      }
+    },
+    [presets, selectedPreset, savePresets]
+  )
 
   // Handle escape to cancel editing
   useEffect(() => {
@@ -261,15 +333,74 @@ export function HotkeySettings() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search shortcuts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8"
-          />
+      <div className="space-y-3 mb-4">
+        {/* Search */}
+        <Input
+          placeholder="Search shortcuts..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="h-8"
+        />
+
+        {/* Presets */}
+        <div className="flex items-center gap-2">
+          <Select
+            value={selectedPreset || ""}
+            onValueChange={(value) => value && handleLoadPreset(value)}
+          >
+            <SelectTrigger className="h-8 flex-1">
+              {selectedPreset ? (
+                <SelectValue />
+              ) : (
+                <span className="text-muted-foreground">Load preset...</span>
+              )}
+            </SelectTrigger>
+            <SelectContent>
+              {presets.length === 0 ? (
+                <SelectItem value="none" disabled>
+                  No presets saved
+                </SelectItem>
+              ) : (
+                presets.map((preset) => (
+                  <SelectItem key={preset.id} value={preset.id}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{preset.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 ml-2"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeletePreset(preset.id)
+                        }}
+                      >
+                        <HugeiconsIcon icon={Delete01Icon} className="size-3" />
+                      </Button>
+                    </div>
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-1">
+            <Input
+              placeholder="Preset name..."
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              className="h-8 w-32"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSavePreset()
+                }
+              }}
+            />
+            <Button variant="outline" size="sm" onClick={handleSavePreset} className="h-8">
+              <HugeiconsIcon icon={Add01Icon} className="size-4" />
+            </Button>
+          </div>
         </div>
+
+        {/* Actions */}
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleImport}>
             <HugeiconsIcon icon={Upload04Icon} className="size-4 mr-1" />
@@ -339,31 +470,14 @@ export function HotkeySettings() {
 
                         <div className="flex items-center gap-2">
                           {isEditing ? (
-                            <>
-                              <div className="flex flex-col items-end gap-1">
-                                <Input
-                                  value={editing.keys || "Press keys..."}
-                                  onKeyDown={handleKeyDown}
-                                  className="h-7 w-32 text-xs text-center"
-                                  autoFocus
-                                  readOnly
-                                />
-                                {editing.conflict && (
-                                  <span className="text-xs text-destructive flex items-center gap-1">
-                                    <HugeiconsIcon icon={AlertCircleIcon} className="size-3" />
-                                    {editing.conflict}
-                                  </span>
-                                )}
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={saveEditing}
-                                disabled={!editing.keys || !!editing.conflict}
-                                className="h-7 px-2"
-                              >
-                                <HugeiconsIcon icon={Tick02Icon} className="size-4" />
-                              </Button>
+                            <div className="flex items-center gap-2">
+                              <KeyCaptureInput
+                                value={editing.keys}
+                                onChange={(keys) => handleKeyCaptureChange(editing.id, keys)}
+                                onCancel={cancelEditing}
+                                excludeId={editing.id}
+                                className="w-48"
+                              />
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -372,23 +486,30 @@ export function HotkeySettings() {
                               >
                                 Cancel
                               </Button>
-                            </>
+                            </div>
                           ) : (
                             <>
                               <button
+                                type="button"
                                 onClick={() => startEditing(hotkey)}
                                 className="flex items-center gap-1 px-2 py-1 rounded-2xl border border-border bg-muted/30 hover:bg-muted transition-colors"
                               >
-                                {currentKeys.map((key, i) => (
-                                  <kbd
-                                    key={i}
-                                    className="min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-2xl border border-border bg-background text-xs font-mono"
-                                  >
-                                    {key
-                                      .replace("Ctrl", modKey)
-                                      .replace("Alt", isMacOS ? "Option" : "Alt")}
-                                  </kbd>
-                                ))}
+                                {currentKeys.length > 0 ? (
+                                  currentKeys.map((key, i) => (
+                                    <React.Fragment key={`${hotkey.id}-${key}`}>
+                                      <kbd className="min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-2xl border border-border bg-background text-xs font-mono">
+                                        {key
+                                          .replace("Ctrl", modKey)
+                                          .replace("Alt", isMacOS ? "Option" : "Alt")}
+                                      </kbd>
+                                      {i < currentKeys.length - 1 && (
+                                        <span className="text-muted-foreground text-xs">/</span>
+                                      )}
+                                    </React.Fragment>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">No shortcut</span>
+                                )}
                               </button>
                               {customized && (
                                 <Button
@@ -396,6 +517,7 @@ export function HotkeySettings() {
                                   size="sm"
                                   onClick={() => handleReset(hotkey)}
                                   className="h-7 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title="Reset to default"
                                 >
                                   <HugeiconsIcon icon={RefreshIcon} className="size-4" />
                                 </Button>

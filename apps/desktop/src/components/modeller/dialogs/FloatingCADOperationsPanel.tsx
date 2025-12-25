@@ -164,8 +164,8 @@ export function FloatingCADOperationsPanel({
                 <div className="p-3 space-y-3">
                   {/* Mode indicator */}
                   {interactiveMode && (
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-xs text-blue-600 dark:text-blue-400">
-                      <div className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-status-info-bg border border-status-info-border rounded-2xl text-xs text-status-info">
+                      <div className="size-1.5 rounded-full bg-status-info animate-pulse" />
                       <span>Interactive Mode: Select an edge in the 3D view</span>
                     </div>
                   )}
