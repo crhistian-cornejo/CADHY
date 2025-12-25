@@ -82,6 +82,87 @@ function mergeBIMMetadata(
   return merged
 }
 
+/**
+ * Apply frontend transform to a backend shape
+ * This creates a NEW transformed shape in the backend
+ */
+async function applyTransformToBackend(
+  backendId: string,
+  frontendTransform: {
+    position: { x: number; y: number; z: number }
+    rotation: { x: number; y: number; z: number }
+    scale: { x: number; y: number; z: number }
+  }
+): Promise<string> {
+  let currentId = backendId
+  const { position, rotation, scale: scaleVec } = frontendTransform
+
+  // Apply scale if not uniform (1, 1, 1)
+  const avgScale = (scaleVec.x + scaleVec.y + scaleVec.z) / 3
+  if (Math.abs(avgScale - 1) > 0.0001) {
+    const scaleResult = await cadService.scale(currentId, 0, 0, 0, avgScale)
+    currentId = scaleResult.id
+  }
+
+  // Apply rotation (X, Y, Z order - Euler angles in degrees)
+  if (Math.abs(rotation.x) > 0.0001) {
+    const rotateResult = await cadService.rotate(
+      currentId,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      cadService.degreesToRadians(rotation.x)
+    )
+    currentId = rotateResult.id
+  }
+  if (Math.abs(rotation.y) > 0.0001) {
+    const rotateResult = await cadService.rotate(
+      currentId,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      cadService.degreesToRadians(rotation.y)
+    )
+    currentId = rotateResult.id
+  }
+  if (Math.abs(rotation.z) > 0.0001) {
+    const rotateResult = await cadService.rotate(
+      currentId,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      cadService.degreesToRadians(rotation.z)
+    )
+    currentId = rotateResult.id
+  }
+
+  // Apply translation
+  if (
+    Math.abs(position.x) > 0.0001 ||
+    Math.abs(position.y) > 0.0001 ||
+    Math.abs(position.z) > 0.0001
+  ) {
+    const translateResult = await cadService.translate(
+      currentId,
+      position.x,
+      position.y,
+      position.z
+    )
+    currentId = translateResult.id
+  }
+
+  return currentId
+}
+
 export function useCADOperations() {
   const selectedObjects = useSelectedObjects()
   const { addObject, deleteObject } = useModellerStore()
@@ -411,8 +492,8 @@ export function useCADOperations() {
     useModellerStore.getState().saveStateBeforeAction()
 
     try {
-      // Get backend IDs for all selected objects and verify they exist
-      const backendIds: string[] = []
+      // Get backend IDs and apply transforms for all selected objects
+      const transformedIds: string[] = []
       for (const obj of shapeObjects) {
         const backendId = getBackendShapeId(obj.id, obj.metadata)
         if (!backendId) {
@@ -430,13 +511,16 @@ export function useCADOperations() {
           )
           return false
         }
-        backendIds.push(backendId)
+
+        // Apply frontend transform to backend shape
+        const transformedId = await applyTransformToBackend(backendId, obj.transform)
+        transformedIds.push(transformedId)
       }
 
       // Fuse all shapes sequentially
-      let resultId = backendIds[0]
-      for (let i = 1; i < backendIds.length; i++) {
-        const fuseResult = await cadService.booleanFuse(resultId, backendIds[i])
+      let resultId = transformedIds[0]
+      for (let i = 1; i < transformedIds.length; i++) {
+        const fuseResult = await cadService.booleanFuse(resultId, transformedIds[i])
         resultId = fuseResult.id
       }
 
@@ -510,7 +594,8 @@ export function useCADOperations() {
     useModellerStore.getState().saveStateBeforeAction()
 
     try {
-      const backendIds: string[] = []
+      // Get backend IDs and apply transforms for all selected objects
+      const transformedIds: string[] = []
       for (const obj of shapeObjects) {
         const backendId = getBackendShapeId(obj.id, obj.metadata)
         if (!backendId) {
@@ -527,13 +612,16 @@ export function useCADOperations() {
           )
           return false
         }
-        backendIds.push(backendId)
+
+        // Apply frontend transform to backend shape
+        const transformedId = await applyTransformToBackend(backendId, obj.transform)
+        transformedIds.push(transformedId)
       }
 
       // Cut all tool shapes from the base
-      let resultId = backendIds[0]
-      for (let i = 1; i < backendIds.length; i++) {
-        const cutResult = await cadService.booleanCut(resultId, backendIds[i])
+      let resultId = transformedIds[0]
+      for (let i = 1; i < transformedIds.length; i++) {
+        const cutResult = await cadService.booleanCut(resultId, transformedIds[i])
         resultId = cutResult.id
       }
 
@@ -603,7 +691,8 @@ export function useCADOperations() {
     useModellerStore.getState().saveStateBeforeAction()
 
     try {
-      const backendIds: string[] = []
+      // Get backend IDs and apply transforms for all selected objects
+      const transformedIds: string[] = []
       for (const obj of shapeObjects) {
         const backendId = getBackendShapeId(obj.id, obj.metadata)
         if (!backendId) {
@@ -620,13 +709,16 @@ export function useCADOperations() {
           )
           return false
         }
-        backendIds.push(backendId)
+
+        // Apply frontend transform to backend shape
+        const transformedId = await applyTransformToBackend(backendId, obj.transform)
+        transformedIds.push(transformedId)
       }
 
       // Intersect all shapes sequentially
-      let resultId = backendIds[0]
-      for (let i = 1; i < backendIds.length; i++) {
-        const commonResult = await cadService.booleanCommon(resultId, backendIds[i])
+      let resultId = transformedIds[0]
+      for (let i = 1; i < transformedIds.length; i++) {
+        const commonResult = await cadService.booleanCommon(resultId, transformedIds[i])
         resultId = commonResult.id
       }
 
