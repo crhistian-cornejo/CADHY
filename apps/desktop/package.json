@@ -48,6 +48,7 @@
     "postprocessing": "^6.38.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-grab": "^0.0.94",
     "react-i18next": "^16.5.0",
     "react-resizable-panels": "^3.0.6",
     "recharts": "^3.6.0",

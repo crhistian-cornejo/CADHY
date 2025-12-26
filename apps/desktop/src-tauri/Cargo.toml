@@ -51,6 +51,7 @@ lopdf = "0.34"
 # System info
 hostname = "0.4"
 open = "5"
+sysinfo = "0.32"
 
 # HTTP client for OAuth token refresh and AI Gateway proxy
 reqwest = { version = "0.12", features = ["json"] }

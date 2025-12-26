@@ -257,6 +257,7 @@ pub fn run() {
             // System info
             commands::system::get_system_info,
             commands::system::get_extended_system_info,
+            commands::system::get_system_metrics,
             commands::system::open_url,
             // Authentication
             auth::keyring::auth_save_credential,

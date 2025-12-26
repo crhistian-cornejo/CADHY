@@ -91,7 +91,9 @@ interface DialogActions {
 }
 
 // Titlebar height constant - used for CSS variable
-const TITLEBAR_HEIGHT = "2.25rem" // 36px = h-9
+// Note: macOS titlebar uses h-8 (32px) for better alignment with traffic lights
+// Windows/Linux uses h-9 (36px)
+const TITLEBAR_HEIGHT = "2.25rem" // 36px = h-9 (default, macOS overrides to h-8)
 
 export function AppLayout() {
   const { t } = useTranslation()
@@ -423,8 +425,8 @@ function Titlebar({
     <header
       data-tauri-drag-region
       className={cn(
-        "relative flex h-9 shrink-0 items-center bg-background/80 backdrop-blur-sm",
-        isMacOS ? "pl-3 pr-3" : "pl-3 pr-0"
+        "relative flex shrink-0 items-center bg-background/80 backdrop-blur-sm",
+        isMacOS ? "h-8 pl-3 pr-3" : "h-9 pl-3 pr-0"
       )}
     >
       {/* Left section */}
