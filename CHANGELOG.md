@@ -5,79 +5,6 @@ All notable changes to CADHY will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - 2025-12-19
-
-### Added
-
-#### Global Keyboard Shortcuts System
-- **use-app-hotkeys hook** - Centralized keyboard shortcut management
-- **Numpad key support** - Fixed hotkey-registry to match numpad keys using `event.code`
-- **New UI components**: Autocomplete, Kbd (keyboard shortcut display), Frame
-
-#### Texture & Materials System
-- **texture-service** - Service for loading and managing textures
-- **TextureMaterialPanel** - UI for applying textures and materials to objects
-
-#### Shared Logger Package
-- **@cadhy/shared** - New package with centralized logging utilities
-- Migration scripts for converting console.log to logger
-
-#### Camera Animation System
-- **Keyframe-based camera animations** - Create professional camera fly-throughs with keyframe timeline
-- **Camera Views Popover** - Quick camera position switching (Top, Front, Right, Isometric, etc.)
-- **Playback Controls** - Play, pause, and scrub through camera animations
-- **Camera interpolation utilities** - Smooth Catmull-Rom spline interpolation between keyframes
-
-#### Documentation & Planning
-- Added comprehensive roadmap for 2025
-- Phase 1 code quality implementation plan
-- Completed work summary documentation
-
-#### Developer Experience
-- **useVirtualList hook** - Efficient rendering for large lists
-- **ErrorBoundary component** - Improved error handling with tests
-- **Build-time variables** in vite.config.ts for version info injection
-- **useIsFullscreen hook** for detecting macOS fullscreen state
-
-### Fixed
-
-#### React Controlled/Uncontrolled Warnings
-- Fix CameraAnimationPanel Select value to use `undefined` when no animation selected
-- Fix NewProjectDialog Select to use consistent 'none' string value
-
-#### Keyboard Shortcuts
-- Fix hotkey-registry to properly match numpad keys using `event.code` instead of `event.key`
-
-#### UI Stability
-- Fix ParamInput crash with undefined values in ChuteCreator, TransitionCreator, CreatePanel
-- Fix HelpDialog hardcoded version - now uses dynamic version from Tauri API
-- Fix GitHub URL typo in UpdateBadge and UpdateDialog (`crhristian` → `crhistian`)
-- Fix auto-updater running in development mode - now skips update checks when `import.meta.env.DEV`
-- Fix HDR environment loading error - changed preset from 'sunset' to 'apartment'
-- Fix Light Background toggle not working - now properly updates Three.js `scene.background`
-- Fix ProjectsView scroll issues - add `overflow-hidden` and `min-h-0` for proper ScrollArea behavior
-- Fix titlebar logo position on macOS fullscreen - logo moves left when traffic lights are hidden
-
-### Changed
-
-#### Architecture Improvements
-- CommandPalette refactored for better performance
-- UpdateDialog UI improvements
-- Chat store optimizations
-- Objects and layers slice improvements
-
-#### macOS Build Process
-- Improved dylib path fixing script
-- Added entitlements.plist for proper app signing
-
-#### UI/UX Improvements
-- CreatePanel now opens only Hydraulics section by default (was all sections expanded)
-- Refactor tauri-service to use backend's `get_extended_system_info` command
-- Add camera-slice to modeller store for animation state management
-- LayersPanel, PropertiesPanel, ScenePanel improvements
-
----
-
 ## [0.1.2] - 2025-12-18
 
 ### Fixed
@@ -166,9 +93,9 @@ CADHY's first public release brings a powerful desktop application for designing
 
 #### Hydraulic Structures (Backend)
 - **Drops**: Vertical, Inclined, Stepped, Ogee profiles
-- **Weirs**: 
+- **Weirs**:
   - Sharp-crested rectangular
-  - Broad-crested rectangular  
+  - Broad-crested rectangular
   - Trapezoidal (Cipolletti)
   - Triangular (V-notch)
   - Ogee spillway
@@ -178,7 +105,7 @@ CADHY's first public release brings a powerful desktop application for designing
   - Step blocks along chute
   - Aeration requirements detection
   - Normal/critical depth profiles
-- **Stilling Basins (USBR)**: 
+- **Stilling Basins (USBR)**:
   - Type I (Fr < 1.7)
   - Type II (Fr 2.5-4.5, dentated sill)
   - Type III (Fr > 4.5, baffle blocks)
@@ -233,7 +160,6 @@ CADHY's first public release brings a powerful desktop application for designing
 
 ---
 
-[1.3.0]: https://github.com/crhistian-cornejo/CADHY/releases/tag/v1.3.0
 [0.1.2]: https://github.com/crhistian-cornejo/CADHY/releases/tag/v0.1.2
 [0.1.1]: https://github.com/crhistian-cornejo/CADHY/releases/tag/v0.1.1
 [0.1.0]: https://github.com/crhistian-cornejo/CADHY/releases/tag/v0.1.0
