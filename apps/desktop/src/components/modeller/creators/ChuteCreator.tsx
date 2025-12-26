@@ -711,8 +711,11 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
                     </div>
                     {autoDesignResult.warnings.length > 0 && (
                       <div className="mt-1 pt-1 border-t border-amber-500/20">
-                        {autoDesignResult.warnings.map((w, i) => (
-                          <div key={i} className="flex gap-1 text-amber-500">
+                        {autoDesignResult.warnings.map((w) => (
+                          <div
+                            key={`warning-${w.slice(0, 20)}`}
+                            className="flex gap-1 text-amber-500"
+                          >
                             <HugeiconsIcon
                               icon={InformationCircleIcon}
                               className="size-3 shrink-0 mt-0.5"

@@ -21,13 +21,14 @@ import {
 } from "@cadhy/ui"
 import { Cancel01Icon, Tick01Icon, WaterfallDown01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useUnits } from "@/hooks/use-units"
 import {
   type ChannelObject,
   type StillingBasinConfig,
   type StillingBasinType,
+  type TransitionObject,
   type TransitionSection,
   type TransitionTypeEnum,
   useModellerStore,
@@ -194,61 +195,64 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
     return startElevation - length * 0.005
   }, [downstreamChannel, startElevation, length])
 
-  // Extract section from channel
-  const getSectionFromChannel = (channel: ChannelObject | undefined): TransitionSection => {
-    if (!channel) {
-      return {
-        sectionType: "trapezoidal",
-        width: 2,
-        depth: 1.5,
-        sideSlope: 1.5,
-        wallThickness: 0.15,
-        floorThickness: 0.15,
-      }
-    }
-
-    const section = channel.section
-    const thickness = channel.thickness ?? 0.15
-
-    switch (section.type) {
-      case "rectangular":
-        return {
-          sectionType: "rectangular",
-          width: (section as RectangularSection).width,
-          depth: section.depth,
-          sideSlope: 0,
-          wallThickness: thickness,
-          floorThickness: thickness,
-        }
-      case "trapezoidal":
-        return {
-          sectionType: "trapezoidal",
-          width: (section as TrapezoidalSection).bottomWidth,
-          depth: section.depth,
-          sideSlope: (section as TrapezoidalSection).sideSlope,
-          wallThickness: thickness,
-          floorThickness: thickness,
-        }
-      case "triangular":
-        return {
-          sectionType: "triangular",
-          width: 0,
-          depth: section.depth,
-          sideSlope: (section as TriangularSection).sideSlope,
-          wallThickness: thickness,
-          floorThickness: thickness,
-        }
-      default:
+  // Extract section from channel - wrapped in useCallback to prevent recreation on every render
+  const getSectionFromChannel = useCallback(
+    (channel: ChannelObject | undefined): TransitionSection => {
+      if (!channel) {
         return {
           sectionType: "trapezoidal",
           width: 2,
           depth: 1.5,
           sideSlope: 1.5,
-          wallThickness: thickness,
-          floorThickness: thickness,
+          wallThickness: 0.15,
+          floorThickness: 0.15,
         }
-    }
-  }
+      }
+
+      const section = channel.section
+      const thickness = channel.thickness ?? 0.15
+
+      switch (section.type) {
+        case "rectangular":
+          return {
+            sectionType: "rectangular",
+            width: (section as RectangularSection).width,
+            depth: section.depth,
+            sideSlope: 0,
+            wallThickness: thickness,
+            floorThickness: thickness,
+          }
+        case "trapezoidal":
+          return {
+            sectionType: "trapezoidal",
+            width: (section as TrapezoidalSection).bottomWidth,
+            depth: section.depth,
+            sideSlope: (section as TrapezoidalSection).sideSlope,
+            wallThickness: thickness,
+            floorThickness: thickness,
+          }
+        case "triangular":
+          return {
+            sectionType: "triangular",
+            width: 0,
+            depth: section.depth,
+            sideSlope: (section as TriangularSection).sideSlope,
+            wallThickness: thickness,
+            floorThickness: thickness,
+          }
+        default:
+          return {
+            sectionType: "trapezoidal",
+            width: 2,
+            depth: 1.5,
+            sideSlope: 1.5,
+            wallThickness: thickness,
+            floorThickness: thickness,
+          }
+      }
+    },
+    []
+  )
 
   // Inlet section from upstream
   const inletSection = useMemo(
@@ -367,7 +371,7 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
         metalness: 0.1,
         roughness: 0.6,
       },
-    } as any)
+    } as Omit<TransitionObject, "id" | "createdAt" | "updatedAt">)
 
     // Update channel connections and propagate positions
     if (upstreamChannelId !== "none") {
