@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::env;
-use sysinfo::{System, Disks, Networks};
+use sysinfo::{Disks, Networks, System};
 
 /// Basic system information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -220,12 +220,7 @@ fn get_gpu_info() -> String {
                 // Look for "Chipset Model:" line
                 for line in output_str.lines() {
                     if line.contains("Chipset Model:") {
-                        return line
-                            .split(':')
-                            .nth(1)
-                            .unwrap_or("GPU")
-                            .trim()
-                            .to_string();
+                        return line.split(':').nth(1).unwrap_or("GPU").trim().to_string();
                     }
                 }
             }

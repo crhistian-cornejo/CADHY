@@ -1188,7 +1188,10 @@ fn export_pdf_bytes(drawing: &Drawing) -> Result<Vec<u8>, String> {
             _ if matches!(
                 l.line_type,
                 LineType::HiddenSharp | LineType::HiddenSmooth | LineType::HiddenOutline
-            ) => (0.4, 0.4, 0.4),
+            ) =>
+            {
+                (0.4, 0.4, 0.4)
+            }
             _ => (0.0, 0.0, 0.0),
         };
 
@@ -1491,16 +1494,19 @@ mod tests {
             }),
         };
 
-        let (w, h) = paper_dimensions_mm(&drawing.sheet_config.size, &drawing.sheet_config.orientation);
+        let (w, h) = paper_dimensions_mm(
+            &drawing.sheet_config.size,
+            &drawing.sheet_config.orientation,
+        );
         let (_width, _height, lines, _texts) = collect_export_primitives(&drawing);
 
         // Verify dimension lines were generated
-        let dim_lines: Vec<_> = lines
-            .iter()
-            .filter(|l| l.layer == "DIMENSION")
-            .collect();
+        let dim_lines: Vec<_> = lines.iter().filter(|l| l.layer == "DIMENSION").collect();
 
-        assert!(dim_lines.len() >= 3, "Should have dimension line + extension lines");
+        assert!(
+            dim_lines.len() >= 3,
+            "Should have dimension line + extension lines"
+        );
 
         // Find the main dimension line (the longest one)
         let main_line = dim_lines
@@ -1522,14 +1528,30 @@ mod tests {
         let expected_x2 = w / 2.0 + 60.0;
         let expected_y2 = h / 2.0 - 35.0;
 
-        assert!((main_line.x1 - expected_x1).abs() < 0.1,
-            "Dimension start x should be {} but got {}", expected_x1, main_line.x1);
-        assert!((main_line.y1 - expected_y1).abs() < 0.1,
-            "Dimension start y should be {} but got {}", expected_y1, main_line.y1);
-        assert!((main_line.x2 - expected_x2).abs() < 0.1,
-            "Dimension end x should be {} but got {}", expected_x2, main_line.x2);
-        assert!((main_line.y2 - expected_y2).abs() < 0.1,
-            "Dimension end y should be {} but got {}", expected_y2, main_line.y2);
+        assert!(
+            (main_line.x1 - expected_x1).abs() < 0.1,
+            "Dimension start x should be {} but got {}",
+            expected_x1,
+            main_line.x1
+        );
+        assert!(
+            (main_line.y1 - expected_y1).abs() < 0.1,
+            "Dimension start y should be {} but got {}",
+            expected_y1,
+            main_line.y1
+        );
+        assert!(
+            (main_line.x2 - expected_x2).abs() < 0.1,
+            "Dimension end x should be {} but got {}",
+            expected_x2,
+            main_line.x2
+        );
+        assert!(
+            (main_line.y2 - expected_y2).abs() < 0.1,
+            "Dimension end y should be {} but got {}",
+            expected_y2,
+            main_line.y2
+        );
     }
 
     #[test]

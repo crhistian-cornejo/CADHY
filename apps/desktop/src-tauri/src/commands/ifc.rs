@@ -2,9 +2,7 @@
 //!
 //! Provides commands for importing and exporting IFC files.
 
-use cadhy_ifc::{
-    ExportOptions, HydraulicProperties, IfcExporter, IfcImporter, MeshGeometry,
-};
+use cadhy_ifc::{ExportOptions, HydraulicProperties, IfcExporter, IfcImporter, MeshGeometry};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
