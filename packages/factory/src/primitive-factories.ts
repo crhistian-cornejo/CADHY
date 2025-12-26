@@ -154,21 +154,17 @@ export class BoxFactory extends PositionedGeometryFactory {
     return this._width
   }
   set width(value: number) {
-    if (value > 0) {
-      this._width = value
-      this.notifyParameterChange()
-    }
+    this._width = value
+    this.notifyParameterChange()
   }
 
   // Height property
   get height(): number {
     return this._height
   }
-  set height(value: number) {
-    if (value > 0) {
-      this._height = value
-      this.notifyParameterChange()
-    }
+  set height(height: number) {
+    this._height = height
+    this.notifyParameterChange()
   }
 
   // Depth property
@@ -176,10 +172,8 @@ export class BoxFactory extends PositionedGeometryFactory {
     return this._depth
   }
   set depth(value: number) {
-    if (value > 0) {
-      this._depth = value
-      this.notifyParameterChange()
-    }
+    this._depth = value
+    this.notifyParameterChange()
   }
 
   isValid(): boolean {
@@ -284,20 +278,16 @@ export class CylinderFactory extends PositionedGeometryFactory {
     return this._radius
   }
   set radius(value: number) {
-    if (value > 0) {
-      this._radius = value
-      this.notifyParameterChange()
-    }
+    this._radius = value
+    this.notifyParameterChange()
   }
 
   get height(): number {
     return this._height
   }
   set height(value: number) {
-    if (value > 0) {
-      this._height = value
-      this.notifyParameterChange()
-    }
+    this._height = value
+    this.notifyParameterChange()
   }
 
   isValid(): boolean {
@@ -376,10 +366,8 @@ export class SphereFactory extends PositionedGeometryFactory {
     return this._radius
   }
   set radius(value: number) {
-    if (value > 0) {
-      this._radius = value
-      this.notifyParameterChange()
-    }
+    this._radius = value
+    this.notifyParameterChange()
   }
 
   isValid(): boolean {
@@ -461,30 +449,24 @@ export class ConeFactory extends PositionedGeometryFactory {
     return this._baseRadius
   }
   set baseRadius(value: number) {
-    if (value >= 0) {
-      this._baseRadius = value
-      this.notifyParameterChange()
-    }
+    this._baseRadius = value
+    this.notifyParameterChange()
   }
 
   get topRadius(): number {
     return this._topRadius
   }
   set topRadius(value: number) {
-    if (value >= 0) {
-      this._topRadius = value
-      this.notifyParameterChange()
-    }
+    this._topRadius = value
+    this.notifyParameterChange()
   }
 
   get height(): number {
     return this._height
   }
   set height(value: number) {
-    if (value > 0) {
-      this._height = value
-      this.notifyParameterChange()
-    }
+    this._height = value
+    this.notifyParameterChange()
   }
 
   isValid(): boolean {
@@ -581,20 +563,16 @@ export class TorusFactory extends PositionedGeometryFactory {
     return this._majorRadius
   }
   set majorRadius(value: number) {
-    if (value > 0) {
-      this._majorRadius = value
-      this.notifyParameterChange()
-    }
+    this._majorRadius = value
+    this.notifyParameterChange()
   }
 
   get minorRadius(): number {
     return this._minorRadius
   }
   set minorRadius(value: number) {
-    if (value > 0) {
-      this._minorRadius = value
-      this.notifyParameterChange()
-    }
+    this._minorRadius = value
+    this.notifyParameterChange()
   }
 
   isValid(): boolean {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { renderHook } from "@testing-library/react"
-import { useVirtualList } from "../useVirtualList"
+import { useVirtualList } from "../use-virtual-list"
 
 describe("useVirtualList", () => {
   const createMockItems = (count: number) =>

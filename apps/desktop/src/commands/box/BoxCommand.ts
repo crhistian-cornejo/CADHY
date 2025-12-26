@@ -97,15 +97,12 @@ export class BoxCommand {
   private async start() {
     try {
       this.state = "picking_p1"
-      console.log("[BoxCommand] Waiting for first corner point (p1)...")
 
       // Step 1: Pick first corner (p1)
       const { point: p1 } = await this.pointPicker.execute()
       this.factory.p1 = p1
-      console.log("[BoxCommand] p1 selected:", p1)
 
       this.state = "picking_p2"
-      console.log("[BoxCommand] Waiting for second corner point (p2)...")
 
       // Step 2: Pick second corner (p2) with live preview
       const { point: p2 } = await this.pointPicker.execute(({ point }) => {
@@ -116,10 +113,8 @@ export class BoxCommand {
       })
       this.factory.p2 = p2
       this.factory.update()
-      console.log("[BoxCommand] p2 selected:", p2)
 
       this.state = "picking_p3"
-      console.log("[BoxCommand] Waiting for height point (p3)...")
 
       // Step 3: Pick height (p3) with live preview
       const { point: p3 } = await this.pointPicker.execute(({ point }) => {
@@ -130,7 +125,6 @@ export class BoxCommand {
       })
       this.factory.p3 = p3
       this.factory.update()
-      console.log("[BoxCommand] p3 selected:", p3)
 
       // Step 4: Show dialog for parameter editing
       this.state = "editing_params"
@@ -170,10 +164,8 @@ export class BoxCommand {
 
   private async confirm() {
     this.state = "completed"
-    console.log("[BoxCommand] Confirming box creation...")
 
     const shapeId = await this.factory.commit()
-    console.log("[BoxCommand] Box created with ID:", shapeId)
 
     this.onHideDialog()
     this.cleanup()
@@ -185,7 +177,6 @@ export class BoxCommand {
 
   private cancel() {
     this.state = "cancelled"
-    console.log("[BoxCommand] Cancelled")
 
     this.factory.cancel()
     this.pointPicker.cancel()

@@ -96,9 +96,7 @@ export async function createBoxAt(
  * Check if a shape exists in the backend registry
  */
 export async function shapeExists(shapeId: string): Promise<boolean> {
-  console.log("[CAD Service] Checking if shape exists:", shapeId)
   const result = await invoke<boolean>("cad_shape_exists", { shapeId })
-  console.log("[CAD Service] Shape exists result:", result)
   return result
 }
 

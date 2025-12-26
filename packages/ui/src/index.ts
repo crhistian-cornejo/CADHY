@@ -21,6 +21,7 @@ export * from "./components/dropdown-menu"
 export * from "./components/effects"
 export * from "./components/empty"
 export * from "./components/field"
+export * from "./components/frame"
 export * from "./components/hover-card"
 // Icons (Provider logos - NOT hugeicons)
 export * from "./components/icons"

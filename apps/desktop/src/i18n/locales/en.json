@@ -173,6 +173,7 @@
     "objects": "Objects",
     "connections": "Connections",
     "cursorPosition": "Cursor position / Selected object coordinates",
+    "selectionCenter": "Selection Center (Bounding Box)",
     "switchUnits": "Click to switch to {{units}} units",
     "metric": "Metric",
     "imperial": "Imperial",

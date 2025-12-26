@@ -129,12 +129,14 @@ describe("BoxFactory", () => {
       expect(factory.isValid()).toBe(false)
     })
 
-    test("ignores non-positive values in setters", () => {
+    test("allows non-positive values in setters but remains invalid", () => {
       factory.width = -5
-      expect(factory.width).toBe(1) // unchanged
+      expect(factory.width).toBe(-5)
+      expect(factory.isValid()).toBe(false)
 
       factory.height = 0
-      expect(factory.height).toBe(1) // unchanged
+      expect(factory.height).toBe(0)
+      expect(factory.isValid()).toBe(false)
     })
   })
 

@@ -189,22 +189,13 @@ export function useCADOperations() {
       useModellerStore.getState().saveStateBeforeAction()
 
       const selectedObject = selectedObjects[0]
-      console.log("[CAD Operations] === FILLET OPERATION ===")
-      console.log("[CAD Operations] Selected object ID:", selectedObject.id)
-      console.log("[CAD Operations] Selected object type:", selectedObject.type)
-      console.log("[CAD Operations] Selected object name:", selectedObject.name)
-      console.log("[CAD Operations] Metadata:", JSON.stringify(selectedObject.metadata, null, 2))
-      console.log("[CAD Operations] shapeIdMap size:", shapeIdMap.size)
-      console.log("[CAD Operations] shapeIdMap contents:", Array.from(shapeIdMap.entries()))
 
       // Try to get backend ID from shapeIdMap first, then from metadata as fallback
       let backendId = shapeIdMap.get(selectedObject.id)
-      console.log("[CAD Operations] Backend ID from shapeIdMap:", backendId)
 
       // Fallback: try to get from metadata
       if (!backendId && selectedObject.metadata?.backendShapeId) {
         backendId = selectedObject.metadata.backendShapeId as string
-        console.log("[CAD Operations] Using backend ID from metadata:", backendId)
         // Register it in the map for future use
         shapeIdMap.set(selectedObject.id, backendId)
       }
