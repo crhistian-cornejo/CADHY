@@ -1,77 +1,96 @@
+"use client"
+
 import { cn } from "@cadhy/ui/lib/utils"
-import type * as React from "react"
+import * as React from "react"
 
-function Frame({
-  className,
-  stackedPanels = false,
-  ...props
-}: React.ComponentProps<"div"> & { stackedPanels?: boolean }) {
-  return (
+interface FrameProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "bordered" | "elevated"
+  padding?: "none" | "sm" | "md" | "lg"
+}
+
+const Frame = React.forwardRef<HTMLDivElement, FrameProps>(
+  ({ className, variant = "default", padding = "md", children, ...props }, ref) => {
+    const variantClasses = {
+      default: "bg-background",
+      bordered: "border bg-background rounded-lg",
+      elevated: "border bg-background rounded-lg shadow-md",
+    }
+
+    const paddingClasses = {
+      none: "",
+      sm: "p-2",
+      md: "p-4",
+      lg: "p-6",
+    }
+
+    return (
+      <div
+        ref={ref}
+        data-slot="frame"
+        className={cn(variantClasses[variant], paddingClasses[padding], className)}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  }
+)
+Frame.displayName = "Frame"
+
+const FrameHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
     <div
-      className={cn(
-        "relative flex flex-col rounded-2xl bg-muted/50 p-1",
-        stackedPanels
-          ? "*:has-[+[data-slot=frame-panel]]:rounded-b-none *:has-[+[data-slot=frame-panel]]:before:hidden dark:*:has-[+[data-slot=frame-panel]]:before:block *:[[data-slot=frame-panel]+[data-slot=frame-panel]]:rounded-t-none *:[[data-slot=frame-panel]+[data-slot=frame-panel]]:border-t-0 dark:*:[[data-slot=frame-panel]+[data-slot=frame-panel]]:before:hidden"
-          : "*:[[data-slot=frame-panel]+[data-slot=frame-panel]]:mt-1",
-        className
-      )}
-      data-slot="frame"
+      ref={ref}
+      data-slot="frame-header"
+      className={cn("mb-4 flex items-center justify-between", className)}
       {...props}
     />
   )
-}
+)
+FrameHeader.displayName = "FrameHeader"
 
-function FramePanel({ className, ...props }: React.ComponentProps<"div">) {
-  return (
+const FrameTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => (
+    <h3
+      ref={ref}
+      data-slot="frame-title"
+      className={cn("text-lg font-semibold leading-none", className)}
+      {...props}
+    />
+  )
+)
+FrameTitle.displayName = "FrameTitle"
+
+const FrameDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    data-slot="frame-description"
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+FrameDescription.displayName = "FrameDescription"
+
+const FrameContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} data-slot="frame-content" className={cn("", className)} {...props} />
+  )
+)
+FrameContent.displayName = "FrameContent"
+
+const FrameFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
     <div
-      className={cn(
-        "relative rounded-2xl border bg-background bg-clip-padding p-5 shadow-xs before:pointer-events-none before:absolute before:inset-0 before:rounded-[15px] before:shadow-[0_1px_--theme(--color-black/4%)] dark:bg-clip-border dark:before:shadow-[0_-1px_--theme(--color-white/8%)]",
-        className
-      )}
-      data-slot="frame-panel"
+      ref={ref}
+      data-slot="frame-footer"
+      className={cn("mt-4 flex items-center justify-end gap-2", className)}
       {...props}
     />
   )
-}
+)
+FrameFooter.displayName = "FrameFooter"
 
-function FrameHeader({ className, ...props }: React.ComponentProps<"header">) {
-  return (
-    <header
-      className={cn("flex flex-col px-5 py-4", className)}
-      data-slot="frame-panel-header"
-      {...props}
-    />
-  )
-}
-
-function FrameTitle({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      className={cn("font-semibold text-sm", className)}
-      data-slot="frame-panel-title"
-      {...props}
-    />
-  )
-}
-
-function FrameDescription({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      className={cn("text-muted-foreground text-sm", className)}
-      data-slot="frame-panel-description"
-      {...props}
-    />
-  )
-}
-
-function FrameFooter({ className, ...props }: React.ComponentProps<"footer">) {
-  return (
-    <footer
-      className={cn("flex flex-col gap-1 px-5 py-4", className)}
-      data-slot="frame-panel-footer"
-      {...props}
-    />
-  )
-}
-
-export { Frame, FramePanel, FrameHeader, FrameTitle, FrameDescription, FrameFooter }
+export { Frame, FrameContent, FrameDescription, FrameFooter, FrameHeader, FrameTitle }

@@ -222,8 +222,8 @@ export function getAdjacentDocs(path: string): {
   if (currentIndex === -1) return { prev: null, next: null }
 
   return {
-    prev: currentIndex > 0 ? allDocs[currentIndex - 1] : null,
-    next: currentIndex < allDocs.length - 1 ? allDocs[currentIndex + 1] : null,
+    prev: currentIndex > 0 ? (allDocs[currentIndex - 1] ?? null) : null,
+    next: currentIndex < allDocs.length - 1 ? (allDocs[currentIndex + 1] ?? null) : null,
   }
 }
 

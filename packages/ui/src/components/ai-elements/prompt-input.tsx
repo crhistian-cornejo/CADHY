@@ -270,7 +270,10 @@ export function PromptInput({
 
       const files = Array.from(e.dataTransfer.files)
       if (files.length > 0) {
-        controller.attachments.add(multiple ? files : [files[0]])
+        const firstFile = files[0]
+        if (firstFile) {
+          controller.attachments.add(multiple ? files : [firstFile])
+        }
       }
     },
     [controller.attachments, multiple]

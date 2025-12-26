@@ -303,3 +303,159 @@ useEffect(() => {
 1. **Always use optional chaining** for potentially undefined objects in deps arrays
 2. **Function declaration order matters** in the same scope for arrow functions
 3. **Both issues only manifested in release builds** - development mode had different initialization order
+
+---
+
+## UI Components Implementation - Base UI Migration (December 2024)
+
+### Context
+The project uses **Base UI** (not Radix UI) as the foundation for UI components. Several components were exported in `packages/ui` but not implemented, causing TypeScript errors across the monorepo.
+
+### Missing Components (Before)
+9 components were exported but not created:
+- alert-dialog
+- carousel
+- context-menu
+- hover-card
+- menubar
+- navigation-menu
+- pagination
+- resizable
+- sidebar
+- frame (unknown/custom component)
+
+Additionally, `ai-elements` was commented out because it depended on `hover-card`.
+
+### Solution
+Created all 10 missing components manually following Base UI patterns (not shadcn CLI, since the project uses Base UI instead of Radix).
+
+**Components Implemented**:
+
+1. **alert-dialog.tsx** (Dialog-based)
+   - Uses `@base-ui/react/dialog` primitive
+   - Components: AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel
+   - Pattern: Portal + Backdrop + Popup with data-slot attributes
+
+2. **hover-card.tsx** (Popover-based)
+   - Uses `@base-ui/react/popover` primitive
+   - Fixed to use Positioner for positioning props (align, side, sideOffset)
+   - Components: HoverCard, HoverCardTrigger, HoverCardContent
+   - Key: Base UI doesn't have `openOnHover` prop, handled via Root props
+
+3. **context-menu.tsx** (Menu-based)
+   - Uses `@base-ui/react/menu` primitive
+   - Custom onContextMenu handler to prevent default browser menu
+   - Components: ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator
+
+4. **menubar.tsx** (Menu-based)
+   - Uses `@base-ui/react/menu` primitive
+   - Horizontal menu bar with dropdowns
+   - Components: Menubar, MenubarMenu, MenubarTrigger, MenubarContent, MenubarItem, MenubarSeparator
+
+5. **pagination.tsx** (Custom/Presentational)
+   - No Base UI primitive, built from scratch
+   - Uses Button component with variants
+   - Components: Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis
+
+6. **resizable.tsx** (Custom/Layout)
+   - Context-based panel system
+   - Components: ResizablePanelGroup, ResizablePanel, ResizableHandle
+   - Supports horizontal/vertical orientation
+
+7. **navigation-menu.tsx** (Custom)
+   - Context-based navigation with dropdowns
+   - Components: NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuTrigger, NavigationMenuContent, NavigationMenuLink, NavigationMenuIndicator, NavigationMenuViewport
+
+8. **carousel.tsx** (Custom)
+   - Context-based carousel with state
+   - Components: Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
+   - State: currentIndex, itemsCount
+
+9. **sidebar.tsx** (Custom/Layout)
+   - Full sidebar system with provider pattern
+   - Hook: useSidebar() for accessing state
+   - Components: SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarTrigger, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenuItem
+   - Features: Mobile detection, backdrop overlay, responsive behavior
+
+10. **frame.tsx** (Custom Container)
+    - Generic bordered/elevated container
+    - Variants: default, bordered, elevated
+    - Padding: none, sm, md, lg
+    - Components: Frame, FrameHeader, FrameTitle, FrameDescription, FrameContent, FrameFooter
+
+### Additional Fixes
+
+1. **hover-card.tsx API Corrections**
+   - Base UI Popover doesn't support `openOnHover`, `align`, `sideOffset`, or `anchor` directly on Popup
+   - Fixed by using Positioner wrapper with positioning props
+   - Pattern matches existing popover.tsx implementation
+
+2. **carousel.tsx Unused Variable**
+   - Removed `setItemsCount` to fix TypeScript warning
+   - Note: Future enhancement could auto-calculate itemsCount from children
+
+3. **ai-elements/image.tsx Type Safety**
+   - Fixed `bytes[i]` potentially undefined error
+   - Added nullish coalescing: `bytes[i] ?? 0`
+
+4. **ai-elements/prompt-input.tsx Type Safety**
+   - Fixed `files[0]` potentially undefined error
+   - Added explicit check before passing to controller
+
+### Files Created
+- `packages/ui/src/components/alert-dialog.tsx`
+- `packages/ui/src/components/hover-card.tsx`
+- `packages/ui/src/components/context-menu.tsx`
+- `packages/ui/src/components/menubar.tsx`
+- `packages/ui/src/components/pagination.tsx`
+- `packages/ui/src/components/resizable.tsx`
+- `packages/ui/src/components/navigation-menu.tsx`
+- `packages/ui/src/components/carousel.tsx`
+- `packages/ui/src/components/sidebar.tsx`
+- `packages/ui/src/components/frame.tsx`
+
+### Files Modified
+- `packages/ui/src/components/index.ts` - Uncommented all 10 component exports
+- `packages/ui/src/index.ts` - Uncommented all 10 component exports + ai-elements
+- `packages/ui/src/components/ai-elements/image.tsx` - Fixed type safety
+- `packages/ui/src/components/ai-elements/prompt-input.tsx` - Fixed type safety
+
+### Validation Results
+```bash
+✅ All 10 packages passing typecheck
+✅ @cadhy/desktop - 0 errors
+✅ @cadhy/web - 0 errors
+✅ @cadhy/ui - 0 errors
+```
+
+### Key Learnings
+
+1. **Base UI vs Radix Differences**:
+   - Base UI uses `render` prop instead of `asChild`
+   - Positioning uses separate `Positioner` component
+   - Some props like `openOnHover` don't exist
+   - No direct 1:1 mapping with shadcn components
+
+2. **Component Architecture Patterns**:
+   - Portal + Positioner + Popup for overlays
+   - Context + Provider for stateful components (Sidebar, Carousel)
+   - data-slot attributes for consistent element identification
+   - forwardRef for all interactive components
+
+3. **TypeScript Strict Mode**:
+   - `noUncheckedIndexedAccess` requires nullish coalescing for array access
+   - Array[0] returns `Type | undefined`, needs explicit check
+   - Uint8Array indexing also affected
+
+4. **Manual vs CLI**:
+   - shadcn CLI doesn't support Base UI (expects Radix)
+   - Manual creation required following existing component patterns
+   - Important to match existing style (data-slot, cn utils, variant patterns)
+
+### Future Considerations
+
+1. **Carousel Enhancement**: Could auto-calculate itemsCount from React.Children
+2. **Resizable Enhancement**: Could add actual drag-to-resize functionality (currently static)
+3. **Navigation Menu**: Could add keyboard navigation and ARIA attributes
+4. **Sidebar**: Could add animation variants and custom positioning
+5. **Context Menu**: Could add nested submenus support

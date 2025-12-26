@@ -25,6 +25,7 @@ import type {
   OrbitControls as OrbitControlsImpl,
   TransformControls as TransformControlsImpl,
 } from "three-stdlib"
+
 import { shapeIdMap } from "@/hooks/use-cad"
 import { useCADOperations } from "@/hooks/use-cad-operations"
 import { useTopologicalSelection } from "@/hooks/use-topological-selection"
@@ -52,6 +53,7 @@ import {
   useVisibleObjects,
 } from "@/stores/modeller"
 import { getCameraAtTime } from "@/utils/camera-interpolation"
+import { CursorTracker } from "./CursorTracker"
 import { InteractiveCADOperations } from "./InteractiveCADOperations"
 import { SceneObjectMesh } from "./meshes"
 import { PostProcessing, type QualityPreset } from "./PostProcessing"
@@ -972,6 +974,9 @@ export function SceneContent({ showStats }: SceneContentProps) {
           enabled={dialogState.open && dialogState.interactiveMode}
         />
       )}
+
+      {/* Cursor Tracker - Updates StatusBar coordinates */}
+      <CursorTracker />
     </>
   )
 }

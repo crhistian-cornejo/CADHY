@@ -193,12 +193,6 @@ export class BoxFactory {
    */
   async commit(): Promise<string | null> {
     try {
-      console.log("[BoxFactory] Creating box:", {
-        width: this.width,
-        length: this.length,
-        height: this.height,
-      })
-
       // Validate dimensions
       const minDimension = 0.01 // Minimum 1cm
       if (this.width < minDimension || this.length < minDimension || this.height < minDimension) {
@@ -209,7 +203,6 @@ export class BoxFactory {
 
       // Create shape in backend
       const result = await createBox(this.width, this.length, this.height)
-      console.log("[BoxFactory] Backend shape created:", result.id)
 
       if (!result || !result.id) {
         throw new Error("createBox returned invalid result - missing id")
@@ -217,7 +210,6 @@ export class BoxFactory {
 
       // Tessellate for rendering
       const meshData = await tessellate(result.id, 0.1)
-      console.log("[BoxFactory] Tessellation complete, vertices:", meshData.vertex_count)
 
       // Create scene object
       const shapeObject: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
@@ -258,7 +250,6 @@ export class BoxFactory {
 
       // Register in shapeIdMap
       shapeIdMap.set(sceneId, result.id)
-      console.log("[BoxFactory] Registered shape:", { sceneId, backendId: result.id })
 
       // Select the new object
       useModellerStore.getState().select(sceneId)

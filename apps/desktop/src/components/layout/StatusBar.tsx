@@ -44,6 +44,7 @@ import {
 } from "@/stores/modeller"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
 import { useStatusNotification } from "@/stores/status-notification-store"
+import { useCoordinateSource, useCoordinates } from "@/stores/viewport-coordinates-store"
 
 // ============================================================================
 // PERFORMANCE METRICS HOOK
@@ -179,8 +180,11 @@ export function StatusBar() {
   // Get app version from injected runtime state (or fallback)
   const version = window.__CADHY__?.version ? `v${window.__CADHY__.version}` : "v0.1.0"
 
-  // Cursor coordinates tracking - simplified placeholder
-  const coordinates = { x: 0.0, y: 0.0, z: 0.0 }
+  // Get real-time viewport coordinates from the store
+  // - When no object selected: shows cursor position on ground plane (from raycasting)
+  // - When object(s) selected: shows centroid of selection bounding box
+  const coordinates = useCoordinates()
+  const coordinateSource = useCoordinateSource()
 
   return (
     <footer
@@ -405,7 +409,11 @@ export function StatusBar() {
               </div>
             }
           />
-          <TooltipContent side="top">{t("statusBar.cursorPosition")}</TooltipContent>
+          <TooltipContent side="top">
+            {coordinateSource === "selection"
+              ? t("statusBar.selectionCenter", "Selection Center")
+              : t("statusBar.cursorPosition")}
+          </TooltipContent>
         </Tooltip>
 
         <span className="text-muted-foreground/50">│</span>

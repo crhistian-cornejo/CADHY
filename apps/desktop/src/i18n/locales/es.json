@@ -171,6 +171,7 @@
     "objects": "Objetos",
     "connections": "Conexiones",
     "cursorPosition": "Posición del cursor / Coordenadas del objeto seleccionado",
+    "selectionCenter": "Centro de Selección (Bounding Box)",
     "switchUnits": "Clic para cambiar a unidades {{units}}",
     "metric": "Métricas",
     "imperial": "Imperiales",

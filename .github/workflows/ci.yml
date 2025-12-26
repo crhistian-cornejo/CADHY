@@ -132,9 +132,12 @@ jobs:
     name: Rust Checks
     needs: changes
     if: ${{ needs.changes.outputs.rust == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install OCCT
+        run: brew install opencascade freetype libpng tbb
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
