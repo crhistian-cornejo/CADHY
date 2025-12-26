@@ -12,13 +12,10 @@ import {
   CpuIcon,
   CubeIcon,
   FloppyDiskIcon,
-  GridIcon,
   Loading01Icon,
-  MagnetIcon,
   Message01Icon,
   PackageIcon,
   Target01Icon,
-  ViewIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { invoke } from "@tauri-apps/api/core"
@@ -35,8 +32,6 @@ import {
 } from "@/stores/autosave-store"
 import {
   useActiveTool,
-  useCameraView,
-  useGridSettings,
   useIsDirty,
   useObjects,
   useSelectedObjects,
@@ -161,8 +156,6 @@ export function StatusBar() {
   const selectionMode = useSelectionMode()
   const transformMode = useTransformMode()
   const activeTool = useActiveTool()
-  const gridSettings = useGridSettings()
-  const cameraView = useCameraView()
   const isDirty = useIsDirty()
 
   // Format countdown for display
@@ -391,46 +384,6 @@ export function StatusBar() {
 
       {/* Right Section - Metrics & Settings */}
       <div className="ml-auto flex items-center gap-2 h-full">
-        {/* View/Projection Mode */}
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <div className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-muted/50 transition-colors cursor-default rounded-2xl border border-transparent hover:border-border/30">
-                <HugeiconsIcon icon={ViewIcon} className="size-3 text-muted-foreground" />
-                <span className="font-medium uppercase tracking-wider text-xs">{cameraView}</span>
-              </div>
-            }
-          />
-          <TooltipContent side="top">
-            {t("modeller.view", "View")}: {cameraView}
-          </TooltipContent>
-        </Tooltip>
-
-        <span className="text-muted-foreground/50">│</span>
-
-        {/* Grid Setting */}
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <div className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-muted/50 transition-colors cursor-default rounded-2xl border border-transparent hover:border-border/30">
-                <HugeiconsIcon icon={GridIcon} className="size-3 text-muted-foreground" />
-                <span className="tabular-nums">{gridSettings.size}m</span>
-                {gridSettings.snapEnabled && (
-                  <HugeiconsIcon icon={MagnetIcon} className="size-2.5 text-primary ml-0.5" />
-                )}
-              </div>
-            }
-          />
-          <TooltipContent side="top">
-            {t("statusBar.gridSize", "Grid Size")}: {gridSettings.size}m
-            {gridSettings.snapEnabled && (
-              <div className="text-primary text-xs">Snap active ({gridSettings.snapSize}m)</div>
-            )}
-          </TooltipContent>
-        </Tooltip>
-
-        <span className="text-muted-foreground/50">│</span>
-
         {/* Coordinates Display */}
         <Tooltip>
           <TooltipTrigger
