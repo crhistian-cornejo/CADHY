@@ -510,7 +510,7 @@ export function StatusBar() {
             <TooltipTrigger
               render={
                 <div className="flex items-center gap-1 max-w-[120px]">
-                  <CubeIcon className="size-3" />
+                  <HugeiconsIcon icon={CubeIcon} className="size-3" />
                   <span className="text-xs truncate">{metrics.gpu}</span>
                 </div>
               }
