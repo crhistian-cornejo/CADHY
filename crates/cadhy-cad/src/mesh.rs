@@ -24,6 +24,10 @@ impl Vertex3 {
 }
 
 /// Surface type enumeration for face classification
+///
+/// NOTE: This type is intentionally duplicated from cadhy_core::geometry::SurfaceType
+/// to avoid adding cadhy-core as a dependency. Keep these in sync!
+/// The canonical definition is in cadhy-core/src/geometry.rs
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SurfaceType {
     Plane,
@@ -33,6 +37,9 @@ pub enum SurfaceType {
     Torus,
     BezierSurface,
     BSplineSurface,
+    RevolutionSurface,
+    ExtrusionSurface,
+    OffsetSurface,
     Other,
 }
 
@@ -46,6 +53,9 @@ impl From<i32> for SurfaceType {
             4 => SurfaceType::Torus,
             5 => SurfaceType::BezierSurface,
             6 => SurfaceType::BSplineSurface,
+            7 => SurfaceType::RevolutionSurface,
+            8 => SurfaceType::ExtrusionSurface,
+            9 => SurfaceType::OffsetSurface,
             _ => SurfaceType::Other,
         }
     }

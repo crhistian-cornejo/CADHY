@@ -154,6 +154,9 @@ impl BoundingBox {
 }
 
 /// Surface type enumeration for face classification
+///
+/// This is the canonical definition used across all crates.
+/// cadhy-cad reuses this type for consistency.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
@@ -165,6 +168,9 @@ pub enum SurfaceType {
     Torus,
     BezierSurface,
     BSplineSurface,
+    RevolutionSurface,
+    ExtrusionSurface,
+    OffsetSurface,
     Other,
 }
 
@@ -178,6 +184,9 @@ impl From<i32> for SurfaceType {
             4 => SurfaceType::Torus,
             5 => SurfaceType::BezierSurface,
             6 => SurfaceType::BSplineSurface,
+            7 => SurfaceType::RevolutionSurface,
+            8 => SurfaceType::ExtrusionSurface,
+            9 => SurfaceType::OffsetSurface,
             _ => SurfaceType::Other,
         }
     }

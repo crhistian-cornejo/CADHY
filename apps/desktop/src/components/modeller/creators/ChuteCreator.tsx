@@ -6,13 +6,13 @@
  * Includes USBR stilling basin design with automatic dimensioning.
  */
 
+import type { RectangularSection, TrapezoidalSection, TriangularSection } from "@cadhy/types"
 import {
   Badge,
   Button,
   Card,
   Input,
   Label,
-  NumberInput,
   Select,
   SelectContent,
   SelectItem,
@@ -47,6 +47,7 @@ import {
   createSimpleBasinConfig,
   designStillingBasin,
 } from "@/utils/stilling-basin-design"
+import { ParamInput } from "./shared"
 
 // ============================================================================
 // TYPES
@@ -120,66 +121,6 @@ const STILLING_BASIN_TYPES: {
     froudeRange: "Fr 1.7-17",
   },
 ]
-
-// ============================================================================
-// PARAM INPUT
-// ============================================================================
-
-type UnitType = "length" | "none"
-
-interface ParamInputProps {
-  label: string
-  value: number
-  onChange: (v: number) => void
-  min?: number
-  max?: number
-  step?: number
-  unitType?: UnitType
-  customUnit?: string
-  disabled?: boolean
-}
-
-function ParamInput({
-  label,
-  value,
-  onChange,
-  min = 0.01,
-  max,
-  step = 0.1,
-  unitType,
-  customUnit,
-  disabled,
-}: ParamInputProps) {
-  const { lengthLabel, convertLengthToDisplay, parseLength } = useUnits()
-
-  const unitLabel = customUnit ?? (unitType === "length" ? lengthLabel : undefined)
-  // Fallback to 0 if value is undefined/null to prevent .toFixed() crash
-  const safeValue = value ?? 0
-  const displayValue = unitType === "length" ? convertLengthToDisplay(safeValue) : safeValue
-
-  const handleChange = (newDisplayValue: number) => {
-    const internalValue = unitType === "length" ? parseLength(newDisplayValue) : newDisplayValue
-    onChange(internalValue)
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <Label className="w-20 text-xs text-muted-foreground shrink-0">{label}</Label>
-      <div className="flex-1 flex items-center gap-1">
-        <NumberInput
-          value={Number(displayValue.toFixed(4))}
-          onChange={handleChange}
-          min={min}
-          max={max}
-          step={step}
-          className="h-7 text-xs"
-          disabled={disabled}
-        />
-        {unitLabel && <span className="text-xs text-muted-foreground w-6">{unitLabel}</span>}
-      </div>
-    </div>
-  )
-}
 
 // ============================================================================
 // CHUTE CREATOR

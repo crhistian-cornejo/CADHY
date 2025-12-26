@@ -3,12 +3,19 @@
  *
  * Registers hotkeys for CAD operations (Fillet, Chamfer, Shell, etc.)
  * Must be used within CADOperationsProvider to access operation context.
+ *
+ * REFACTORED: Uses centralized validation from utils/cad-validation
  */
 
 import { toast } from "@cadhy/ui"
 import { useCallback } from "react"
 import { useCADOperationsContext } from "@/components/modeller/dialogs"
-import { useModellerStore } from "@/stores/modeller"
+import {
+  requireSelection,
+  validateBooleanIntersect,
+  validateBooleanSubtract,
+  validateBooleanUnion,
+} from "@/utils/cad-validation"
 import { useHotkey } from "./use-hotkey"
 
 export function useCADOperationHotkeys() {
@@ -30,12 +37,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
-      if (selectedObjects.length === 0) {
-        toast.error("No objects selected. Select an object first.")
-        return
-      }
+      if (!requireSelection()) return
       openOperationDialog("fillet")
     }, [openOperationDialog])
   )
@@ -51,12 +53,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
-      if (selectedObjects.length === 0) {
-        toast.error("No objects selected. Select an object first.")
-        return
-      }
+      if (!requireSelection()) return
       openOperationDialog("chamfer")
     }, [openOperationDialog])
   )
@@ -72,12 +69,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
-      if (selectedObjects.length === 0) {
-        toast.error("No objects selected. Select an object first.")
-        return
-      }
+      if (!requireSelection()) return
       openOperationDialog("shell")
     }, [openOperationDialog])
   )
@@ -93,12 +85,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
-      if (selectedObjects.length === 0) {
-        toast.error("No objects selected. Select an object first.")
-        return
-      }
+      if (!requireSelection()) return
       toast.info("Mirror operation - Coming soon!")
     }, [])
   )
@@ -114,12 +101,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
-      if (selectedObjects.length === 0) {
-        toast.error("No objects selected. Select an object first.")
-        return
-      }
+      if (!requireSelection()) return
       toast.info("Duplicate operation - Coming soon!")
     }, [])
   )
@@ -135,12 +117,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
-      if (selectedObjects.length === 0) {
-        toast.error("No objects selected. Select an object first.")
-        return
-      }
+      if (!requireSelection()) return
       toast.info("Extrude operation - Coming soon!")
     }, [])
   )
@@ -171,12 +148,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter((o) => state.selectedIds.includes(o.id))
-      if (selectedObjects.length === 0) {
-        toast.error("No objects selected. Select an object first.")
-        return
-      }
+      if (!requireSelection()) return
       toast.info("Offset operation - Coming soon!")
     }, [])
   )
@@ -192,14 +164,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter(
-        (o) => state.selectedIds.includes(o.id) && o.type === "shape"
-      )
-      if (selectedObjects.length < 2) {
-        toast.error("Selecciona al menos 2 sólidos para unir")
-        return
-      }
+      if (!validateBooleanUnion(true)) return
       executeBooleanUnion()
     }, [executeBooleanUnion])
   )
@@ -215,14 +180,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter(
-        (o) => state.selectedIds.includes(o.id) && o.type === "shape"
-      )
-      if (selectedObjects.length < 2) {
-        toast.error("Selecciona al menos 2 sólidos: el primero es la base, los demás se restarán")
-        return
-      }
+      if (!validateBooleanSubtract(true)) return
       executeBooleanSubtract()
     }, [executeBooleanSubtract])
   )
@@ -238,14 +196,7 @@ export function useCADOperationHotkeys() {
       context: "modeller",
     },
     useCallback(() => {
-      const state = useModellerStore.getState()
-      const selectedObjects = state.objects.filter(
-        (o) => state.selectedIds.includes(o.id) && o.type === "shape"
-      )
-      if (selectedObjects.length < 2) {
-        toast.error("Selecciona al menos 2 sólidos para intersectar")
-        return
-      }
+      if (!validateBooleanIntersect(true)) return
       executeBooleanIntersect()
     }, [executeBooleanIntersect])
   )
