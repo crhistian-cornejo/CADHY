@@ -4,19 +4,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// IFC schema version
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum IfcSchema {
     Ifc2x3,
     Ifc4,
     Ifc4x1,
     Ifc4x2,
+    #[default]
     Ifc4x3,
-}
-
-impl Default for IfcSchema {
-    fn default() -> Self {
-        Self::Ifc4x3
-    }
 }
 
 impl std::fmt::Display for IfcSchema {
@@ -219,7 +214,7 @@ pub struct IfcMaterial {
 }
 
 /// Hydraulic properties for export
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HydraulicProperties {
     /// Manning's roughness coefficient
     pub manning_n: Option<f64>,
@@ -241,23 +236,6 @@ pub struct HydraulicProperties {
     pub side_slope: Option<f64>,
     /// Wall thickness (m)
     pub thickness: Option<f64>,
-}
-
-impl Default for HydraulicProperties {
-    fn default() -> Self {
-        Self {
-            manning_n: None,
-            slope: None,
-            design_flow: None,
-            normal_depth: None,
-            critical_depth: None,
-            froude_number: None,
-            width: None,
-            depth: None,
-            side_slope: None,
-            thickness: None,
-        }
-    }
 }
 
 /// Export options

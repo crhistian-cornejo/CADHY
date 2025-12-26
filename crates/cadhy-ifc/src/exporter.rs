@@ -320,7 +320,7 @@ impl IfcExporter {
             }
             coords_str.push_str(&format!(
                 "({},{},{})",
-                chunk.get(0).unwrap_or(&0.0),
+                chunk.first().unwrap_or(&0.0),
                 chunk.get(1).unwrap_or(&0.0),
                 chunk.get(2).unwrap_or(&0.0)
             ));
@@ -342,7 +342,7 @@ impl IfcExporter {
             // IFC uses 1-based indices
             indices_str.push_str(&format!(
                 "({},{},{})",
-                chunk.get(0).unwrap_or(&0) + 1,
+                chunk.first().unwrap_or(&0) + 1,
                 chunk.get(1).unwrap_or(&0) + 1,
                 chunk.get(2).unwrap_or(&0) + 1
             ));
