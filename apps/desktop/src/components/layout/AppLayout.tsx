@@ -1,7 +1,6 @@
 import {
   Button,
   cn,
-  formatKbd,
   Kbd,
   KbdGroup,
   ResizableHandle,
