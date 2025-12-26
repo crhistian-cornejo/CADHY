@@ -208,8 +208,8 @@ impl IfcImporter {
             return IfcAttribute::Derived;
         }
 
-        if value.starts_with('#') {
-            if let Ok(id) = value[1..].parse::<u64>() {
+        if let Some(stripped) = value.strip_prefix('#') {
+            if let Ok(id) = stripped.parse::<u64>() {
                 return IfcAttribute::Reference(id);
             }
         }
