@@ -21,6 +21,7 @@ import {
   ViewIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { invoke } from "@tauri-apps/api/core"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { usePlatform } from "@/hooks/use-platform"
@@ -54,6 +55,15 @@ interface PerformanceMetrics {
   fps: number
   memory: string
   gpu: string
+  cpuUsage: number
+}
+
+interface SystemMetrics {
+  memoryUsedMb: number
+  memoryTotalMb: number
+  memoryPercent: number
+  cpuUsage: number
+  gpuInfo: string
 }
 
 function usePerformanceMetrics(): PerformanceMetrics {
@@ -61,6 +71,7 @@ function usePerformanceMetrics(): PerformanceMetrics {
     fps: 0,
     memory: "0 MB",
     gpu: "...",
+    cpuUsage: 0,
   })
 
   useEffect(() => {
@@ -68,6 +79,32 @@ function usePerformanceMetrics(): PerformanceMetrics {
     let lastTime = performance.now()
     let animationId: number
 
+    // Fetch system metrics from Tauri every 2 seconds
+    const fetchSystemMetrics = async () => {
+      try {
+        const systemMetrics = await invoke<SystemMetrics>("get_system_metrics")
+        const memory = `${systemMetrics.memoryUsedMb} / ${systemMetrics.memoryTotalMb} MB`
+        const gpu = systemMetrics.gpuInfo
+        const cpuUsage = systemMetrics.cpuUsage
+
+        setMetrics((prev) => ({
+          ...prev,
+          memory,
+          gpu,
+          cpuUsage,
+        }))
+      } catch (error) {
+        console.error("[StatusBar] Failed to fetch system metrics:", error)
+      }
+    }
+
+    // Initial fetch
+    fetchSystemMetrics()
+
+    // Update system metrics every 2 seconds
+    const metricsInterval = setInterval(fetchSystemMetrics, 2000)
+
+    // Update FPS every frame
     const update = () => {
       frameCount++
       const currentTime = performance.now()
@@ -75,15 +112,7 @@ function usePerformanceMetrics(): PerformanceMetrics {
       if (currentTime - lastTime >= 1000) {
         const fps = Math.round((frameCount * 1000) / (currentTime - lastTime))
 
-        // Get memory usage if available
-        const memory = (performance as any).memory
-          ? `${Math.round((performance as any).memory.usedJSHeapSize / 1048576)} MB`
-          : "N/A"
-
-        // GPU info (simplified)
-        const gpu = "Discrete GPU"
-
-        setMetrics({ fps, memory, gpu })
+        setMetrics((prev) => ({ ...prev, fps }))
         frameCount = 0
         lastTime = currentTime
       }
@@ -93,7 +122,10 @@ function usePerformanceMetrics(): PerformanceMetrics {
 
     animationId = requestAnimationFrame(update)
 
-    return () => cancelAnimationFrame(animationId)
+    return () => {
+      cancelAnimationFrame(animationId)
+      clearInterval(metricsInterval)
+    }
   }, [])
 
   return metrics
@@ -441,21 +473,49 @@ export function StatusBar() {
 
         {/* Metrics Section (Desktop only) */}
         <div className="hidden lg:flex items-center gap-3 px-1 text-muted-foreground/70">
+          {/* FPS */}
           <div className="flex items-center gap-1">
             <span className="tabular-nums font-mono">{metrics.fps}</span>
             <span>FPS</span>
           </div>
 
+          {/* CPU Usage */}
           <Tooltip>
             <TooltipTrigger
               render={
                 <div className="flex items-center gap-1">
                   <HugeiconsIcon icon={CpuIcon} className="size-3" />
-                  <span className="tabular-nums font-mono">{metrics.memory}</span>
+                  <span className="tabular-nums font-mono">{metrics.cpuUsage.toFixed(1)}%</span>
                 </div>
               }
             />
-            <TooltipContent side="top">{t("statusBar.memoryUsage")}</TooltipContent>
+            <TooltipContent side="top">CPU Usage</TooltipContent>
+          </Tooltip>
+
+          {/* Memory Usage */}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <div className="flex items-center gap-1 max-w-[180px]">
+                  <span className="text-xs">RAM</span>
+                  <span className="tabular-nums font-mono text-xs truncate">{metrics.memory}</span>
+                </div>
+              }
+            />
+            <TooltipContent side="top">{t("statusBar.memoryUsage", "Memory Usage")}</TooltipContent>
+          </Tooltip>
+
+          {/* GPU Info */}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <div className="flex items-center gap-1 max-w-[120px]">
+                  <CubeIcon className="size-3" />
+                  <span className="text-xs truncate">{metrics.gpu}</span>
+                </div>
+              }
+            />
+            <TooltipContent side="top">Graphics: {metrics.gpu}</TooltipContent>
           </Tooltip>
         </div>
 

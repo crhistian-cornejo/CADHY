@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::env;
+use sysinfo::{System, Disks, Networks};
 
 /// Basic system information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,6 +31,17 @@ pub struct ExtendedSystemInfo {
     pub target_triple: String,
     pub rust_version: String,
     pub tauri_version: String,
+}
+
+/// System performance metrics for StatusBar
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemMetrics {
+    pub memory_used_mb: u64,
+    pub memory_total_mb: u64,
+    pub memory_percent: f32,
+    pub cpu_usage: f32,
+    pub gpu_info: String,
 }
 
 /// Get basic system information
@@ -153,4 +165,108 @@ fn get_target_triple() -> String {
     };
 
     format!("{}-{}", arch, os_suffix)
+}
+
+/// Get real-time system performance metrics
+#[tauri::command]
+pub fn get_system_metrics() -> SystemMetrics {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    // Get memory info
+    let memory_used = sys.used_memory();
+    let memory_total = sys.total_memory();
+    let memory_used_mb = memory_used / 1024 / 1024;
+    let memory_total_mb = memory_total / 1024 / 1024;
+    let memory_percent = if memory_total > 0 {
+        (memory_used as f32 / memory_total as f32) * 100.0
+    } else {
+        0.0
+    };
+
+    // Get CPU usage (global)
+    let cpu_usage = sys.global_cpu_usage();
+
+    // Get GPU info (from system name or renderer)
+    let gpu_info = get_gpu_info();
+
+    SystemMetrics {
+        memory_used_mb,
+        memory_total_mb,
+        memory_percent,
+        cpu_usage,
+        gpu_info,
+    }
+}
+
+/// Get GPU information
+fn get_gpu_info() -> String {
+    // On macOS, we can try to get GPU info via system_profiler
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        if let Ok(output) = Command::new("system_profiler")
+            .arg("SPDisplaysDataType")
+            .output()
+        {
+            if output.status.success() {
+                let output_str = String::from_utf8_lossy(&output.stdout);
+                // Look for "Chipset Model:" line
+                for line in output_str.lines() {
+                    if line.contains("Chipset Model:") {
+                        return line
+                            .split(':')
+                            .nth(1)
+                            .unwrap_or("GPU")
+                            .trim()
+                            .to_string();
+                    }
+                }
+            }
+        }
+        "Apple GPU".to_string()
+    }
+
+    // On Windows, try wmic
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        if let Ok(output) = Command::new("wmic")
+            .args(["path", "win32_VideoController", "get", "name"])
+            .output()
+        {
+            if output.status.success() {
+                let output_str = String::from_utf8_lossy(&output.stdout);
+                let lines: Vec<&str> = output_str.lines().collect();
+                if lines.len() > 1 {
+                    return lines[1].trim().to_string();
+                }
+            }
+        }
+        "GPU".to_string()
+    }
+
+    // On Linux, try lspci
+    #[cfg(target_os = "linux")]
+    {
+        use std::process::Command;
+        if let Ok(output) = Command::new("lspci").output() {
+            if output.status.success() {
+                let output_str = String::from_utf8_lossy(&output.stdout);
+                for line in output_str.lines() {
+                    if line.to_lowercase().contains("vga") || line.to_lowercase().contains("3d") {
+                        if let Some(gpu) = line.split(':').nth(2) {
+                            return gpu.trim().to_string();
+                        }
+                    }
+                }
+            }
+        }
+        "GPU".to_string()
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    {
+        "GPU".to_string()
+    }
 }
