@@ -432,46 +432,34 @@ function Titlebar({
       {/* Left section */}
       <div className="flex items-center gap-2 z-10" data-tauri-drag-region>
         {isMacOS ? (
-          // macOS: Show logo on left when fullscreen, otherwise just traffic lights space
-          showLogoLeft ? (
-            <div className="flex items-center gap-2" data-tauri-drag-region>
-              <LogoDropdown
-                onNewProject={onNewProject}
-                onOpenProject={onOpenProject}
-                dialogActions={dialogActions}
-              />
-              {/* Modeller left panel toggle - next to logo when fullscreen */}
-              {isModellerView && (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant={panels.modellerLeft ? "secondary" : "ghost"}
-                        size="icon-sm"
-                        onClick={handleToggleModellerLeft}
-                        data-tauri-drag-region="false"
-                      >
-                        <HugeiconsIcon icon={SidebarLeft01Icon} className="size-4" />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>
-                    {t("toolbar.toggleLeftPanel", "Toggle Left Panel")}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-          ) : (
-            // Traffic lights space when not fullscreen + Logo dropdown
-            <div className="flex items-center gap-2" data-tauri-drag-region>
-              <div className="w-[60px]" data-tauri-drag-region />
-              <LogoDropdown
-                onNewProject={onNewProject}
-                onOpenProject={onOpenProject}
-                dialogActions={dialogActions}
-              />
-            </div>
-          )
+          // macOS: Traffic lights space (when not fullscreen) + Logo + Left panel toggle
+          <div className="flex items-center gap-2" data-tauri-drag-region>
+            {/* Traffic lights space - only when not fullscreen */}
+            {!showLogoLeft && <div className="w-[60px]" data-tauri-drag-region />}
+            <LogoDropdown
+              onNewProject={onNewProject}
+              onOpenProject={onOpenProject}
+              dialogActions={dialogActions}
+            />
+            {/* Modeller left panel toggle - always next to logo */}
+            {isModellerView && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant={panels.modellerLeft ? "secondary" : "ghost"}
+                      size="icon-sm"
+                      onClick={handleToggleModellerLeft}
+                      data-tauri-drag-region="false"
+                    >
+                      <HugeiconsIcon icon={SidebarLeft01Icon} className="size-4" />
+                    </Button>
+                  }
+                />
+                <TooltipContent>{t("toolbar.toggleLeftPanel", "Toggle Left Panel")}</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         ) : (
           // Windows/Linux: Logo dropdown + Panel toggles + Command palette on left
           <>
@@ -590,25 +578,6 @@ function Titlebar({
         {isMacOS ? (
           // macOS: View toggles + Command palette on right
           <>
-            {/* Modeller left panel toggle for macOS - only when NOT fullscreen (when fullscreen it's on left) */}
-            {isModellerView && !showLogoLeft && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant={panels.modellerLeft ? "secondary" : "ghost"}
-                      size="icon-sm"
-                      onClick={handleToggleModellerLeft}
-                      data-tauri-drag-region="false"
-                    >
-                      <HugeiconsIcon icon={SidebarLeft01Icon} className="size-4" />
-                    </Button>
-                  }
-                />
-                <TooltipContent>{t("toolbar.toggleLeftPanel", "Toggle Left Panel")}</TooltipContent>
-              </Tooltip>
-            )}
-
             {/* Modeller right panel toggle */}
             {isModellerView && (
               <Tooltip>

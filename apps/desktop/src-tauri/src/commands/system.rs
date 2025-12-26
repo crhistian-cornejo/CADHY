@@ -167,27 +167,33 @@ fn get_target_triple() -> String {
     format!("{}-{}", arch, os_suffix)
 }
 
-/// Get real-time system performance metrics
+/// Get real-time system performance metrics for the CADHY app process
 #[tauri::command]
 pub fn get_system_metrics() -> SystemMetrics {
     let mut sys = System::new_all();
     sys.refresh_all();
 
-    // Get memory info
-    let memory_used = sys.used_memory();
-    let memory_total = sys.total_memory();
-    let memory_used_mb = memory_used / 1024 / 1024;
-    let memory_total_mb = memory_total / 1024 / 1024;
-    let memory_percent = if memory_total > 0 {
-        (memory_used as f32 / memory_total as f32) * 100.0
+    // Get current process PID
+    let current_pid = sysinfo::get_current_pid().unwrap_or(sysinfo::Pid::from(0));
+
+    // Get process-specific info (CADHY app only)
+    let (memory_used_mb, cpu_usage) = if let Some(process) = sys.process(current_pid) {
+        let mem_mb = process.memory() / 1024 / 1024;
+        let cpu = process.cpu_usage();
+        (mem_mb, cpu)
+    } else {
+        (0, 0.0)
+    };
+
+    // Memory percent is relative to total system memory
+    let memory_total_mb = sys.total_memory() / 1024 / 1024;
+    let memory_percent = if memory_total_mb > 0 {
+        (memory_used_mb as f32 / memory_total_mb as f32) * 100.0
     } else {
         0.0
     };
 
-    // Get CPU usage (global)
-    let cpu_usage = sys.global_cpu_usage();
-
-    // Get GPU info (from system name or renderer)
+    // Get GPU info (general system info)
     let gpu_info = get_gpu_info();
 
     SystemMetrics {

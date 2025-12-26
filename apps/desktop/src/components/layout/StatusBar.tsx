@@ -83,7 +83,8 @@ function usePerformanceMetrics(): PerformanceMetrics {
     const fetchSystemMetrics = async () => {
       try {
         const systemMetrics = await invoke<SystemMetrics>("get_system_metrics")
-        const memory = `${systemMetrics.memoryUsedMb} / ${systemMetrics.memoryTotalMb} MB`
+        // Show only CADHY app memory usage (not system total)
+        const memory = `${systemMetrics.memoryUsedMb} MB`
         const gpu = systemMetrics.gpuInfo
         const cpuUsage = systemMetrics.cpuUsage
 
@@ -489,20 +490,20 @@ export function StatusBar() {
                 </div>
               }
             />
-            <TooltipContent side="top">CPU Usage</TooltipContent>
+            <TooltipContent side="top">CADHY CPU Usage</TooltipContent>
           </Tooltip>
 
           {/* Memory Usage */}
           <Tooltip>
             <TooltipTrigger
               render={
-                <div className="flex items-center gap-1 max-w-[180px]">
+                <div className="flex items-center gap-1">
                   <span className="text-xs">RAM</span>
-                  <span className="tabular-nums font-mono text-xs truncate">{metrics.memory}</span>
+                  <span className="tabular-nums font-mono text-xs">{metrics.memory}</span>
                 </div>
               }
             />
-            <TooltipContent side="top">{t("statusBar.memoryUsage", "Memory Usage")}</TooltipContent>
+            <TooltipContent side="top">CADHY Memory Usage</TooltipContent>
           </Tooltip>
 
           {/* GPU Info */}
