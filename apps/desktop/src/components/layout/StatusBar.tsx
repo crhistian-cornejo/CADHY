@@ -54,6 +54,7 @@ import { useCoordinateSource, useCoordinates } from "@/stores/viewport-coordinat
 interface PerformanceMetrics {
   fps: number
   memory: string
+  memoryPercent: number
   gpu: string
   cpuUsage: number
 }
@@ -70,6 +71,7 @@ function usePerformanceMetrics(): PerformanceMetrics {
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     fps: 0,
     memory: "0 MB",
+    memoryPercent: 0,
     gpu: "...",
     cpuUsage: 0,
   })
@@ -83,14 +85,16 @@ function usePerformanceMetrics(): PerformanceMetrics {
     const fetchSystemMetrics = async () => {
       try {
         const systemMetrics = await invoke<SystemMetrics>("get_system_metrics")
-        // Show only CADHY app memory usage (not system total)
+        // Show CADHY app memory usage with percentage
         const memory = `${systemMetrics.memoryUsedMb} MB`
+        const memoryPercent = systemMetrics.memoryPercent
         const gpu = systemMetrics.gpuInfo
         const cpuUsage = systemMetrics.cpuUsage
 
         setMetrics((prev) => ({
           ...prev,
           memory,
+          memoryPercent,
           gpu,
           cpuUsage,
         }))
@@ -499,7 +503,9 @@ export function StatusBar() {
               render={
                 <div className="flex items-center gap-1">
                   <span className="text-xs">RAM</span>
-                  <span className="tabular-nums font-mono text-xs">{metrics.memory}</span>
+                  <span className="tabular-nums font-mono text-xs">
+                    {metrics.memory} ({metrics.memoryPercent.toFixed(1)}%)
+                  </span>
                 </div>
               }
             />
