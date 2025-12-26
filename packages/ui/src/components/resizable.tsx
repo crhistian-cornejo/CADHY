@@ -9,13 +9,17 @@ const ResizableContext = React.createContext<{
 
 interface ResizablePanelGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   direction?: "horizontal" | "vertical"
+  autoSaveId?: string
 }
 
 function ResizablePanelGroup({
   className,
   direction = "horizontal",
+  autoSaveId,
   ...props
 }: ResizablePanelGroupProps) {
+  // Note: autoSaveId is accepted but not used in this simple implementation
+  // Future: could implement localStorage persistence using this ID
   return (
     <ResizableContext.Provider value={{ direction }}>
       <div
