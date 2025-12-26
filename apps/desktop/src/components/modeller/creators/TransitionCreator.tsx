@@ -11,7 +11,6 @@ import {
   Card,
   Input,
   Label,
-  NumberInput,
   Select,
   SelectContent,
   SelectItem,
@@ -34,8 +33,8 @@ import {
   useModellerStore,
   useObjects,
 } from "@/stores/modeller"
-
 import { createSimpleBasinConfig } from "@/utils/stilling-basin-design"
+import { ParamInput } from "./shared"
 
 interface TransitionCreatorProps {
   onClose: () => void
@@ -112,68 +111,6 @@ const STILLING_BASIN_TYPES: { value: StillingBasinType; labelKey: string; descKe
     descKey: "createPanel.stillingBasinTypes.safDesc",
   },
 ]
-
-// ============================================================================
-// PARAM INPUT
-// ============================================================================
-
-type UnitType = "length" | "none"
-
-interface ParamInputProps {
-  label: string
-  /** Value in internal units (meters for length) */
-  value: number
-  /** Callback receives value in internal units */
-  onChange: (v: number) => void
-  min?: number
-  step?: number
-  /** Type of unit: 'length' for length params */
-  unitType?: UnitType
-  /** Override unit label (for custom units like H:V) */
-  customUnit?: string
-}
-
-function ParamInput({
-  label,
-  value,
-  onChange,
-  min = 0.01,
-  step = 0.1,
-  unitType,
-  customUnit,
-}: ParamInputProps) {
-  const { lengthLabel, convertLengthToDisplay, parseLength } = useUnits()
-
-  // Determine unit label
-  const unitLabel = customUnit ?? (unitType === "length" ? lengthLabel : undefined)
-
-  // Convert value for display (internal -> display)
-  // Fallback to 0 if value is undefined/null to prevent .toFixed() crash
-  const safeValue = value ?? 0
-  const displayValue = unitType === "length" ? convertLengthToDisplay(safeValue) : safeValue
-
-  // Handle change with conversion (display -> internal)
-  const handleChange = (newDisplayValue: number) => {
-    const internalValue = unitType === "length" ? parseLength(newDisplayValue) : newDisplayValue
-    onChange(internalValue)
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <Label className="w-20 text-xs text-muted-foreground shrink-0">{label}</Label>
-      <div className="flex-1 flex items-center gap-1">
-        <NumberInput
-          value={Number(displayValue.toFixed(4))}
-          onChange={handleChange}
-          min={min}
-          step={step}
-          className="h-7 text-xs"
-        />
-        {unitLabel && <span className="text-xs text-muted-foreground w-6">{unitLabel}</span>}
-      </div>
-    </div>
-  )
-}
 
 // ============================================================================
 // TRANSITION CREATOR
