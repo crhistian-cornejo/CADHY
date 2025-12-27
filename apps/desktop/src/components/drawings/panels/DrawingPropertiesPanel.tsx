@@ -7,6 +7,13 @@
  * - Anchos de línea (Line widths): Visible, Hidden, Dimension lines
  */
 
+import type { HatchPatternType, LayoutGridConfig } from "@cadhy/types"
+import {
+  DEFAULT_ALIGNMENT_GUIDES_CONFIG,
+  DEFAULT_HATCH_CONFIG,
+  DEFAULT_LAYOUT_GRID_CONFIG,
+  MATERIAL_HATCH_PRESETS,
+} from "@cadhy/types"
 import {
   Button,
   Collapsible,
@@ -28,7 +35,9 @@ import {
   ArrowDown01Icon,
   ArrowRight01Icon,
   Cancel01Icon,
+  Delete02Icon,
   FileEditIcon,
+  GridIcon,
   RulerIcon,
   Settings01Icon,
   TextIcon,
@@ -43,6 +52,7 @@ import { toast } from "sonner"
 import { shapeIdMap } from "@/hooks/use-cad"
 import { useDrawingStore } from "@/stores/drawing-store"
 import { getModelMetersToDrawingUnitsFactor } from "@/utils/drawing-units"
+import { getHatchPatternOptions } from "@/utils/hatch-patterns"
 
 // ============================================================================
 // TYPES
@@ -176,7 +186,7 @@ function PropertyRow({ label, children }: PropertyRowProps) {
 function SheetSection() {
   const { t } = useTranslation()
   const activeDrawing = useDrawingStore((s) => s.getActiveDrawing())
-  const { updateSheetConfig, updateView, generateProjection } = useDrawingStore()
+  const { updateSheetConfig, updateView, generateProjection, scaleDimensions } = useDrawingStore()
   const [isRegenerating, setIsRegenerating] = useState(false)
 
   if (!activeDrawing) return null
@@ -186,26 +196,52 @@ function SheetSection() {
   const handleScaleChange = async (newScale: number) => {
     if (Number.isNaN(newScale) || newScale <= 0) return
 
+    const oldScale = sheetConfig.scale
+    const scaleFactor = newScale / oldScale
+
     updateSheetConfig(activeDrawing.id, { scale: newScale })
+
+    // Scale existing dimensions to match the new projection scale
+    if (activeDrawing.dimensions?.dimensions.length > 0) {
+      scaleDimensions(activeDrawing.id, scaleFactor)
+    }
 
     // Regenerate all views with new scale
     if (activeDrawing.sourceShapeIds.length > 0 && activeDrawing.views.length > 0) {
       setIsRegenerating(true)
       try {
-        const shapeId = activeDrawing.sourceShapeIds[0]
+        // sourceShapeIds contains stable sceneObjectIds (NOT ephemeral backendIds)
+        const sceneObjectId = activeDrawing.sourceShapeIds[0]
+
+        // Get the backend shape ID from the map (sceneObjectId -> backendShapeId)
+        const backendId = shapeIdMap.get(sceneObjectId)
+        if (!backendId) {
+          console.error(
+            "[DrawingPropertiesPanel] Backend shape ID not found for sceneObjectId:",
+            sceneObjectId
+          )
+          setIsRegenerating(false)
+          return
+        }
+
         const unitFactor = getModelMetersToDrawingUnitsFactor(sheetConfig.units)
 
         for (const view of activeDrawing.views) {
           try {
+            // Always use backendId for projection generation
             const projection = await generateProjection(
-              shapeId,
+              backendId,
               view.projectionType,
               newScale * unitFactor
-            ).catch(async (err) => {
-              const mapped = shapeIdMap.get(shapeId)
-              if (!mapped) throw err
-              return await generateProjection(mapped, view.projectionType, newScale * unitFactor)
-            })
+            )
+
+            // Validate projection has lines before updating
+            if (!projection.lines || projection.lines.length === 0) {
+              console.warn(
+                `[ScaleChange] Projection for view ${view.id} (${view.projectionType}) returned 0 lines - keeping old projection`
+              )
+              continue // Skip this view, keep old projection
+            }
 
             updateView(activeDrawing.id, view.id, { projection })
           } catch (error) {
@@ -409,9 +445,37 @@ function DimensionsSection() {
 function ViewDisplaySection() {
   const { t } = useTranslation()
   const activeDrawing = useDrawingStore((s) => s.getActiveDrawing())
-  const { updateDrawing } = useDrawingStore()
+  const { updateDrawing, regenerateAllViews } = useDrawingStore()
+  const [isRegenerating, setIsRegenerating] = useState(false)
 
   if (!activeDrawing) return null
+
+  const handleRegenerateViews = async () => {
+    if (activeDrawing.views.length === 0) {
+      toast.info(t("drawings.properties.display.noViewsToRegenerate"))
+      return
+    }
+
+    setIsRegenerating(true)
+    try {
+      const count = await regenerateAllViews(activeDrawing.id)
+      if (count > 0) {
+        toast.success(
+          t("drawings.properties.display.viewsRegenerated", {
+            count,
+            total: activeDrawing.views.length,
+          })
+        )
+      } else {
+        toast.warning(t("drawings.properties.display.regenerationFailed"))
+      }
+    } catch (error) {
+      console.error("[ViewDisplaySection] Regeneration failed:", error)
+      toast.error(t("drawings.properties.display.regenerationError"))
+    } finally {
+      setIsRegenerating(false)
+    }
+  }
 
   const displayOptions = activeDrawing.displayOptions || {
     showBoundingBoxes: true,
@@ -454,6 +518,412 @@ function ViewDisplaySection() {
           onCheckedChange={(checked) => handleToggle("showGridReferences", checked)}
         />
       </PropertyRow>
+
+      {/* Regenerate Views Button */}
+      {activeDrawing.views.length > 0 && (
+        <div className="pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={handleRegenerateViews}
+            disabled={isRegenerating}
+          >
+            {isRegenerating
+              ? t("drawings.properties.display.regenerating")
+              : t("drawings.properties.display.regenerateViews")}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-1">
+            {t("drawings.properties.display.regenerateHint")}
+          </p>
+        </div>
+      )}
+    </CollapsibleSection>
+  )
+}
+
+// ============================================================================
+// VIEW LABELS SECTION (ETIQUETAS DE VISTA)
+// ============================================================================
+
+function ViewLabelsSection() {
+  const { t } = useTranslation()
+  const activeDrawing = useDrawingStore((s) => s.getActiveDrawing())
+  const { updateAllViewLabels } = useDrawingStore()
+
+  if (!activeDrawing) return null
+
+  // Get config from first view or use defaults
+  const firstView = activeDrawing.views[0]
+  const currentConfig = {
+    showLabel: firstView?.labelConfig?.showLabel ?? true,
+    showScale: firstView?.labelConfig?.showScale ?? true,
+    showNumber: firstView?.labelConfig?.showNumber ?? false,
+    position: firstView?.labelConfig?.position ?? "bottom",
+    fontSize: firstView?.labelConfig?.fontSize ?? 3.5,
+    numberStyle: firstView?.labelConfig?.numberStyle ?? "circle",
+    offset: firstView?.labelConfig?.offset ?? 12,
+    underline: firstView?.labelConfig?.underline ?? true,
+    numberSize: firstView?.labelConfig?.numberSize ?? 0.7,
+    numberGap: firstView?.labelConfig?.numberGap ?? 1.5,
+  }
+
+  const handleConfigChange = (key: string, value: any) => {
+    // Update all views with the new config
+    updateAllViewLabels(activeDrawing.id, { [key]: value })
+  }
+
+  return (
+    <CollapsibleSection
+      title={t("drawings.properties.viewLabels.title")}
+      icon={TextIcon}
+      defaultOpen={false}
+    >
+      <PropertyRow label={t("drawings.properties.viewLabels.showName")}>
+        <Switch
+          checked={currentConfig.showLabel}
+          onCheckedChange={(checked) => handleConfigChange("showLabel", checked)}
+        />
+      </PropertyRow>
+
+      <PropertyRow label={t("drawings.properties.viewLabels.showScale")}>
+        <Switch
+          checked={currentConfig.showScale}
+          onCheckedChange={(checked) => handleConfigChange("showScale", checked)}
+        />
+      </PropertyRow>
+
+      <PropertyRow label={t("drawings.properties.viewLabels.showNumber")}>
+        <Switch
+          checked={currentConfig.showNumber}
+          onCheckedChange={(checked) => handleConfigChange("showNumber", checked)}
+        />
+      </PropertyRow>
+
+      <PropertyRow label={t("drawings.properties.viewLabels.position")}>
+        <Select
+          value={currentConfig.position}
+          onValueChange={(value) => handleConfigChange("position", value)}
+        >
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="bottom">
+              {t("drawings.properties.viewLabels.positionBottom")}
+            </SelectItem>
+            <SelectItem value="top">{t("drawings.properties.viewLabels.positionTop")}</SelectItem>
+            <SelectItem value="left">{t("drawings.properties.viewLabels.positionLeft")}</SelectItem>
+            <SelectItem value="right">
+              {t("drawings.properties.viewLabels.positionRight")}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </PropertyRow>
+
+      <PropertyRow label={t("drawings.properties.viewLabels.numberStyle")}>
+        <Select
+          value={currentConfig.numberStyle}
+          onValueChange={(value) => handleConfigChange("numberStyle", value)}
+        >
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="circle">
+              {t("drawings.properties.viewLabels.numberCircle")}
+            </SelectItem>
+            <SelectItem value="square">
+              {t("drawings.properties.viewLabels.numberSquare")}
+            </SelectItem>
+            <SelectItem value="plain">{t("drawings.properties.viewLabels.numberPlain")}</SelectItem>
+            <SelectItem value="none">{t("drawings.properties.viewLabels.numberNone")}</SelectItem>
+          </SelectContent>
+        </Select>
+      </PropertyRow>
+
+      <PropertyRow label={t("drawings.properties.viewLabels.numberSize")}>
+        <NumericInput
+          value={currentConfig.numberSize}
+          onChange={(value) => handleConfigChange("numberSize", value)}
+          min={0.3}
+          max={1.5}
+          step={0.1}
+          className="h-7 text-xs"
+        />
+      </PropertyRow>
+
+      <PropertyRow label={t("drawings.properties.viewLabels.numberGap")}>
+        <NumericInput
+          value={currentConfig.numberGap}
+          onChange={(value) => handleConfigChange("numberGap", value)}
+          min={0.5}
+          max={5}
+          step={0.5}
+          className="h-7 text-xs"
+        />
+      </PropertyRow>
+
+      <PropertyRow label={t("drawings.properties.viewLabels.fontSize")}>
+        <NumericInput
+          value={currentConfig.fontSize}
+          onChange={(value) => handleConfigChange("fontSize", value)}
+          min={1}
+          max={10}
+          step={0.5}
+          className="h-7 text-xs"
+        />
+      </PropertyRow>
+
+      <PropertyRow label={t("drawings.properties.viewLabels.offset")}>
+        <NumericInput
+          value={currentConfig.offset}
+          onChange={(value) => handleConfigChange("offset", value)}
+          min={2}
+          max={50}
+          step={1}
+          className="h-7 text-xs"
+        />
+      </PropertyRow>
+
+      <PropertyRow label={t("drawings.properties.viewLabels.underline")}>
+        <Switch
+          checked={currentConfig.underline}
+          onCheckedChange={(checked) => handleConfigChange("underline", checked)}
+        />
+      </PropertyRow>
+    </CollapsibleSection>
+  )
+}
+
+// ============================================================================
+// HATCH SECTION (RAYADO / HATCHING)
+// ============================================================================
+
+function HatchSection() {
+  const { t } = useTranslation()
+  const activeDrawing = useDrawingStore((s) => s.getActiveDrawing())
+  const { removeHatch, updateHatchConfig } = useDrawingStore()
+
+  if (!activeDrawing) return null
+
+  const hatches = activeDrawing.hatches || []
+  const patternOptions = getHatchPatternOptions()
+
+  if (hatches.length === 0) {
+    return (
+      <CollapsibleSection
+        title={t("drawings.properties.hatching.title")}
+        icon={GridIcon}
+        defaultOpen={false}
+      >
+        <div className="text-xs text-muted-foreground text-center py-2">
+          {t("drawings.properties.hatching.noHatches")}
+        </div>
+        <div className="text-xs text-muted-foreground text-center">
+          {t("drawings.properties.hatching.hint")}
+        </div>
+      </CollapsibleSection>
+    )
+  }
+
+  return (
+    <CollapsibleSection
+      title={t("drawings.properties.hatching.title")}
+      icon={GridIcon}
+      defaultOpen={false}
+    >
+      <div className="space-y-3">
+        {hatches.map((hatch, index) => (
+          <div key={hatch.id} className="space-y-2 pb-2 border-b border-border/30 last:border-0">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium">
+                {t("drawings.properties.hatching.region")} {index + 1}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => removeHatch(activeDrawing.id, hatch.id)}
+              >
+                <HugeiconsIcon icon={Delete02Icon} className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            <PropertyRow label={t("drawings.properties.hatching.pattern")}>
+              <Select
+                value={hatch.config.pattern}
+                onValueChange={(value) =>
+                  updateHatchConfig(activeDrawing.id, hatch.id, {
+                    pattern: value as HatchPatternType,
+                  })
+                }
+              >
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {patternOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </PropertyRow>
+
+            <PropertyRow label={t("drawings.properties.hatching.angle")}>
+              <NumericInput
+                value={hatch.config.angle}
+                onChange={(value) =>
+                  updateHatchConfig(activeDrawing.id, hatch.id, { angle: value })
+                }
+                min={0}
+                max={360}
+                step={15}
+                className="h-7 text-xs"
+              />
+            </PropertyRow>
+
+            <PropertyRow label={t("drawings.properties.hatching.spacing")}>
+              <NumericInput
+                value={hatch.config.spacing}
+                onChange={(value) =>
+                  updateHatchConfig(activeDrawing.id, hatch.id, { spacing: value })
+                }
+                min={0.5}
+                max={10}
+                step={0.5}
+                className="h-7 text-xs"
+              />
+            </PropertyRow>
+
+            <PropertyRow label={t("drawings.properties.hatching.scale")}>
+              <NumericInput
+                value={hatch.config.scale}
+                onChange={(value) =>
+                  updateHatchConfig(activeDrawing.id, hatch.id, { scale: value })
+                }
+                min={0.1}
+                max={5}
+                step={0.1}
+                className="h-7 text-xs"
+              />
+            </PropertyRow>
+          </div>
+        ))}
+      </div>
+    </CollapsibleSection>
+  )
+}
+
+// ============================================================================
+// LAYOUT GRID SECTION (GRID DE DISEÑO)
+// ============================================================================
+
+function LayoutGridSection() {
+  const { t } = useTranslation()
+  const activeDrawing = useDrawingStore((s) => s.getActiveDrawing())
+  const { updateDrawing } = useDrawingStore()
+
+  if (!activeDrawing) return null
+
+  const gridConfig = activeDrawing.displayOptions?.layoutGrid ?? DEFAULT_LAYOUT_GRID_CONFIG
+  const guidesConfig =
+    activeDrawing.displayOptions?.alignmentGuides ?? DEFAULT_ALIGNMENT_GUIDES_CONFIG
+
+  const handleGridChange = (key: keyof LayoutGridConfig, value: LayoutGridConfig[typeof key]) => {
+    updateDrawing(activeDrawing.id, {
+      displayOptions: {
+        ...activeDrawing.displayOptions,
+        layoutGrid: {
+          ...gridConfig,
+          [key]: value,
+        },
+      },
+    })
+  }
+
+  const handleGuidesChange = (key: string, value: boolean) => {
+    updateDrawing(activeDrawing.id, {
+      displayOptions: {
+        ...activeDrawing.displayOptions,
+        alignmentGuides: {
+          ...guidesConfig,
+          [key]: value,
+        },
+      },
+    })
+  }
+
+  return (
+    <CollapsibleSection
+      title={t("drawings.properties.layoutGrid.title")}
+      icon={GridIcon}
+      defaultOpen={false}
+    >
+      <PropertyRow label={t("drawings.properties.layoutGrid.showGrid")}>
+        <Switch
+          checked={gridConfig.enabled}
+          onCheckedChange={(checked) => handleGridChange("enabled", checked)}
+        />
+      </PropertyRow>
+
+      {gridConfig.enabled && (
+        <>
+          <PropertyRow label={t("drawings.properties.layoutGrid.spacing")}>
+            <NumericInput
+              value={gridConfig.spacing}
+              onChange={(value) => handleGridChange("spacing", value)}
+              min={5}
+              max={100}
+              step={5}
+              className="h-7 text-xs"
+            />
+          </PropertyRow>
+
+          <PropertyRow label={t("drawings.properties.layoutGrid.showMinor")}>
+            <Switch
+              checked={gridConfig.showMinorGrid}
+              onCheckedChange={(checked) => handleGridChange("showMinorGrid", checked)}
+            />
+          </PropertyRow>
+
+          <PropertyRow label={t("drawings.properties.layoutGrid.snapToGrid")}>
+            <Switch
+              checked={gridConfig.snapToGrid}
+              onCheckedChange={(checked) => handleGridChange("snapToGrid", checked)}
+            />
+          </PropertyRow>
+        </>
+      )}
+
+      <Separator className="my-2" />
+
+      <PropertyRow label={t("drawings.properties.layoutGrid.alignGuides")}>
+        <Switch
+          checked={guidesConfig.enabled}
+          onCheckedChange={(checked) => handleGuidesChange("enabled", checked)}
+        />
+      </PropertyRow>
+
+      {guidesConfig.enabled && (
+        <>
+          <PropertyRow label={t("drawings.properties.layoutGrid.centerGuides")}>
+            <Switch
+              checked={guidesConfig.showCenterGuides}
+              onCheckedChange={(checked) => handleGuidesChange("showCenterGuides", checked)}
+            />
+          </PropertyRow>
+
+          <PropertyRow label={t("drawings.properties.layoutGrid.spacingIndicators")}>
+            <Switch
+              checked={guidesConfig.showSpacingIndicators}
+              onCheckedChange={(checked) => handleGuidesChange("showSpacingIndicators", checked)}
+            />
+          </PropertyRow>
+        </>
+      )}
     </CollapsibleSection>
   )
 }
@@ -656,11 +1126,14 @@ export function DrawingPropertiesPanel({ className, onClose }: DrawingProperties
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1 min-h-0" showFadeMasks>
         <div className="divide-y divide-border/40">
           <SheetSection />
           <DimensionsSection />
           <ViewDisplaySection />
+          <ViewLabelsSection />
+          <HatchSection />
+          <LayoutGridSection />
           <LineWidthsSection />
           <ExportSection />
         </div>

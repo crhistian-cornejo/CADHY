@@ -15,7 +15,7 @@
 import { Button, cn, Input, ScrollArea } from "@cadhy/ui"
 import { Copy01Icon, Delete01Icon, Settings01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useMemo } from "react"
+import { useCallback, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import {
   type AnySceneObject,
@@ -58,6 +58,8 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
   const objects = useModellerStore((s) => s.objects)
   const viewportSettings = useViewportSettings()
   const updateObject = useModellerStore((s) => s.updateObject)
+  const saveStateBeforeAction = useModellerStore((s) => s.saveStateBeforeAction)
+  const commitToHistory = useModellerStore((s) => s.commitToHistory)
   const deleteSelected = useModellerStore((s) => s.deleteSelected)
   const duplicateSelected = useModellerStore((s) => s.duplicateSelected)
 
@@ -78,18 +80,50 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
   // Stable reference to the selected object ID
   const selectedObjectId = selectedObject?.id
 
+  // Debounce timer ref for history commits
+  const historyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Track if we've saved state before action starts
+  const hasPreSavedStateRef = useRef(false)
+
   const handleUpdate = useCallback(
     (updates: Partial<AnySceneObject>) => {
       if (selectedObjectId) {
+        // Save state BEFORE the first update in a series (for proper undo)
+        if (!hasPreSavedStateRef.current) {
+          saveStateBeforeAction()
+          hasPreSavedStateRef.current = true
+        }
+
+        // Update the object
         updateObject(selectedObjectId, updates)
+
+        // Debounce history commits to avoid creating too many entries
+        // This groups rapid changes (like dragging a slider) into one history entry
+        if (historyDebounceRef.current) {
+          clearTimeout(historyDebounceRef.current)
+        }
+        historyDebounceRef.current = setTimeout(() => {
+          const obj = selectedObject
+          if (obj) {
+            commitToHistory(`Modificar: ${obj.name}`)
+          }
+          hasPreSavedStateRef.current = false
+          historyDebounceRef.current = null
+        }, 500) // 500ms debounce for history
       }
     },
-    [selectedObjectId, updateObject]
+    [selectedObjectId, selectedObject, updateObject, saveStateBeforeAction, commitToHistory]
   )
 
   // Handle updates for multiple objects
   const handleUpdateAll = useCallback(
     (updates: Partial<AnySceneObject>) => {
+      // Save state BEFORE the first update in a series (for proper undo)
+      if (!hasPreSavedStateRef.current) {
+        saveStateBeforeAction()
+        hasPreSavedStateRef.current = true
+      }
+
       selectedIds.forEach((id) => {
         const obj = objects.find((o) => o.id === id)
         if (!obj) return
@@ -110,8 +144,18 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
           updateObject(id, updates)
         }
       })
+
+      // Debounce history commits for multiple objects
+      if (historyDebounceRef.current) {
+        clearTimeout(historyDebounceRef.current)
+      }
+      historyDebounceRef.current = setTimeout(() => {
+        commitToHistory(`Modificar ${selectedIds.length} objetos`)
+        hasPreSavedStateRef.current = false
+        historyDebounceRef.current = null
+      }, 500)
     },
-    [selectedIds, objects, updateObject]
+    [selectedIds, objects, updateObject, saveStateBeforeAction, commitToHistory]
   )
 
   return (
@@ -147,7 +191,7 @@ export function PropertiesPanel({ className }: PropertiesPanelProps) {
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1 min-h-0" showFadeMasks>
         {/* No selection state */}
         {selectedIds.length === 0 && <NoSelection />}
 

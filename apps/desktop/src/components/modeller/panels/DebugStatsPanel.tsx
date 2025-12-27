@@ -58,6 +58,7 @@ export function DebugStatsPanel() {
 
         // Get renderer from registry (may be null if not yet initialized)
         const gl = getRenderer()
+
         if (gl) {
           const info = gl.info
 

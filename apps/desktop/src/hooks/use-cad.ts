@@ -6,6 +6,7 @@
  */
 
 import { logger } from "@cadhy/shared/logger"
+import { toast } from "@cadhy/ui"
 import { useCallback } from "react"
 import {
   booleanCommon,
@@ -20,9 +21,11 @@ import {
   createTorus,
   degreesToRadians,
   deleteShape as deleteBackendShape,
+  importStep,
   rotate,
   type ShapeResult,
   scale,
+  serializeShape,
   shapeExists,
   simplify,
   tessellate,
@@ -197,7 +200,7 @@ export function useCAD() {
           : meshData.normals instanceof Float32Array
             ? meshData.normals
             : new Float32Array(0)
-        : undefined,
+        : new Float32Array(0),
       vertexCount: meshData.vertex_count,
       triangleCount: meshData.triangle_count,
     }
@@ -220,9 +223,9 @@ export function useCAD() {
       maxZ = -Infinity
 
     for (let i = 0; i < vertices.length; i += 3) {
-      const x = vertices[i]
-      const y = vertices[i + 1]
-      const z = vertices[i + 2]
+      const x = vertices[i] ?? 0
+      const y = vertices[i + 1] ?? 0
+      const z = vertices[i + 2] ?? 0
 
       if (x < minX) minX = x
       if (y < minY) minY = y
@@ -665,18 +668,21 @@ export function useCAD() {
         const fuseResult = await booleanFuse(transformedId1, transformedId2)
         logger.log("[useCAD] Fuse result:", fuseResult.analysis)
 
-        // Simplify the result to clean up geometry (merge coplanar faces, collinear edges)
-        let finalId = fuseResult.id
-        try {
-          const simplifiedResult = await simplify(fuseResult.id, true, true)
-          finalId = simplifiedResult.id
-          logger.log("[useCAD] Simplified result:", simplifiedResult.analysis)
-        } catch (simplifyError) {
-          logger.warn("[useCAD] Simplify failed, using raw fuse result:", simplifyError)
-        }
+        // DISABLED: Simplify was causing issues with compound shapes
+        // ShapeUpgrade_UnifySameDomain can merge faces in ways that break HLR projection
+        const finalId = fuseResult.id
 
         // Tessellate the final result
         const meshData = await tessellate(finalId, 0.1)
+
+        // Serialize BREP data for persistence across app restarts
+        let brepData: string | undefined
+        try {
+          brepData = await serializeShape(finalId)
+          logger.log("[useCAD] BREP serialized for fuse result, size:", brepData.length)
+        } catch (brepError) {
+          logger.warn("[useCAD] Failed to serialize BREP for fuse result:", brepError)
+        }
 
         const shapeObject: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
           type: "shape",
@@ -702,6 +708,7 @@ export function useCAD() {
           },
           metadata: {
             backendShapeId: finalId,
+            brepData, // BREP serialization for persistence
             analysis: fuseResult.analysis,
             operation: "fuse",
             sourceIds: [sceneId1, sceneId2],
@@ -766,18 +773,20 @@ export function useCAD() {
         const cutResult = await booleanCut(transformedId1, transformedId2)
         logger.log("[useCAD] Cut result:", cutResult.analysis)
 
-        // Simplify the result
-        let finalId = cutResult.id
-        try {
-          const simplifiedResult = await simplify(cutResult.id, true, true)
-          finalId = simplifiedResult.id
-          logger.log("[useCAD] Simplified result:", simplifiedResult.analysis)
-        } catch (simplifyError) {
-          logger.warn("[useCAD] Simplify failed, using raw cut result:", simplifyError)
-        }
+        // DISABLED: Simplify was causing issues with compound shapes
+        const finalId = cutResult.id
 
         // Tessellate the final result
         const meshData = await tessellate(finalId, 0.1)
+
+        // Serialize BREP data for persistence across app restarts
+        let brepData: string | undefined
+        try {
+          brepData = await serializeShape(finalId)
+          logger.log("[useCAD] BREP serialized for cut result, size:", brepData.length)
+        } catch (brepError) {
+          logger.warn("[useCAD] Failed to serialize BREP for cut result:", brepError)
+        }
 
         const shapeObject: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
           type: "shape",
@@ -802,6 +811,7 @@ export function useCAD() {
           },
           metadata: {
             backendShapeId: finalId,
+            brepData, // BREP serialization for persistence
             analysis: cutResult.analysis,
             operation: "cut",
             sourceIds: [sceneId1, sceneId2],
@@ -866,18 +876,20 @@ export function useCAD() {
         const intersectResult = await booleanCommon(transformedId1, transformedId2)
         logger.log("[useCAD] Intersection result:", intersectResult.analysis)
 
-        // Simplify the result
-        let finalId = intersectResult.id
-        try {
-          const simplifiedResult = await simplify(intersectResult.id, true, true)
-          finalId = simplifiedResult.id
-          logger.log("[useCAD] Simplified result:", simplifiedResult.analysis)
-        } catch (simplifyError) {
-          logger.warn("[useCAD] Simplify failed, using raw intersection result:", simplifyError)
-        }
+        // DISABLED: Simplify was causing issues with compound shapes
+        const finalId = intersectResult.id
 
         // Tessellate the final result
         const meshData = await tessellate(finalId, 0.1)
+
+        // Serialize BREP data for persistence across app restarts
+        let brepData: string | undefined
+        try {
+          brepData = await serializeShape(finalId)
+          logger.log("[useCAD] BREP serialized for intersect result, size:", brepData.length)
+        } catch (brepError) {
+          logger.warn("[useCAD] Failed to serialize BREP for intersect result:", brepError)
+        }
 
         const shapeObject: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
           type: "shape",
@@ -902,6 +914,7 @@ export function useCAD() {
           },
           metadata: {
             backendShapeId: finalId,
+            brepData, // BREP serialization for persistence
             analysis: intersectResult.analysis,
             operation: "intersect",
             sourceIds: [sceneId1, sceneId2],
@@ -1105,6 +1118,79 @@ export function useCAD() {
     createSphereShape,
     createConeShape,
     createTorusShape,
+    /**
+     * Import a STEP file
+     */
+    importStepShape: async (filePath: string, name?: string): Promise<string | null> => {
+      const toastId = toast.loading(`Importando STEP: ${filePath.split(/[/\\]/).pop()}...`)
+      try {
+        logger.log("[useCAD] Importing STEP:", filePath)
+        const result = await importStep(filePath)
+
+        if (!result || !result.id) {
+          throw new Error("El motor CAD no devolvió un ID válido.")
+        }
+
+        // Tessellate for rendering
+        const meshData = await tessellate(result.id, 0.1)
+
+        // Convert mesh data and calculate bbox
+        const mesh = convertMeshData(meshData)
+        const localBBox = calculateBBoxFromVertices(mesh.vertices)
+
+        // Derive name if not provided
+        const fileName = filePath.split(/[/\\]/).pop() ?? "Imported"
+        const finalName = name ?? fileName.replace(".step", "").replace(".stp", "")
+
+        // Create scene object
+        const shapeObject: Omit<ShapeObject, "id" | "createdAt" | "updatedAt"> = {
+          type: "shape",
+          name: finalName,
+          layerId: "default",
+          visible: true,
+          locked: false,
+          selected: false,
+          shapeType: "compound", // STEP files are usually compounds
+          parameters: {},
+          mesh,
+          bbox: localBBox,
+          material: {
+            color: "#94a3b8", // Neutral slate color for imports
+            opacity: 1,
+            metalness: 0.1,
+            roughness: 0.6,
+          },
+          transform: {
+            position: { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+          },
+          metadata: {
+            backendShapeId: result.id,
+            analysis: result.analysis,
+            sourcePath: filePath,
+          },
+        }
+
+        const sceneId = addObject(shapeObject)
+        shapeIdMap.set(sceneId, result.id)
+        select(sceneId)
+
+        commitToHistory(`Importar STEP: ${finalName}`, { targetBodies: [sceneId] })
+
+        toast.success(`STEP importado: ${finalName}`, { id: toastId })
+        return sceneId
+      } catch (error) {
+        console.error("Failed to import STEP:", error)
+        toast.error(
+          `Error al importar STEP: ${error instanceof Error ? error.message : String(error)}`,
+          {
+            id: toastId,
+          }
+        )
+        return null
+      }
+    },
 
     // Boolean operations
     fuseShapes,

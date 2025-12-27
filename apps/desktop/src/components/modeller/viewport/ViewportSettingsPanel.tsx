@@ -678,6 +678,225 @@ export function ViewportSettingsPanel({ className, onToggleHistory }: ViewportSe
 
         <Separator className="my-1" />
 
+        {/* Advanced Rendering Section - Phase 1-3 Effects */}
+        <Section title="Advanced Rendering" icon={Sun01Icon} defaultOpen={false}>
+          <div className="space-y-4">
+            {/* Phase 1: Quick Wins */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Reflections & Focus
+              </Label>
+
+              {/* Screen Space Reflections */}
+              <ToggleRow
+                label="Screen Space Reflections"
+                checked={viewportSettings.enableSSR ?? false}
+                onCheckedChange={(v) => updateViewport({ enableSSR: v })}
+                description="Reflections on glossy surfaces"
+                disabled={!viewportSettings.enablePostProcessing}
+              />
+              {viewportSettings.enableSSR && viewportSettings.enablePostProcessing && (
+                <div className="pl-3 border-l-2 border-border/50 space-y-2">
+                  <SliderRow
+                    label="Intensity"
+                    value={viewportSettings.ssrIntensity ?? 0.5}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onValueChange={(v) => updateViewport({ ssrIntensity: v })}
+                  />
+                  <SliderRow
+                    label="Distance"
+                    value={viewportSettings.ssrMaxDistance ?? 10}
+                    min={1}
+                    max={50}
+                    step={1}
+                    onValueChange={(v) => updateViewport({ ssrMaxDistance: v })}
+                  />
+                </div>
+              )}
+
+              {/* Depth of Field */}
+              <ToggleRow
+                label="Depth of Field"
+                checked={viewportSettings.enableDOF ?? false}
+                onCheckedChange={(v) => updateViewport({ enableDOF: v })}
+                description="Cinematic bokeh blur"
+                disabled={!viewportSettings.enablePostProcessing}
+              />
+              {viewportSettings.enableDOF && viewportSettings.enablePostProcessing && (
+                <div className="pl-3 border-l-2 border-border/50 space-y-2">
+                  <SliderRow
+                    label="Aperture"
+                    value={viewportSettings.dofAperture ?? 0.025}
+                    min={0.001}
+                    max={0.1}
+                    step={0.005}
+                    onValueChange={(v) => updateViewport({ dofAperture: v })}
+                  />
+                  <SliderRow
+                    label="Bokeh Scale"
+                    value={viewportSettings.dofBokehScale ?? 2}
+                    min={0.5}
+                    max={10}
+                    step={0.5}
+                    onValueChange={(v) => updateViewport({ dofBokehScale: v })}
+                  />
+                </div>
+              )}
+
+              {/* Motion Blur */}
+              <ToggleRow
+                label="Motion Blur"
+                checked={viewportSettings.enableMotionBlur ?? false}
+                onCheckedChange={(v) => updateViewport({ enableMotionBlur: v })}
+                description="Blur during camera animation"
+                disabled={!viewportSettings.enablePostProcessing}
+              />
+            </div>
+
+            <Separator className="my-2" />
+
+            {/* Phase 2: CAD Pro */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                CAD Visualization
+              </Label>
+
+              {/* Edge Detection */}
+              <ToggleRow
+                label="Edge Detection"
+                checked={viewportSettings.enableEdgeDetection ?? false}
+                onCheckedChange={(v) => updateViewport({ enableEdgeDetection: v })}
+                description="Outline selected objects"
+                disabled={!viewportSettings.enablePostProcessing}
+              />
+              {viewportSettings.enableEdgeDetection && viewportSettings.enablePostProcessing && (
+                <div className="pl-3 border-l-2 border-border/50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Edge Color</Label>
+                    <input
+                      type="color"
+                      value={viewportSettings.edgeColor ?? "#000000"}
+                      onChange={(e) => updateViewport({ edgeColor: e.target.value })}
+                      className="size-5 rounded-lg overflow-hidden border-0 cursor-pointer p-0"
+                    />
+                  </div>
+                  <SliderRow
+                    label="Thickness"
+                    value={viewportSettings.edgeThickness ?? 1}
+                    min={1}
+                    max={5}
+                    step={0.5}
+                    onValueChange={(v) => updateViewport({ edgeThickness: v })}
+                  />
+                </div>
+              )}
+
+              {/* X-Ray Mode */}
+              <ToggleRow
+                label="X-Ray Mode"
+                checked={viewportSettings.enableXRay ?? false}
+                onCheckedChange={(v) => updateViewport({ enableXRay: v })}
+                description="See-through transparency"
+              />
+              {viewportSettings.enableXRay && (
+                <div className="pl-3 border-l-2 border-border/50">
+                  <SliderRow
+                    label="Opacity"
+                    value={viewportSettings.xrayOpacity ?? 0.3}
+                    min={0.1}
+                    max={0.9}
+                    step={0.05}
+                    onValueChange={(v) => updateViewport({ xrayOpacity: v })}
+                  />
+                </div>
+              )}
+
+              {/* Section Plane */}
+              <ToggleRow
+                label="Section Plane"
+                checked={viewportSettings.enableSectionPlane ?? false}
+                onCheckedChange={(v) => updateViewport({ enableSectionPlane: v })}
+                description="Clipping plane for cross-sections"
+              />
+              {viewportSettings.enableSectionPlane && (
+                <div className="pl-3 border-l-2 border-border/50 space-y-2">
+                  <SliderRow
+                    label="Height"
+                    value={viewportSettings.sectionPlanePosition?.y ?? 0}
+                    min={-10}
+                    max={10}
+                    step={0.1}
+                    onValueChange={(v) =>
+                      updateViewport({
+                        sectionPlanePosition: {
+                          ...(viewportSettings.sectionPlanePosition ?? { x: 0, y: 0, z: 0 }),
+                          y: v,
+                        },
+                      })
+                    }
+                  />
+                </div>
+              )}
+            </div>
+
+            <Separator className="my-2" />
+
+            {/* Phase 3: Cinematic */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Cinematic Effects
+              </Label>
+
+              {/* Vignette */}
+              <ToggleRow
+                label="Vignette"
+                checked={viewportSettings.enableVignette ?? false}
+                onCheckedChange={(v) => updateViewport({ enableVignette: v })}
+                description="Edge darkening effect"
+                disabled={!viewportSettings.enablePostProcessing}
+              />
+              {viewportSettings.enableVignette && viewportSettings.enablePostProcessing && (
+                <div className="pl-3 border-l-2 border-border/50">
+                  <SliderRow
+                    label="Intensity"
+                    value={viewportSettings.vignetteIntensity ?? 0.3}
+                    min={0.1}
+                    max={1}
+                    step={0.05}
+                    onValueChange={(v) => updateViewport({ vignetteIntensity: v })}
+                  />
+                </div>
+              )}
+
+              {/* Chromatic Aberration */}
+              <ToggleRow
+                label="Chromatic Aberration"
+                checked={viewportSettings.enableChromaticAberration ?? false}
+                onCheckedChange={(v) => updateViewport({ enableChromaticAberration: v })}
+                description="Lens color fringing"
+                disabled={!viewportSettings.enablePostProcessing}
+              />
+              {viewportSettings.enableChromaticAberration &&
+                viewportSettings.enablePostProcessing && (
+                  <div className="pl-3 border-l-2 border-border/50">
+                    <SliderRow
+                      label="Offset"
+                      value={(viewportSettings.chromaticAberrationOffset ?? 0.002) * 1000}
+                      min={0.5}
+                      max={10}
+                      step={0.5}
+                      onValueChange={(v) => updateViewport({ chromaticAberrationOffset: v / 1000 })}
+                    />
+                  </div>
+                )}
+            </div>
+          </div>
+        </Section>
+
+        <Separator className="my-1" />
+
         {/* Post-Processing Section - Removed as per user request (moved to bottom toolbar) */}
 
         {/* Snapping Section */}

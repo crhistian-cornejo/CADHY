@@ -288,8 +288,8 @@ export function AppLayout() {
             </ResizablePanelGroup>
           </div>
 
-          {/* Statusbar */}
-          <StatusBar />
+          {/* Statusbar - Only shown in modeller view */}
+          {currentView === "modeller" && <StatusBar />}
         </div>
       </div>
 
@@ -394,6 +394,8 @@ function Titlebar({
 
   // Show modeller panel toggles only in modeller view
   const isModellerView = currentView === "modeller"
+  // Show panel toggles also in drawings view (uses same left/right panels)
+  const showPanelToggles = currentView === "modeller" || currentView === "drawings"
 
   // Handle AI Chat toggle - requires a project to be open
   const handleToggleAiChat = () => {
@@ -441,7 +443,7 @@ function Titlebar({
               dialogActions={dialogActions}
             />
             {/* Modeller left panel toggle - always next to logo */}
-            {isModellerView && (
+            {showPanelToggles && (
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -469,7 +471,7 @@ function Titlebar({
             />
 
             {/* Modeller left panel toggle (OUTLINER/ASSETS) */}
-            {isModellerView && (
+            {showPanelToggles && (
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -578,7 +580,7 @@ function Titlebar({
           // macOS: View toggles + Command palette on right
           <>
             {/* Modeller right panel toggle */}
-            {isModellerView && (
+            {showPanelToggles && (
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -632,7 +634,7 @@ function Titlebar({
           </>
         ) : (
           // Windows/Linux: Modeller right panel toggle on right
-          isModellerView && (
+          showPanelToggles && (
             <Tooltip>
               <TooltipTrigger
                 render={

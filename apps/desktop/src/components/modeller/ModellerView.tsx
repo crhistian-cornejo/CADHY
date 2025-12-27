@@ -39,8 +39,9 @@ import {
   ImportIFCDialog,
 } from "@/components/modeller/dialogs"
 import { useCADOperationHotkeys, useGlobalHotkeyHandler } from "@/hooks"
+import { useCAD } from "@/hooks/use-cad"
 import { useLayoutActions, useShowModellerLeft, useShowModellerRight } from "@/stores/layout-store"
-import { useModellerStore } from "@/stores/modeller"
+import { useModellerStore, useSelectedIds } from "@/stores/modeller"
 import { useCurrentProject, useIsProjectLoading } from "@/stores/project-store"
 import { BoxLoader, ChuteCreator, CreatePanel, TransitionCreator } from "./creators"
 import { CameraAnimationPanel, HistoryPanel } from "./panels"
@@ -314,6 +315,22 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
     }
   }, [isCreatePanelOpen, activeTab])
 
+  const { importStepShape } = useCAD()
+
+  // Track selection to auto-show Properties panel when an object is selected
+  const selectedIds = useSelectedIds()
+  const prevSelectedCountRef = useRef(0)
+
+  useEffect(() => {
+    // Only switch to props tab when going from 0 to >0 selected objects
+    // This avoids switching tabs when clicking between objects
+    if (prevSelectedCountRef.current === 0 && selectedIds.length > 0) {
+      setActiveTab("props")
+      closeCreatePanel()
+    }
+    prevSelectedCountRef.current = selectedIds.length
+  }, [selectedIds, closeCreatePanel])
+
   // Sync store state when manually clicking tabs
   const handleTabChange = (value: string) => {
     setActiveTab(value as LeftPanelTab)
@@ -372,6 +389,8 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
 
       // Handle first dropped file
       const filePath = paths[0]
+      if (!filePath) return
+
       const ext = filePath.split(".").pop()?.toLowerCase()
 
       if (ext === "ifc" || ext === "ifczip") {
@@ -382,8 +401,7 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
         setShowImportDXFDialog(true)
       } else if (ext === "step" || ext === "stp") {
         // STEP files - import directly using cad-service
-        // TODO: Call cad_import_step directly
-        console.log("STEP file dropped:", filePath)
+        importStepShape(filePath)
       }
 
       setIsDragging(false)
@@ -402,7 +420,7 @@ export function ModellerView({ className, onNewProject, onOpenProject }: Modelle
       unlistenHover.then((fn) => fn())
       unlistenCancelled.then((fn) => fn())
     }
-  }, [])
+  }, [importStepShape])
 
   // Show loading state while project is being opened
   if (isLoading) {

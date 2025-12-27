@@ -36,8 +36,16 @@ pub enum ProjectionType {
     Right,
     /// Left side view - looking along +X axis
     Left,
-    /// Isometric view
+    /// Isometric view (default SW orientation for backwards compatibility)
     Isometric,
+    /// Isometric SW - looking from (+X, +Y, +Z) toward origin (front-right view)
+    IsometricSW,
+    /// Isometric SE - looking from (-X, +Y, +Z) toward origin (front-left view)
+    IsometricSE,
+    /// Isometric NE - looking from (-X, -Y, +Z) toward origin (back-left view)
+    IsometricNE,
+    /// Isometric NW - looking from (+X, -Y, +Z) toward origin (back-right view)
+    IsometricNW,
     /// Custom view direction
     Custom { direction: [f64; 3], up: [f64; 3] },
 }
@@ -52,16 +60,45 @@ impl ProjectionType {
             ProjectionType::Back => ([0.0, 1.0, 0.0], [0.0, 0.0, 1.0]),
             ProjectionType::Right => ([-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]),
             ProjectionType::Left => ([1.0, 0.0, 0.0], [0.0, 0.0, 1.0]),
-            ProjectionType::Isometric => {
-                // Standard isometric: looking from (1, 1, 1) direction toward origin
+            ProjectionType::Isometric | ProjectionType::IsometricSW => {
+                // Isometric SW: looking from (+X, +Y, +Z) toward origin (front-right view)
                 // Direction vector: normalized (-1, -1, -1)
                 let inv_sqrt3 = 1.0 / 3.0_f64.sqrt();
-                // Up vector: projection of world Z onto view plane, then normalized
-                // The up vector (-1/√6, -1/√6, 2/√6) keeps Z pointing "up" on screen
+                // Up vector keeps Z pointing "up" on screen
                 let inv_sqrt6 = 1.0 / 6.0_f64.sqrt();
                 (
                     [-inv_sqrt3, -inv_sqrt3, -inv_sqrt3],
                     [-inv_sqrt6, -inv_sqrt6, 2.0 * inv_sqrt6],
+                )
+            }
+            ProjectionType::IsometricSE => {
+                // Isometric SE: looking from (-X, +Y, +Z) toward origin (front-left view)
+                // Direction vector: normalized (+1, -1, -1)
+                let inv_sqrt3 = 1.0 / 3.0_f64.sqrt();
+                let inv_sqrt6 = 1.0 / 6.0_f64.sqrt();
+                (
+                    [inv_sqrt3, -inv_sqrt3, -inv_sqrt3],
+                    [inv_sqrt6, -inv_sqrt6, 2.0 * inv_sqrt6],
+                )
+            }
+            ProjectionType::IsometricNE => {
+                // Isometric NE: looking from (-X, -Y, +Z) toward origin (back-left view)
+                // Direction vector: normalized (+1, +1, -1)
+                let inv_sqrt3 = 1.0 / 3.0_f64.sqrt();
+                let inv_sqrt6 = 1.0 / 6.0_f64.sqrt();
+                (
+                    [inv_sqrt3, inv_sqrt3, -inv_sqrt3],
+                    [inv_sqrt6, inv_sqrt6, 2.0 * inv_sqrt6],
+                )
+            }
+            ProjectionType::IsometricNW => {
+                // Isometric NW: looking from (+X, -Y, +Z) toward origin (back-right view)
+                // Direction vector: normalized (-1, +1, -1)
+                let inv_sqrt3 = 1.0 / 3.0_f64.sqrt();
+                let inv_sqrt6 = 1.0 / 6.0_f64.sqrt();
+                (
+                    [-inv_sqrt3, inv_sqrt3, -inv_sqrt3],
+                    [-inv_sqrt6, inv_sqrt6, 2.0 * inv_sqrt6],
                 )
             }
             ProjectionType::Custom { direction, up } => (*direction, *up),
@@ -77,9 +114,24 @@ impl ProjectionType {
             ProjectionType::Back => "POSTERIOR",
             ProjectionType::Right => "PERFIL DERECHO",
             ProjectionType::Left => "PERFIL IZQUIERDO",
-            ProjectionType::Isometric => "ISOMÉTRICA",
+            ProjectionType::Isometric | ProjectionType::IsometricSW => "ISOMÉTRICA SW",
+            ProjectionType::IsometricSE => "ISOMÉTRICA SE",
+            ProjectionType::IsometricNE => "ISOMÉTRICA NE",
+            ProjectionType::IsometricNW => "ISOMÉTRICA NW",
             ProjectionType::Custom { .. } => "PERSONALIZADA",
         }
+    }
+
+    /// Check if this is an isometric projection type
+    pub fn is_isometric(&self) -> bool {
+        matches!(
+            self,
+            ProjectionType::Isometric
+                | ProjectionType::IsometricSW
+                | ProjectionType::IsometricSE
+                | ProjectionType::IsometricNE
+                | ProjectionType::IsometricNW
+        )
     }
 }
 

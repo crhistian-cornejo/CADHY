@@ -225,6 +225,84 @@ impl Operations {
         Self::chamfer_edges(shape, edge_indices, &distances)
     }
 
+    /// Apply advanced fillet with continuity control
+    ///
+    /// # Arguments
+    /// * `shape` - Input shape
+    /// * `edge_indices` - Indices of edges to fillet (0-based)
+    /// * `radii` - Radius for each edge
+    /// * `continuity` - 0=C0, 1=C1(G1), 2=C2(G2)
+    pub fn fillet_edges_advanced(
+        shape: &Shape,
+        edge_indices: &[i32],
+        radii: &[f64],
+        continuity: i32,
+    ) -> OcctResult<Shape> {
+        if edge_indices.len() != radii.len() {
+            return Err(OcctError::FilletChamferFailed(format!(
+                "edge_indices length ({}) must match radii length ({})",
+                edge_indices.len(),
+                radii.len()
+            )));
+        }
+
+        let ptr = ffi::fillet_edges_advanced(shape.inner(), edge_indices, radii, continuity);
+        Shape::from_ptr(ptr).map_err(|_| {
+            OcctError::FilletChamferFailed("Advanced fillet operation failed".to_string())
+        })
+    }
+
+    /// Apply chamfer with two different distances per edge
+    ///
+    /// # Arguments
+    /// * `shape` - Input shape
+    /// * `edge_indices` - Indices of edges to chamfer (0-based)
+    /// * `distances1` - First distance for each edge
+    /// * `distances2` - Second distance for each edge
+    pub fn chamfer_edges_two_distances(
+        shape: &Shape,
+        edge_indices: &[i32],
+        distances1: &[f64],
+        distances2: &[f64],
+    ) -> OcctResult<Shape> {
+        if edge_indices.len() != distances1.len() || edge_indices.len() != distances2.len() {
+            return Err(OcctError::FilletChamferFailed(
+                "edge_indices and distances must have same length".to_string(),
+            ));
+        }
+
+        let ptr =
+            ffi::chamfer_edges_two_distances(shape.inner(), edge_indices, distances1, distances2);
+        Shape::from_ptr(ptr).map_err(|_| {
+            OcctError::FilletChamferFailed("Chamfer with two distances failed".to_string())
+        })
+    }
+
+    /// Apply chamfer with distance and angle per edge
+    ///
+    /// # Arguments
+    /// * `shape` - Input shape
+    /// * `edge_indices` - Indices of edges to chamfer (0-based)
+    /// * `distances` - Distance for each edge
+    /// * `angles` - Angle in radians for each edge
+    pub fn chamfer_edges_distance_angle(
+        shape: &Shape,
+        edge_indices: &[i32],
+        distances: &[f64],
+        angles: &[f64],
+    ) -> OcctResult<Shape> {
+        if edge_indices.len() != distances.len() || edge_indices.len() != angles.len() {
+            return Err(OcctError::FilletChamferFailed(
+                "edge_indices, distances and angles must have same length".to_string(),
+            ));
+        }
+
+        let ptr = ffi::chamfer_edges_distance_angle(shape.inner(), edge_indices, distances, angles);
+        Shape::from_ptr(ptr).map_err(|_| {
+            OcctError::FilletChamferFailed("Chamfer with distance and angle failed".to_string())
+        })
+    }
+
     /// Fuse multiple shapes together
     pub fn fuse_many(shapes: &[&Shape]) -> OcctResult<Shape> {
         if shapes.len() < 2 {

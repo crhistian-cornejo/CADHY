@@ -7,6 +7,10 @@ import * as React from "react"
 interface ScrollAreaProps extends ScrollAreaPrimitive.Root.Props {
   /** Show fade masks at top/bottom when content overflows */
   showFadeMasks?: boolean
+  /** Show only the top fade mask (requires showFadeMasks=true) */
+  showTopFadeMask?: boolean
+  /** Show only the bottom fade mask (requires showFadeMasks=true) */
+  showBottomFadeMask?: boolean
   /** Height of the fade mask gradient */
   fadeMaskHeight?: string
 }
@@ -15,6 +19,8 @@ function ScrollArea({
   className,
   children,
   showFadeMasks = false,
+  showTopFadeMask = true,
+  showBottomFadeMask = true,
   fadeMaskHeight = "2rem",
   ...props
 }: ScrollAreaProps) {
@@ -56,7 +62,7 @@ function ScrollArea({
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
         data-slot="scroll-area-viewport"
-        className="focus-visible:ring-ring/50 size-full overflow-auto rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+        className="size-full overflow-auto rounded-[inherit] outline-none focus:outline-none focus-visible:outline-none"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
@@ -64,22 +70,26 @@ function ScrollArea({
       {/* Fade masks */}
       {showFadeMasks && (
         <>
-          <div
-            aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-popover to-transparent transition-opacity duration-150",
-              canScrollUp ? "opacity-100" : "opacity-0"
-            )}
-            style={{ height: fadeMaskHeight }}
-          />
-          <div
-            aria-hidden="true"
-            className={cn(
-              "pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-popover to-transparent transition-opacity duration-150",
-              canScrollDown ? "opacity-100" : "opacity-0"
-            )}
-            style={{ height: fadeMaskHeight }}
-          />
+          {showTopFadeMask && (
+            <div
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-popover to-transparent transition-opacity duration-150",
+                canScrollUp ? "opacity-100" : "opacity-0"
+              )}
+              style={{ height: fadeMaskHeight }}
+            />
+          )}
+          {showBottomFadeMask && (
+            <div
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-popover to-transparent transition-opacity duration-150",
+                canScrollDown ? "opacity-100" : "opacity-0"
+              )}
+              style={{ height: fadeMaskHeight }}
+            />
+          )}
         </>
       )}
 

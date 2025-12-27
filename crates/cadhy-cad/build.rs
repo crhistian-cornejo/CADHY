@@ -14,6 +14,36 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/bridge.cpp");
     println!("cargo:rerun-if-changed=src/ffi.rs");
 
+    // CADHY modular C++ headers
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/cadhy.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/core/types.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/edit/selection.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/edit/face_ops.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/primitives/primitives.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/boolean/boolean.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/modify/modify.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/transform/transform.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/sweep/sweep.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/wire/wire.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/mesh/mesh.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/io/io.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/analysis/analysis.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/projection/projection.hpp");
+
+    // CADHY modular C++ implementations
+    println!("cargo:rerun-if-changed=cpp/src/edit/selection.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/edit/face_ops.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/primitives/primitives.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/boolean/boolean.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/modify/modify.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/transform/transform.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/sweep/sweep.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/wire/wire.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/mesh/mesh.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/io/io.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/analysis/analysis.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/projection/projection.cpp");
+
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
 
     // Find OCCT installation based on platform
@@ -108,10 +138,29 @@ fn main() {
 
     let mut build = cxx_build::bridge("src/ffi.rs");
 
+    // Include directories for new modular structure
+    let cadhy_include = cpp_dir.join("include");
+
     build
+        // Main bridge file (legacy - being slimmed down as modules are extracted)
         .file("cpp/bridge.cpp")
+        // CADHY modular C++ implementations
+        .file("cpp/src/edit/selection.cpp")
+        .file("cpp/src/edit/face_ops.cpp")
+        .file("cpp/src/primitives/primitives.cpp")
+        .file("cpp/src/boolean/boolean.cpp")
+        .file("cpp/src/modify/modify.cpp")
+        .file("cpp/src/transform/transform.cpp")
+        .file("cpp/src/sweep/sweep.cpp")
+        .file("cpp/src/wire/wire.cpp")
+        .file("cpp/src/mesh/mesh.cpp")
+        .file("cpp/src/io/io.cpp")
+        .file("cpp/src/analysis/analysis.cpp")
+        .file("cpp/src/projection/projection.cpp")
+        // Include paths
         .include(&occt_inc)
-        .include(&cpp_dir) // Include cpp directory for bridge.h
+        .include(&cpp_dir) // For legacy bridge.h
+        .include(&cadhy_include) // For new cadhy/ headers
         .std("c++17")
         .define("_USE_MATH_DEFINES", None);
 

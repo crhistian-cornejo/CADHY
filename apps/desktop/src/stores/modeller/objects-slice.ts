@@ -71,6 +71,18 @@ export const createObjectsSlice: StateCreator<ModellerStore, [], [], ObjectsSlic
       updatedAt: now,
     } as AnySceneObject
 
+    // DEBUG: Log mesh data for compound shapes
+    if (object.type === "shape" && (object as { shapeType?: string }).shapeType === "compound") {
+      const mesh = (object as { mesh?: { vertices?: unknown; indices?: unknown } }).mesh
+      console.log("[addObject] Adding compound shape:", id, {
+        name: object.name,
+        hasMesh: !!mesh,
+        verticesType: mesh?.vertices?.constructor?.name,
+        verticesLength: (mesh?.vertices as { length?: number })?.length ?? 0,
+        indicesLength: (mesh?.indices as { length?: number })?.length ?? 0,
+      })
+    }
+
     set((state) => ({
       objects: [...state.objects, object],
     }))
@@ -179,6 +191,8 @@ export const createObjectsSlice: StateCreator<ModellerStore, [], [], ObjectsSlic
       objects: state.objects.map((obj) =>
         obj.id === id ? ({ ...obj, ...finalUpdates, updatedAt: Date.now() } as AnySceneObject) : obj
       ),
+      // Always mark as dirty when any object is updated (enables auto-save for all object types)
+      isDirty: true,
     }))
 
     // If saveHistory is true, commit to history

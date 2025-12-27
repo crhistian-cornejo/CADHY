@@ -92,7 +92,7 @@ export function DrawingsListPanel() {
       </div>
 
       {/* Drawings list */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" showFadeMasks>
         <div className="p-2 space-y-1">
           {drawings.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">

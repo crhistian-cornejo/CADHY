@@ -9,7 +9,6 @@ import { Button, cn, formatKbd, Kbd, Tooltip, TooltipContent, TooltipTrigger } f
 import {
   Alert01Icon,
   CheckmarkCircle02Icon,
-  CpuIcon,
   CubeIcon,
   FloppyDiskIcon,
   Loading01Icon,
@@ -19,8 +18,9 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { invoke } from "@tauri-apps/api/core"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { UsageImpactDialog } from "@/components/common/UsageImpactDialog"
 import { usePlatform } from "@/hooks/use-platform"
 import { useUnits } from "@/hooks/use-units"
 import {
@@ -63,6 +63,12 @@ interface SystemMetrics {
 }
 
 function usePerformanceMetrics(): PerformanceMetrics {
+  // Use refs to accumulate FPS data without causing re-renders
+  const frameCountRef = useRef(0)
+  const lastTimeRef = useRef(performance.now())
+  const lastFpsUpdateRef = useRef(0)
+  const fpsRef = useRef(0)
+
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     fps: 0,
     memory: "0 MB",
@@ -72,15 +78,12 @@ function usePerformanceMetrics(): PerformanceMetrics {
   })
 
   useEffect(() => {
-    let frameCount = 0
-    let lastTime = performance.now()
     let animationId: number
 
-    // Fetch system metrics from Tauri every 2 seconds
+    // Fetch system metrics from Tauri every 5 seconds (reduced from 2s)
     const fetchSystemMetrics = async () => {
       try {
         const systemMetrics = await invoke<SystemMetrics>("get_system_metrics")
-        // Show CADHY app memory usage with percentage
         const memory = `${systemMetrics.memoryUsedMb} MB`
         const memoryPercent = systemMetrics.memoryPercent
         const gpu = systemMetrics.gpuInfo
@@ -93,28 +96,40 @@ function usePerformanceMetrics(): PerformanceMetrics {
           gpu,
           cpuUsage,
         }))
-      } catch (error) {
-        console.error("[StatusBar] Failed to fetch system metrics:", error)
+      } catch {
+        // Silently ignore errors - no console.log in production
       }
     }
 
     // Initial fetch
     fetchSystemMetrics()
 
-    // Update system metrics every 2 seconds
-    const metricsInterval = setInterval(fetchSystemMetrics, 2000)
+    // Update system metrics every 5 seconds (increased from 2s)
+    const metricsInterval = setInterval(fetchSystemMetrics, 5000)
 
-    // Update FPS every frame
+    // Update FPS calculation every frame, but only update state every 500ms
     const update = () => {
-      frameCount++
+      frameCountRef.current++
       const currentTime = performance.now()
+      const elapsed = currentTime - lastTimeRef.current
 
-      if (currentTime - lastTime >= 1000) {
-        const fps = Math.round((frameCount * 1000) / (currentTime - lastTime))
+      // Calculate FPS every second
+      if (elapsed >= 1000) {
+        fpsRef.current = Math.round((frameCountRef.current * 1000) / elapsed)
+        frameCountRef.current = 0
+        lastTimeRef.current = currentTime
+      }
 
-        setMetrics((prev) => ({ ...prev, fps }))
-        frameCount = 0
-        lastTime = currentTime
+      // Only update React state every 500ms to reduce re-renders
+      if (currentTime - lastFpsUpdateRef.current >= 500) {
+        lastFpsUpdateRef.current = currentTime
+        setMetrics((prev) => {
+          // Only update if FPS actually changed
+          if (prev.fps !== fpsRef.current) {
+            return { ...prev, fps: fpsRef.current }
+          }
+          return prev
+        })
       }
 
       animationId = requestAnimationFrame(update)
@@ -139,7 +154,8 @@ export function StatusBar() {
   const { t } = useTranslation()
   const { isMacOS } = usePlatform()
   const metrics = usePerformanceMetrics()
-  const { unitSystem, toggleUnitSystem, lengthLabel } = useUnits()
+  const { unitSystem, toggleUnitSystem, lengthLabel, convertLengthToDisplay, precision } =
+    useUnits()
   const notification = useStatusNotification()
   const isLoadingProject = useIsProjectLoading()
   const currentProject = useCurrentProject()
@@ -391,11 +407,18 @@ export function StatusBar() {
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-2xl bg-muted/40 cursor-default font-mono text-muted-foreground transition-all hover:bg-muted/60">
                 <HugeiconsIcon icon={Target01Icon} className="size-3 text-primary/70 mr-1" />
                 <span className="text-foreground/50">X</span>
-                <span className="text-foreground/90 tabular-nums">{coordinates.x.toFixed(2)}</span>
+                <span className="text-foreground/90 tabular-nums">
+                  {convertLengthToDisplay(coordinates.x).toFixed(precision)}
+                </span>
                 <span className="text-foreground/50 ml-1.5">Y</span>
-                <span className="text-foreground/90 tabular-nums">{coordinates.y.toFixed(2)}</span>
+                <span className="text-foreground/90 tabular-nums">
+                  {convertLengthToDisplay(coordinates.y).toFixed(precision)}
+                </span>
                 <span className="text-foreground/50 ml-1.5">Z</span>
-                <span className="text-foreground/90 tabular-nums">{coordinates.z.toFixed(2)}</span>
+                <span className="text-foreground/90 tabular-nums">
+                  {convertLengthToDisplay(coordinates.z).toFixed(precision)}
+                </span>
+                <span className="text-foreground/50 ml-1">{lengthLabel}</span>
               </div>
             }
           />
@@ -437,35 +460,10 @@ export function StatusBar() {
             <span>FPS</span>
           </div>
 
-          {/* CPU Usage */}
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <div className="flex items-center gap-1">
-                  <HugeiconsIcon icon={CpuIcon} className="size-3" />
-                  <span className="tabular-nums font-mono">{metrics.cpuUsage.toFixed(1)}%</span>
-                </div>
-              }
-            />
-            <TooltipContent side="top">CADHY CPU Usage</TooltipContent>
-          </Tooltip>
+          {/* Usage Impact - Single icon with click to show graphs */}
+          <UsageImpactDialog />
 
-          {/* Memory Usage */}
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <div className="flex items-center gap-1">
-                  <span className="text-xs">RAM</span>
-                  <span className="tabular-nums font-mono text-xs">
-                    {metrics.memory} ({metrics.memoryPercent.toFixed(1)}%)
-                  </span>
-                </div>
-              }
-            />
-            <TooltipContent side="top">CADHY Memory Usage</TooltipContent>
-          </Tooltip>
-
-          {/* GPU Info */}
+          {/* GPU Name */}
           <Tooltip>
             <TooltipTrigger
               render={

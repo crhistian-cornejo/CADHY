@@ -21,7 +21,8 @@
     "no": "No",
     "rename": "Rename",
     "apply": "Apply",
-    "more": "More"
+    "more": "More",
+    "now": "now"
   },
   "camera": {
     "savedViews": "Saved Views",
@@ -184,7 +185,15 @@
     "low": "Low",
     "memoryUsage": "Memory usage",
     "gpu": "GPU",
-    "projectSaved": "Project saved successfully"
+    "projectSaved": "Project saved successfully",
+    "usageImpact": "Usage Impact",
+    "clickToShowGraphs": "Click to show graphs",
+    "usageImpactDescription": "CADHY resource usage over time",
+    "memoryUsed": "Memory used by CADHY",
+    "gpuUsageNotAvailable": "Real-time GPU usage requires vendor-specific APIs",
+    "ramUsed": "RAM Used",
+    "ramPercent": "RAM %",
+    "hoverToInspect": "Hover bars to inspect values"
   },
   "panels": {
     "viewer": "3D Viewer",
@@ -1015,6 +1024,8 @@
       "lineLengthDesc": "Select a line to dimension",
       "pointToPoint": "Point to point",
       "pointToPointDesc": "Select two points to measure",
+      "angle": "Angle",
+      "angleDesc": "3 points for angle. Shift = exterior",
       "note": "Note",
       "noteDesc": "Add a note/label to the geometry",
       "selected": "Dimension {{index}} selected",
@@ -1053,8 +1064,12 @@
       "custom": "Custom"
     },
     "views": {
+      "addView": "Add View",
       "addBaseView": "Add Base View",
-      "selectOrientation": "Select the orientation for the base view",
+      "selectShape": "Select an object from the modeler",
+      "noShapesAvailable": "No objects available",
+      "createShapeFirst": "Create objects in the modeler first",
+      "selectOrientation": "Select the view orientation",
       "top": "Top",
       "front": "Front",
       "right": "Right",
@@ -1062,6 +1077,10 @@
       "bottom": "Bottom",
       "back": "Back",
       "isometric": "Isometric",
+      "isometricSW": "SW (Front-Right)",
+      "isometricSE": "SE (Front-Left)",
+      "isometricNE": "NE (Back-Left)",
+      "isometricNW": "NW (Back-Right)",
       "lockViews": "Lock views",
       "unlockViews": "Unlock views",
       "locked": "Locked",
@@ -1096,7 +1115,8 @@
       "dimensionsTooltip": "Dimensions",
       "geometriesTooltip": "Geometries",
       "notesTooltip": "Notes",
-      "imageTooltip": "Image"
+      "imageTooltip": "Image",
+      "addViewTooltip": "Add View"
     },
     "themes": {
       "blueprint": "Blueprint",
@@ -1151,7 +1171,14 @@
         "title": "Display",
         "constructionLines": "Construction lines",
         "viewLabels": "View labels",
-        "gridReferences": "Grid references"
+        "gridReferences": "Grid references",
+        "regenerateViews": "Regenerate Views",
+        "regenerating": "Regenerating...",
+        "regenerateHint": "Refresh projections from 3D model",
+        "viewsRegenerated": "Regenerated {{count}}/{{total}} views",
+        "regenerationFailed": "Could not regenerate views",
+        "regenerationError": "Error regenerating views",
+        "noViewsToRegenerate": "No views to regenerate"
       },
       "lineWidths": {
         "title": "Line widths",
@@ -1160,6 +1187,47 @@
         "dimension": "Dimension lines",
         "centerline": "Centerlines",
         "section": "Section lines"
+      },
+      "viewLabels": {
+        "title": "View labels",
+        "showName": "Show name",
+        "showScale": "Show scale",
+        "showNumber": "Show number",
+        "position": "Position",
+        "positionBottom": "Bottom",
+        "positionTop": "Top",
+        "positionLeft": "Left",
+        "positionRight": "Right",
+        "numberStyle": "Number style",
+        "numberCircle": "Circle",
+        "numberSquare": "Square",
+        "numberPlain": "Plain",
+        "numberNone": "None",
+        "numberSize": "Number size",
+        "numberGap": "Number gap (mm)",
+        "fontSize": "Font size (mm)",
+        "offset": "Offset (mm)",
+        "underline": "Underline"
+      },
+      "hatching": {
+        "title": "Hatching",
+        "noHatches": "No hatches in this drawing",
+        "hint": "Add hatches in section views",
+        "region": "Region",
+        "pattern": "Pattern",
+        "angle": "Angle (°)",
+        "spacing": "Spacing (mm)",
+        "scale": "Scale"
+      },
+      "layoutGrid": {
+        "title": "Layout Grid",
+        "showGrid": "Show grid",
+        "spacing": "Grid spacing (mm)",
+        "showMinor": "Show minor grid",
+        "snapToGrid": "Snap to grid",
+        "alignGuides": "Alignment guides",
+        "centerGuides": "Center guides",
+        "spacingIndicators": "Spacing indicators"
       },
       "export": {
         "title": "Export",

@@ -6,6 +6,7 @@
  */
 
 import React from "react"
+import { useUnits } from "@/hooks/use-units"
 import type {
   ChannelSection,
   RectangularSection,
@@ -32,6 +33,7 @@ export const ChannelSectionPreview = React.memo(function ChannelSectionPreview({
   showDimensions = true,
 }: ChannelSectionPreviewProps) {
   const viewBox = "0 0 100 60"
+  const { lengthLabel, convertLengthToDisplay, precision } = useUnits()
 
   const renderSection = () => {
     switch (section.type) {
@@ -105,10 +107,12 @@ export const ChannelSectionPreview = React.memo(function ChannelSectionPreview({
             {showDimensions && (
               <>
                 <text x={50} y={58} textAnchor="middle" className="fill-muted-foreground text-xs">
-                  b={s.width?.toFixed(2)}m
+                  b={convertLengthToDisplay(s.width || 0).toFixed(precision)}
+                  {lengthLabel}
                 </text>
                 <text x={92} y={30} textAnchor="start" className="fill-muted-foreground text-xs">
-                  y={s.depth?.toFixed(2)}m
+                  y={convertLengthToDisplay(s.depth || 0).toFixed(precision)}
+                  {lengthLabel}
                 </text>
               </>
             )}
@@ -182,10 +186,12 @@ export const ChannelSectionPreview = React.memo(function ChannelSectionPreview({
             {showDimensions && (
               <>
                 <text x={50} y={58} textAnchor="middle" className="fill-muted-foreground text-xs">
-                  b={s.bottomWidth?.toFixed(2)}m, z={s.sideSlope}
+                  b={convertLengthToDisplay(s.bottomWidth || 0).toFixed(precision)}
+                  {lengthLabel}, z={s.sideSlope}
                 </text>
                 <text x={95} y={30} textAnchor="start" className="fill-muted-foreground text-xs">
-                  y={s.depth?.toFixed(2)}m
+                  y={convertLengthToDisplay(s.depth || 0).toFixed(precision)}
+                  {lengthLabel}
                 </text>
               </>
             )}
@@ -248,7 +254,8 @@ export const ChannelSectionPreview = React.memo(function ChannelSectionPreview({
                   z={s.sideSlope}
                 </text>
                 <text x={95} y={30} textAnchor="start" className="fill-muted-foreground text-xs">
-                  y={s.depth?.toFixed(2)}m
+                  y={convertLengthToDisplay(s.depth || 0).toFixed(precision)}
+                  {lengthLabel}
                 </text>
               </>
             )}

@@ -10,7 +10,15 @@
 import { nanoid } from "nanoid"
 import type { StateCreator } from "zustand"
 import type { ModellerStore } from "./store-types"
-import type { AnySceneObject, HistoryEntry, SceneData, TransitionObject } from "./types"
+import type {
+  AnySceneObject,
+  ChannelObject,
+  ChuteObject,
+  HistoryEntry,
+  SceneData,
+  ShapeObject,
+  TransitionObject,
+} from "./types"
 import {
   calculateSceneBoundingBox,
   DEFAULT_AREA,
@@ -56,6 +64,34 @@ export const createSceneSlice: StateCreator<ModellerStore, [], [], SceneSlice> =
   ...initialSceneState,
 
   loadScene: (scene) => {
+    /**
+     * Convert an indexed object (like {"0": 1.5, "1": 2.3}) or array to a number array.
+     * This handles TypedArrays that were incorrectly serialized to indexed objects by JSON.
+     */
+    const toNumberArray = (data: unknown): number[] => {
+      if (!data) return []
+      if (Array.isArray(data)) return data as number[]
+      if (data instanceof Float32Array || data instanceof Uint32Array) {
+        return Array.from(data)
+      }
+      // Handle indexed objects from JSON serialization {"0": 1.5, "1": 2.3, ...}
+      if (typeof data === "object" && data !== null) {
+        const obj = data as Record<string, unknown>
+        const keys = Object.keys(obj)
+        // Check if all keys are numeric indices
+        const isIndexedObject = keys.length > 0 && keys.every((k) => /^\d+$/.test(k))
+        if (isIndexedObject) {
+          const maxIndex = Math.max(...keys.map(Number))
+          const arr: number[] = new Array(maxIndex + 1)
+          for (const key of keys) {
+            arr[Number(key)] = Number(obj[key])
+          }
+          return arr
+        }
+      }
+      return []
+    }
+
     // Helper function to restore TypedArrays in mesh data after JSON deserialization
     // Also ensures all object properties including transform are preserved
     const restoreMeshTypedArrays = (obj: AnySceneObject): AnySceneObject => {
@@ -83,37 +119,18 @@ export const createSceneSlice: StateCreator<ModellerStore, [], [], SceneSlice> =
           | ChuteObject
         if (objWithMesh.mesh) {
           const mesh = objWithMesh.mesh
-          // Check if arrays are regular arrays (from JSON) and convert to TypedArrays
+          // Convert any format (TypedArray, regular array, or indexed object) to TypedArrays
+          const verticesArray = toNumberArray(mesh.vertices)
+          const indicesArray = toNumberArray(mesh.indices)
+          const normalsArray = mesh.normals ? toNumberArray(mesh.normals) : null
+
           const restoredMesh = {
             ...mesh,
-            vertices:
-              mesh.vertices instanceof Float32Array
-                ? mesh.vertices
-                : Array.isArray(mesh.vertices)
-                  ? new Float32Array(mesh.vertices)
-                  : new Float32Array(0),
-            indices:
-              mesh.indices instanceof Uint32Array
-                ? mesh.indices
-                : Array.isArray(mesh.indices)
-                  ? new Uint32Array(mesh.indices)
-                  : new Uint32Array(0),
-            normals: (() => {
-              if (mesh.normals instanceof Float32Array) {
-                return mesh.normals
-              }
-              if (Array.isArray(mesh.normals)) {
-                return new Float32Array(mesh.normals)
-              }
-              // Fallback: create normals array matching vertices length
-              if (mesh.vertices instanceof Float32Array) {
-                return new Float32Array(mesh.vertices.length)
-              }
-              if (Array.isArray(mesh.vertices)) {
-                return new Float32Array(mesh.vertices.length)
-              }
-              return new Float32Array(0)
-            })(),
+            vertices: new Float32Array(verticesArray),
+            indices: new Uint32Array(indicesArray),
+            normals: normalsArray
+              ? new Float32Array(normalsArray)
+              : new Float32Array(verticesArray.length), // Fallback: create normals matching vertices
           }
           return { ...objWithMesh, mesh: restoredMesh }
         }
@@ -185,31 +202,18 @@ export const createSceneSlice: StateCreator<ModellerStore, [], [], SceneSlice> =
           const objWithMesh = obj as ShapeObject | ChannelObject | TransitionObject | ChuteObject
           if (objWithMesh.mesh) {
             const mesh = objWithMesh.mesh
-            // Check if arrays are regular arrays (from JSON) and convert to TypedArrays
+            // Convert any format (TypedArray, regular array, or indexed object) to TypedArrays
+            const verticesArray = toNumberArray(mesh.vertices)
+            const indicesArray = toNumberArray(mesh.indices)
+            const normalsArray = mesh.normals ? toNumberArray(mesh.normals) : null
+
             const restoredMesh = {
               ...mesh,
-              vertices:
-                mesh.vertices instanceof Float32Array
-                  ? mesh.vertices
-                  : Array.isArray(mesh.vertices)
-                    ? new Float32Array(mesh.vertices)
-                    : new Float32Array(0),
-              indices:
-                mesh.indices instanceof Uint32Array
-                  ? mesh.indices
-                  : Array.isArray(mesh.indices)
-                    ? new Uint32Array(mesh.indices)
-                    : new Uint32Array(0),
-              normals:
-                mesh.normals instanceof Float32Array
-                  ? mesh.normals
-                  : Array.isArray(mesh.normals)
-                    ? new Float32Array(mesh.normals)
-                    : mesh.vertices instanceof Float32Array
-                      ? new Float32Array(mesh.vertices.length)
-                      : Array.isArray(mesh.vertices)
-                        ? new Float32Array(mesh.vertices.length)
-                        : new Float32Array(0),
+              vertices: new Float32Array(verticesArray),
+              indices: new Uint32Array(indicesArray),
+              normals: normalsArray
+                ? new Float32Array(normalsArray)
+                : new Float32Array(verticesArray.length),
             }
             return { ...objWithMesh, mesh: restoredMesh }
           }
@@ -282,15 +286,60 @@ export const createSceneSlice: StateCreator<ModellerStore, [], [], SceneSlice> =
       historyIndexToSave = Math.max(savedStartIndex, state.historyIndex) - savedStartIndex
     }
 
+    /**
+     * Convert TypedArrays to regular arrays for JSON serialization.
+     * TypedArrays don't serialize correctly to JSON - they become indexed objects.
+     */
+    const serializeMesh = (
+      mesh:
+        | {
+            vertices?: Float32Array | number[]
+            indices?: Uint32Array | number[]
+            normals?: Float32Array | number[]
+            [key: string]: unknown
+          }
+        | undefined
+    ) => {
+      if (!mesh) return undefined
+      return {
+        ...mesh,
+        vertices: mesh.vertices ? Array.from(mesh.vertices as ArrayLike<number>) : [],
+        indices: mesh.indices ? Array.from(mesh.indices as ArrayLike<number>) : [],
+        normals: mesh.normals ? Array.from(mesh.normals as ArrayLike<number>) : undefined,
+      }
+    }
+
+    const serializeObject = (obj: AnySceneObject): AnySceneObject => {
+      if (
+        obj.type === "shape" ||
+        obj.type === "channel" ||
+        obj.type === "transition" ||
+        obj.type === "chute"
+      ) {
+        const objWithMesh = obj as ShapeObject | ChannelObject | TransitionObject | ChuteObject
+        if (objWithMesh.mesh) {
+          return { ...objWithMesh, mesh: serializeMesh(objWithMesh.mesh) } as AnySceneObject
+        }
+      }
+      return obj
+    }
+
+    // Serialize objects and history for proper JSON storage
+    const serializedObjects = state.objects.map(serializeObject)
+    const serializedHistory = historyToSave.map((entry) => ({
+      ...entry,
+      objects: entry.objects.map(serializeObject),
+    }))
+
     return {
-      objects: state.objects,
+      objects: serializedObjects,
       layers: state.layers,
       areas: state.areas,
       viewportSettings: state.viewportSettings,
       gridSettings: state.gridSettings,
       cameraPosition: state.cameraPosition,
       cameraTarget: state.cameraTarget,
-      history: historyToSave,
+      history: serializedHistory,
       historyIndex: historyIndexToSave,
     }
   },

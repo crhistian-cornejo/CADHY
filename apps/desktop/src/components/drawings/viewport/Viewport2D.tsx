@@ -11,13 +11,22 @@ import type {
   Dimension,
   Drawing,
   DrawingView,
+  HatchRegion,
   Line2D,
   LineType,
   Point2D,
   ProjectionType,
   SheetConfig,
+  ViewLabelConfig,
 } from "@cadhy/types"
-import { DEFAULT_ANNOTATION_STYLE, getPaperDimensions } from "@cadhy/types"
+import {
+  DEFAULT_ALIGNMENT_GUIDES_CONFIG,
+  DEFAULT_ANNOTATION_STYLE,
+  DEFAULT_LAYOUT_GRID_CONFIG,
+  DEFAULT_VIEW_LABEL_CONFIG,
+  formatScaleForCAD,
+  getPaperDimensions,
+} from "@cadhy/types"
 import { Button, cn, Popover, PopoverContent, PopoverTrigger } from "@cadhy/ui"
 import {
   Add01Icon,
@@ -29,28 +38,36 @@ import {
   ViewIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { shapeIdMap } from "@/hooks/use-cad"
 import { useDimensioningStore } from "@/stores/dimensioning-store"
 import { useDrawingStore } from "@/stores/drawing-store"
+import { useObjects } from "@/stores/modeller"
 import { useNavigationStore } from "@/stores/navigation-store"
 import {
   calculatePerpendicularOffset,
   createAlignedDimension,
+  createAngularDimension,
   createHorizontalDimension,
   createVerticalDimension,
   formatDimensionValue,
   pointToLineDistance,
+  recalculateAngularDimensionWithRadius,
   recalculateDimensionWithOffset,
 } from "@/utils/dimension-helpers"
 import { getModelMetersToDrawingUnitsFactor } from "@/utils/drawing-units"
+import { renderHatchRegion } from "@/utils/hatch-patterns"
 import {
+  calculatePaperTolerance,
   DEFAULT_SNAP_CONFIG,
   DEFAULT_SNAP_STYLE,
+  type DimensionToolType,
   drawSnapIndicator,
   extractSnapPoints,
   findNearestSnapPoint,
+  getSnapConfigForTool,
+  SCREEN_SNAP_TOLERANCE_PX,
   type SnapConfig,
   type SnapPoint,
 } from "@/utils/snap-system"
@@ -279,26 +296,96 @@ function renderDimension(
     ctx.stroke()
   })
 
-  // Draw dimension line
-  ctx.beginPath()
-  ctx.moveTo(offsetX + dimension.dimensionLine.start.x, offsetY - dimension.dimensionLine.start.y)
-  ctx.lineTo(offsetX + dimension.dimensionLine.end.x, offsetY - dimension.dimensionLine.end.y)
-  ctx.stroke()
+  // Handle Angular dimensions specially (draw arc instead of line)
+  if (
+    dimension.dimType === "Angular" &&
+    dimension.point2 &&
+    dimension.point3 &&
+    dimension.arcRadius
+  ) {
+    const vertex = dimension.point2
+    const p1 = dimension.point1
+    const p3 = dimension.point3
+    const radius = dimension.arcRadius
 
-  // Draw arrows
-  const startPt = {
-    x: offsetX + dimension.dimensionLine.start.x,
-    y: offsetY - dimension.dimensionLine.start.y,
-  }
-  const endPt = {
-    x: offsetX + dimension.dimensionLine.end.x,
-    y: offsetY - dimension.dimensionLine.end.y,
-  }
-  if (dimension.dimensionLine.startArrow !== "None") {
-    drawArrow(ctx, endPt, startPt, config.arrowSize)
-  }
-  if (dimension.dimensionLine.endArrow !== "None") {
-    drawArrow(ctx, startPt, endPt, config.arrowSize)
+    // Calculate angles from vertex to each point
+    const angle1 = Math.atan2(p1.y - vertex.y, p1.x - vertex.x)
+    const angle2 = Math.atan2(p3.y - vertex.y, p3.x - vertex.x)
+
+    // Determine start and end angles for the arc
+    let angleDiff = angle2 - angle1
+    while (angleDiff < 0) angleDiff += 2 * Math.PI
+    while (angleDiff >= 2 * Math.PI) angleDiff -= 2 * Math.PI
+
+    const isReflex = angleDiff > Math.PI
+    let startAngle = angle1
+    let endAngle = angle2
+    if (isReflex) {
+      startAngle = angle2
+      endAngle = angle1
+    }
+    while (endAngle < startAngle) endAngle += 2 * Math.PI
+
+    // Draw arc (canvas uses clockwise angles, and Y is flipped)
+    const centerX = offsetX + vertex.x
+    const centerY = offsetY - vertex.y
+
+    ctx.beginPath()
+    // Canvas arc needs angles adjusted for Y-flip (negate and swap)
+    ctx.arc(centerX, centerY, radius, -startAngle, -endAngle, true)
+    ctx.stroke()
+
+    // Draw arrows at arc ends
+    if (dimension.dimensionLine.startArrow !== "None") {
+      // Arrow at start of arc - tangent direction
+      const tangentAngle1 = startAngle + Math.PI / 2 // Perpendicular to radius
+      const arrowTipX = centerX + Math.cos(startAngle) * radius
+      const arrowTipY = centerY - Math.sin(startAngle) * radius
+      const arrowFromX = arrowTipX - Math.cos(tangentAngle1) * config.arrowSize
+      const arrowFromY = arrowTipY + Math.sin(tangentAngle1) * config.arrowSize
+      drawArrow(
+        ctx,
+        { x: arrowFromX, y: arrowFromY },
+        { x: arrowTipX, y: arrowTipY },
+        config.arrowSize
+      )
+    }
+    if (dimension.dimensionLine.endArrow !== "None") {
+      // Arrow at end of arc - tangent direction (opposite)
+      const tangentAngle2 = endAngle - Math.PI / 2 // Perpendicular to radius
+      const arrowTipX = centerX + Math.cos(endAngle) * radius
+      const arrowTipY = centerY - Math.sin(endAngle) * radius
+      const arrowFromX = arrowTipX - Math.cos(tangentAngle2) * config.arrowSize
+      const arrowFromY = arrowTipY + Math.sin(tangentAngle2) * config.arrowSize
+      drawArrow(
+        ctx,
+        { x: arrowFromX, y: arrowFromY },
+        { x: arrowTipX, y: arrowTipY },
+        config.arrowSize
+      )
+    }
+  } else {
+    // Draw linear dimension line
+    ctx.beginPath()
+    ctx.moveTo(offsetX + dimension.dimensionLine.start.x, offsetY - dimension.dimensionLine.start.y)
+    ctx.lineTo(offsetX + dimension.dimensionLine.end.x, offsetY - dimension.dimensionLine.end.y)
+    ctx.stroke()
+
+    // Draw arrows
+    const startPt = {
+      x: offsetX + dimension.dimensionLine.start.x,
+      y: offsetY - dimension.dimensionLine.start.y,
+    }
+    const endPt = {
+      x: offsetX + dimension.dimensionLine.end.x,
+      y: offsetY - dimension.dimensionLine.end.y,
+    }
+    if (dimension.dimensionLine.startArrow !== "None") {
+      drawArrow(ctx, endPt, startPt, config.arrowSize)
+    }
+    if (dimension.dimensionLine.endArrow !== "None") {
+      drawArrow(ctx, startPt, endPt, config.arrowSize)
+    }
   }
 
   // Draw dimension text - use dimension line color (or highlight when selected)
@@ -306,68 +393,83 @@ function renderDimension(
   ctx.font = `${config.textHeight}px sans-serif`
   ctx.textAlign = "center"
 
-  // Convert paper dimension to real-world dimension (in model units = meters)
-  // dimension.value is in projection coordinates, which are scaled by (scale * unitFactor)
-  // To get the real model value in meters, divide by both scale and unitFactor
-  const unitFactor = sheetConfig ? getModelMetersToDrawingUnitsFactor(sheetConfig.units) : 1
-  const totalScale = scale * unitFactor
-  let realValue = dimension.value / totalScale
+  // Handle Angular dimensions text differently
+  if (dimension.dimType === "Angular") {
+    // Angular dimensions: value is already in degrees, no conversion needed
+    const angleValue = dimension.value
+    const text = `${angleValue.toFixed(config.precision)}°`
 
-  // For isometric views, compensate for the projection foreshortening
-  // In isometric projection, lines parallel to axes are scaled by √(2/3) ≈ 0.8165
-  // To get the true 3D length, divide by this factor
-  if (isIsometric) {
-    const isometricFactor = Math.sqrt(2 / 3) // ≈ 0.8165
-    realValue = realValue / isometricFactor
+    // Text position is already calculated at the midpoint of the arc
+    const textX = offsetX + dimension.textPosition.x
+    const textY = offsetY - dimension.textPosition.y
+
+    ctx.save()
+    ctx.translate(textX, textY)
+    ctx.textBaseline = "middle"
+    ctx.fillText(text, 0, 0)
+    ctx.restore()
+  } else {
+    // Linear dimensions: convert paper dimension to real-world dimension
+    // dimension.value is in projection coordinates, which are scaled by (scale * unitFactor)
+    // To get the real model value in meters, divide by both scale and unitFactor
+    const unitFactor = sheetConfig ? getModelMetersToDrawingUnitsFactor(sheetConfig.units) : 1
+    const totalScale = scale * unitFactor
+    let realValue = dimension.value / totalScale
+
+    // For isometric views, compensate for the projection foreshortening
+    // In isometric projection, lines parallel to axes are scaled by √(2/3) ≈ 0.8165
+    // To get the true 3D length, divide by this factor
+    if (isIsometric) {
+      const isometricFactor = Math.sqrt(2 / 3) // ≈ 0.8165
+      realValue = realValue / isometricFactor
+    }
+
+    const text = formatDimensionValue(
+      realValue,
+      {
+        precision: config.precision,
+        showUnit: config.showUnit,
+        unit: config.unit,
+      } as Parameters<typeof formatDimensionValue>[1],
+      "m" // Source is always meters (model units) after converting from projection coords
+    )
+
+    // Calculate text position and rotation to align parallel to the dimension line
+    const dimLineStart = dimension.dimensionLine.start
+    const dimLineEnd = dimension.dimensionLine.end
+    const dx = dimLineEnd.x - dimLineStart.x
+    const dy = dimLineEnd.y - dimLineStart.y
+    let angle = Math.atan2(dy, dx) // Angle of the dimension line in paper space
+
+    // Keep text readable (not upside down) - flip if necessary
+    if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
+      angle += Math.PI
+    }
+
+    // Calculate perpendicular offset to position text above the line
+    // Perpendicular direction (rotated 90° counterclockwise from line direction)
+    const lineLength = Math.sqrt(dx * dx + dy * dy)
+    const perpX = lineLength > 0 ? -dy / lineLength : 0
+    const perpY = lineLength > 0 ? dx / lineLength : 1
+
+    // Offset distance above the line (in paper units)
+    const textOffsetDist = config.textHeight * 1.2
+
+    // Text position - center of dimension line plus perpendicular offset
+    const centerX = (dimLineStart.x + dimLineEnd.x) / 2
+    const centerY = (dimLineStart.y + dimLineEnd.y) / 2
+
+    // Apply perpendicular offset (in the correct direction based on canvas Y inversion)
+    const textX = offsetX + centerX + perpX * textOffsetDist
+    const textY = offsetY - centerY - perpY * textOffsetDist
+
+    ctx.save()
+    ctx.translate(textX, textY)
+    ctx.rotate(-angle) // Rotate to align with dimension line (negate for canvas coords)
+    ctx.textBaseline = "middle"
+    ctx.fillText(text, 0, 0)
+    ctx.restore()
   }
-
-  const text = formatDimensionValue(
-    realValue,
-    {
-      precision: config.precision,
-      showUnit: config.showUnit,
-      unit: config.unit,
-    } as Parameters<typeof formatDimensionValue>[1],
-    "m" // Source is always meters (model units) after converting from projection coords
-  )
-
-  // Calculate text position and rotation to align parallel to the dimension line
-  const dimLineStart = dimension.dimensionLine.start
-  const dimLineEnd = dimension.dimensionLine.end
-  const dx = dimLineEnd.x - dimLineStart.x
-  const dy = dimLineEnd.y - dimLineStart.y
-  let angle = Math.atan2(dy, dx) // Angle of the dimension line in paper space
-
-  // Keep text readable (not upside down) - flip if necessary
-  let flipText = false
-  if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
-    angle += Math.PI
-    flipText = true
-  }
-
-  // Calculate perpendicular offset to position text above the line
-  // Perpendicular direction (rotated 90° counterclockwise from line direction)
-  const lineLength = Math.sqrt(dx * dx + dy * dy)
-  const perpX = lineLength > 0 ? -dy / lineLength : 0
-  const perpY = lineLength > 0 ? dx / lineLength : 1
-
-  // Offset distance above the line (in paper units)
-  const textOffsetDist = config.textHeight * 1.2
-
-  // Text position - center of dimension line plus perpendicular offset
-  const centerX = (dimLineStart.x + dimLineEnd.x) / 2
-  const centerY = (dimLineStart.y + dimLineEnd.y) / 2
-
-  // Apply perpendicular offset (in the correct direction based on canvas Y inversion)
-  const textX = offsetX + centerX + perpX * textOffsetDist
-  const textY = offsetY - centerY - perpY * textOffsetDist
-
-  ctx.save()
-  ctx.translate(textX, textY)
-  ctx.rotate(-angle) // Rotate to align with dimension line (negate for canvas coords)
-  ctx.textBaseline = "middle"
-  ctx.fillText(text, 0, 0)
-  ctx.restore()
 
   ctx.restore()
 }
@@ -422,20 +524,66 @@ function renderAnnotation(
   const anchorX = offsetX + annotation.anchorPoint.x
   const anchorY = offsetY - annotation.anchorPoint.y
 
-  // Draw leader line (bent style)
+  // Draw leader line (auto-detect best connection side)
   const leaderColor = isSelected ? "#22c55e" : style.leaderColor || colors.dimensionLine
   ctx.strokeStyle = leaderColor
   ctx.lineWidth = style.leaderWidth
   ctx.setLineDash([])
 
-  // Calculate bend point (horizontal from box, then diagonal to anchor)
-  const bendX = boxX - 5 // Small gap from box
-  const bendY = boxY + boxHeight / 2
+  // Calculate box center for direction detection
+  const boxCenterX = boxX + boxWidth / 2
+  const boxCenterY = boxY + boxHeight / 2
+
+  // Determine which side of the box to connect from based on anchor position
+  // Check relative position of anchor to box center
+  const dx = anchorX - boxCenterX
+  const dy = anchorY - boxCenterY
+  const absX = Math.abs(dx)
+  const absY = Math.abs(dy)
+
+  let connectionX: number
+  let connectionY: number
+  let bendX: number
+  let bendY: number
+  const gap = 5 // Small gap from box edge
+
+  // Determine primary direction (horizontal vs vertical dominance)
+  if (absX > absY) {
+    // Horizontal dominance - connect from left or right side
+    if (dx < 0) {
+      // Anchor is to the LEFT of the box
+      connectionX = boxX
+      connectionY = boxCenterY
+      bendX = boxX - gap
+      bendY = boxCenterY
+    } else {
+      // Anchor is to the RIGHT of the box
+      connectionX = boxX + boxWidth
+      connectionY = boxCenterY
+      bendX = boxX + boxWidth + gap
+      bendY = boxCenterY
+    }
+  } else {
+    // Vertical dominance - connect from top or bottom
+    if (dy < 0) {
+      // Anchor is ABOVE the box
+      connectionX = boxCenterX
+      connectionY = boxY
+      bendX = boxCenterX
+      bendY = boxY - gap
+    } else {
+      // Anchor is BELOW the box
+      connectionX = boxCenterX
+      connectionY = boxY + boxHeight
+      bendX = boxCenterX
+      bendY = boxY + boxHeight + gap
+    }
+  }
 
   ctx.beginPath()
   ctx.moveTo(anchorX, anchorY)
   ctx.lineTo(bendX, bendY)
-  ctx.lineTo(boxX, boxY + boxHeight / 2)
+  ctx.lineTo(connectionX, connectionY)
   ctx.stroke()
 
   // Draw small circle at anchor point
@@ -486,6 +634,224 @@ function renderAnnotation(
   ctx.restore()
 
   return { boxX, boxY, boxWidth, boxHeight }
+}
+
+/**
+ * Render layout grid for precise view positioning (like Figma)
+ */
+function renderLayoutGrid(
+  ctx: CanvasRenderingContext2D,
+  drawingAreaX: number,
+  drawingAreaY: number,
+  drawingAreaWidth: number,
+  drawingAreaHeight: number,
+  innerWidthMm: number,
+  innerHeightMm: number,
+  gridConfig: typeof DEFAULT_LAYOUT_GRID_CONFIG
+): void {
+  if (!gridConfig.enabled) return
+
+  const paperToScreenScale = drawingAreaWidth / innerWidthMm
+  const spacing = gridConfig.spacing
+  const minorSpacing = spacing / gridConfig.minorDivisions
+
+  ctx.save()
+
+  // Draw minor grid first (if enabled)
+  if (gridConfig.showMinorGrid) {
+    ctx.strokeStyle = gridConfig.color
+    ctx.globalAlpha = gridConfig.opacity * 0.4
+    ctx.lineWidth = 0.5
+
+    ctx.beginPath()
+
+    // Vertical minor lines
+    const minorStartX = Math.ceil(-innerWidthMm / 2 / minorSpacing) * minorSpacing
+    for (let x = minorStartX; x <= innerWidthMm / 2; x += minorSpacing) {
+      // Skip major grid lines
+      if (Math.abs(x % spacing) < 0.01) continue
+      const screenX = drawingAreaX + drawingAreaWidth / 2 + x * paperToScreenScale
+      ctx.moveTo(screenX, drawingAreaY)
+      ctx.lineTo(screenX, drawingAreaY + drawingAreaHeight)
+    }
+
+    // Horizontal minor lines
+    const minorStartY = Math.ceil(-innerHeightMm / 2 / minorSpacing) * minorSpacing
+    for (let y = minorStartY; y <= innerHeightMm / 2; y += minorSpacing) {
+      // Skip major grid lines
+      if (Math.abs(y % spacing) < 0.01) continue
+      const screenY = drawingAreaY + drawingAreaHeight / 2 - y * paperToScreenScale
+      ctx.moveTo(drawingAreaX, screenY)
+      ctx.lineTo(drawingAreaX + drawingAreaWidth, screenY)
+    }
+
+    ctx.stroke()
+  }
+
+  // Draw major grid
+  ctx.strokeStyle = gridConfig.color
+  ctx.globalAlpha = gridConfig.opacity
+  ctx.lineWidth = 1
+
+  ctx.beginPath()
+
+  // Vertical major lines
+  const majorStartX = Math.ceil(-innerWidthMm / 2 / spacing) * spacing
+  for (let x = majorStartX; x <= innerWidthMm / 2; x += spacing) {
+    const screenX = drawingAreaX + drawingAreaWidth / 2 + x * paperToScreenScale
+    ctx.moveTo(screenX, drawingAreaY)
+    ctx.lineTo(screenX, drawingAreaY + drawingAreaHeight)
+  }
+
+  // Horizontal major lines
+  const majorStartY = Math.ceil(-innerHeightMm / 2 / spacing) * spacing
+  for (let y = majorStartY; y <= innerHeightMm / 2; y += spacing) {
+    const screenY = drawingAreaY + drawingAreaHeight / 2 - y * paperToScreenScale
+    ctx.moveTo(drawingAreaX, screenY)
+    ctx.lineTo(drawingAreaX + drawingAreaWidth, screenY)
+  }
+
+  ctx.stroke()
+
+  // Draw center crosshairs
+  ctx.strokeStyle = gridConfig.color
+  ctx.globalAlpha = gridConfig.opacity * 1.5
+  ctx.lineWidth = 1.5
+  ctx.setLineDash([5, 5])
+
+  const centerX = drawingAreaX + drawingAreaWidth / 2
+  const centerY = drawingAreaY + drawingAreaHeight / 2
+
+  ctx.beginPath()
+  ctx.moveTo(centerX, drawingAreaY)
+  ctx.lineTo(centerX, drawingAreaY + drawingAreaHeight)
+  ctx.moveTo(drawingAreaX, centerY)
+  ctx.lineTo(drawingAreaX + drawingAreaWidth, centerY)
+  ctx.stroke()
+
+  ctx.restore()
+}
+
+/**
+ * Render alignment guides and spacing indicators when dragging views
+ */
+function renderAlignmentGuides(
+  ctx: CanvasRenderingContext2D,
+  views: DrawingView[],
+  draggedViewId: string | null,
+  drawingCenterX: number,
+  drawingCenterY: number,
+  paperToScreenScale: number,
+  guidesConfig: typeof DEFAULT_ALIGNMENT_GUIDES_CONFIG
+): void {
+  if (!guidesConfig.enabled || !draggedViewId) return
+
+  const draggedView = views.find((v) => v.id === draggedViewId)
+  if (!draggedView) return
+
+  const draggedBbox = draggedView.projection.bounding_box
+  const draggedCenterX = draggedView.position[0]
+  const draggedCenterY = draggedView.position[1]
+  const draggedHalfW = (draggedBbox.max.x - draggedBbox.min.x) / 2
+  const draggedHalfH = (draggedBbox.max.y - draggedBbox.min.y) / 2
+
+  ctx.save()
+  ctx.strokeStyle = guidesConfig.color
+  ctx.lineWidth = 1
+  ctx.setLineDash([4, 4])
+  ctx.globalAlpha = 0.8
+
+  const SNAP_THRESHOLD = 5 // mm threshold for alignment
+
+  for (const view of views) {
+    if (view.id === draggedViewId || !view.visible) continue
+
+    const bbox = view.projection.bounding_box
+    const viewCenterX = view.position[0]
+    const viewCenterY = view.position[1]
+    const viewHalfW = (bbox.max.x - bbox.min.x) / 2
+    const viewHalfH = (bbox.max.y - bbox.min.y) / 2
+
+    // Check center alignment (vertical)
+    if (guidesConfig.showCenterGuides && Math.abs(draggedCenterX - viewCenterX) < SNAP_THRESHOLD) {
+      const screenX = drawingCenterX + viewCenterX * paperToScreenScale
+      const minY = Math.min(
+        drawingCenterY - (draggedCenterY + draggedHalfH) * paperToScreenScale,
+        drawingCenterY - (viewCenterY + viewHalfH) * paperToScreenScale
+      )
+      const maxY = Math.max(
+        drawingCenterY - (draggedCenterY - draggedHalfH) * paperToScreenScale,
+        drawingCenterY - (viewCenterY - viewHalfH) * paperToScreenScale
+      )
+
+      ctx.beginPath()
+      ctx.moveTo(screenX, minY - 20)
+      ctx.lineTo(screenX, maxY + 20)
+      ctx.stroke()
+    }
+
+    // Check center alignment (horizontal)
+    if (guidesConfig.showCenterGuides && Math.abs(draggedCenterY - viewCenterY) < SNAP_THRESHOLD) {
+      const screenY = drawingCenterY - viewCenterY * paperToScreenScale
+      const minX = Math.min(
+        drawingCenterX + (draggedCenterX - draggedHalfW) * paperToScreenScale,
+        drawingCenterX + (viewCenterX - viewHalfW) * paperToScreenScale
+      )
+      const maxX = Math.max(
+        drawingCenterX + (draggedCenterX + draggedHalfW) * paperToScreenScale,
+        drawingCenterX + (viewCenterX + viewHalfW) * paperToScreenScale
+      )
+
+      ctx.beginPath()
+      ctx.moveTo(minX - 20, screenY)
+      ctx.lineTo(maxX + 20, screenY)
+      ctx.stroke()
+    }
+
+    // Show spacing indicator between views (vertical)
+    if (guidesConfig.showSpacingIndicators) {
+      const verticalGap = Math.abs(draggedCenterY - viewCenterY) - draggedHalfH - viewHalfH
+      const horizontalGap = Math.abs(draggedCenterX - viewCenterX) - draggedHalfW - viewHalfW
+
+      // If views are vertically aligned and have a gap
+      if (Math.abs(draggedCenterX - viewCenterX) < viewHalfW + draggedHalfW && verticalGap > 0) {
+        const midX = drawingCenterX + ((draggedCenterX + viewCenterX) / 2) * paperToScreenScale
+        const y1 =
+          drawingCenterY -
+          (Math.max(draggedCenterY, viewCenterY) - draggedHalfH) * paperToScreenScale
+        const y2 =
+          drawingCenterY - (Math.min(draggedCenterY, viewCenterY) + viewHalfH) * paperToScreenScale
+
+        // Draw spacing dimension
+        ctx.setLineDash([])
+        ctx.fillStyle = guidesConfig.color
+        ctx.font = "10px sans-serif"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillText(`${verticalGap.toFixed(1)}`, midX + 15, (y1 + y2) / 2)
+      }
+
+      // If views are horizontally aligned and have a gap
+      if (Math.abs(draggedCenterY - viewCenterY) < viewHalfH + draggedHalfH && horizontalGap > 0) {
+        const midY = drawingCenterY - ((draggedCenterY + viewCenterY) / 2) * paperToScreenScale
+        const x1 =
+          drawingCenterX + (Math.min(draggedCenterX, viewCenterX) + viewHalfW) * paperToScreenScale
+        const x2 =
+          drawingCenterX +
+          (Math.max(draggedCenterX, viewCenterX) - draggedHalfW) * paperToScreenScale
+
+        // Draw spacing dimension
+        ctx.setLineDash([])
+        ctx.fillStyle = guidesConfig.color
+        ctx.font = "10px sans-serif"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillText(`${horizontalGap.toFixed(1)}`, (x1 + x2) / 2, midY - 10)
+      }
+    }
+  }
+
+  ctx.restore()
 }
 
 /**
@@ -946,14 +1312,12 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
     viewY: number
   } | null>(null)
 
-  // Hovered view for showing "+" button
+  // Hovered view for bounding box highlighting and cursor feedback
   const [hoveredViewId, setHoveredViewId] = useState<string | null>(null)
-  const [hoveredViewScreenPos, setHoveredViewScreenPos] = useState<{ x: number; y: number } | null>(
-    null
-  )
 
-  // Hit test tolerance in drawing units (mm) - increased for easier selection
-  const hitTestTolerance = 10
+  // Hit test tolerance in SCREEN PIXELS - this is the consistent click target size
+  // The actual paper tolerance is calculated dynamically based on zoom level
+  const SCREEN_HIT_TOLERANCE_PX = 10
 
   // Drag state for moving views
   const [draggedView, setDraggedView] = useState<{
@@ -988,7 +1352,13 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
     viewId: string
     viewPosition: [number, number]
   } | null>(null)
-  const snapConfig: SnapConfig = DEFAULT_SNAP_CONFIG
+
+  // Contextual snap configuration - adapts based on active dimension tool
+  // This filters snap points to only show relevant ones for the current operation
+  const snapConfig: SnapConfig = getSnapConfigForTool(
+    activeTool as DimensionToolType | null,
+    DEFAULT_SNAP_CONFIG
+  )
 
   // Render function - paper stays fixed, views are positioned within inner drawing area
   const render = useCallback(() => {
@@ -1071,6 +1441,19 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
     // Scale factor: convert mm to screen pixels within the inner drawing area
     const paperToScreenScale = drawingAreaWidth / innerWidthMm
 
+    // Render layout grid (if enabled) - BEFORE clipping
+    const gridConfig = drawing.displayOptions?.layoutGrid ?? DEFAULT_LAYOUT_GRID_CONFIG
+    renderLayoutGrid(
+      ctx,
+      drawingAreaX,
+      drawingAreaY,
+      drawingAreaWidth,
+      drawingAreaHeight,
+      innerWidthMm,
+      innerHeightMm,
+      gridConfig
+    )
+
     // Set up coordinate system for views - clip to inner drawing area
     ctx.save()
     ctx.beginPath()
@@ -1083,6 +1466,21 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
 
     // Render each visible view
     const viewsToRender = drawing.views.filter((v) => v.visible)
+
+    // DEBUG: Log all views and their line counts
+    if (drawing.views.some((v) => v.projection?.label?.includes("NE"))) {
+      console.log(
+        "[Viewport2D] DEBUG - All views:",
+        drawing.views.map((v) => ({
+          id: v.id,
+          label: v.projection?.label,
+          visible: v.visible,
+          lineCount: v.projection?.lines?.length ?? 0,
+          hasProjection: !!v.projection,
+          hasBbox: !!v.projection?.bounding_box,
+        }))
+      )
+    }
 
     viewsToRender.forEach((view) => {
       const bbox = view.projection.bounding_box
@@ -1115,7 +1513,11 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
           : isHovered
             ? "rgba(255, 255, 255, 0.6)"
             : "rgba(255, 255, 255, 0.3)"
-        ctx.lineWidth = Math.max(0.5, (isDragging ? 1.5 : 0.8) / paperToScreenScale)
+        // UI feedback line width - stays constant on screen regardless of zoom
+        ctx.lineWidth = Math.max(
+          0.5,
+          (isDragging ? 1.5 : 0.8) / (paperToScreenScale * viewportZoom)
+        )
         ctx.setLineDash([])
 
         // Bounding box centered on view
@@ -1124,14 +1526,73 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
         ctx.strokeRect(-halfW - 3, -halfH - 3, viewWidth + 6, viewHeight + 6)
       }
 
+      // Render hatches for this view (behind projection lines)
+      const viewHatches = (drawing.hatches || []).filter(
+        (h: HatchRegion) => h.viewId === view.id && h.visible
+      )
+      for (const hatch of viewHatches) {
+        // Hatch boundary is in view-local coordinates
+        renderHatchRegion(ctx, hatch, -viewCenterX, -viewCenterY)
+      }
+
       // Render projection lines (centered on origin)
-      const lines = view.projection.lines || []
+      const lines = view.projection?.lines || []
+
+      // DEBUG: Log ALL views to diagnose rendering issues
+      console.log(`[Viewport2D] RENDER VIEW - ${view.projection?.label || view.projectionType}:`, {
+        viewId: view.id,
+        visible: view.visible,
+        lineCount: lines.length,
+        hasProjection: !!view.projection,
+        hasLines: !!view.projection?.lines,
+        isLinesArray: Array.isArray(lines),
+        bbox: view.projection?.bounding_box,
+        viewCenter: { x: viewCenterX, y: viewCenterY },
+        viewDimensions: { width: viewWidth, height: viewHeight },
+        viewPosition: view.position,
+        screenPosition: { x: screenX, y: screenY },
+        firstLine: lines[0],
+        lastLine: lines[lines.length - 1],
+      })
+
+      // ERROR if no lines
+      if (lines.length === 0) {
+        console.error(`[Viewport2D] ERROR - View has 0 lines!`, {
+          viewId: view.id,
+          label: view.projection?.label,
+          projectionRaw: view.projection,
+        })
+      }
+
+      // DEBUG: Log first few lines' coordinates
+      if (lines.length > 0) {
+        console.log(
+          `[Viewport2D] Drawing ${lines.length} lines for view ${view.projection?.label}:`,
+          {
+            viewCenter: { x: viewCenterX, y: viewCenterY },
+            screenPos: { x: screenX, y: screenY },
+            paperToScreenScale,
+            sampleLines: lines.slice(0, 3).map((l: Line2D) => ({
+              start: l.start,
+              end: l.end,
+              type: l.line_type,
+              centered: {
+                startX: l.start.x - viewCenterX,
+                startY: -(l.start.y - viewCenterY),
+                endX: l.end.x - viewCenterX,
+                endY: -(l.end.y - viewCenterY),
+              },
+            })),
+          }
+        )
+      }
+
       lines.forEach((line: Line2D) => {
         ctx.strokeStyle = getLineColor(line.line_type, colors)
         const widthMm = getStrokeWidthMm(line.line_type, drawing.sheetConfig)
-        // Clamp to a minimum pixel width for readability at small scales
+        // Clamp to a minimum pixel width for readability at any zoom level
         const minPx = 0.35
-        const minMm = minPx / paperToScreenScale
+        const minMm = minPx / (paperToScreenScale * viewportZoom)
         ctx.lineWidth = Math.max(widthMm, minMm)
 
         const dashArray = getDashArray(line.line_type)
@@ -1142,27 +1603,314 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
           ctx.setLineDash([])
         }
 
+        // Calculate centered coordinates
+        const startX = line.start.x - viewCenterX
+        const startY = -(line.start.y - viewCenterY)
+        const endX = line.end.x - viewCenterX
+        const endY = -(line.end.y - viewCenterY)
+
         ctx.beginPath()
-        // Offset lines to center them (subtract viewCenter)
-        ctx.moveTo(line.start.x - viewCenterX, -(line.start.y - viewCenterY))
-        ctx.lineTo(line.end.x - viewCenterX, -(line.end.y - viewCenterY))
+        ctx.moveTo(startX, startY)
+        ctx.lineTo(endX, endY)
         ctx.stroke()
       })
 
-      // Draw view label (below the view) - only if showViewLabels is true
+      // Draw view label - professional CAD-style layout
+      // Layout (for bottom): Number above, then Name with underline, then Scale below
+      //         ①
+      //      ALZADO
+      //      ______
+      //       1:25
       const showViewLabels = drawing.displayOptions?.showViewLabels ?? true
       if (showViewLabels) {
+        const labelConfig: ViewLabelConfig = {
+          ...DEFAULT_VIEW_LABEL_CONFIG,
+          ...view.labelConfig,
+        }
+
+        const halfW = viewWidth / 2
         const halfH = viewHeight / 2
-        ctx.fillStyle = colors.projectionLine
-        const fontSize = Math.max(6, 8 / paperToScreenScale)
-        ctx.font = `${fontSize}px sans-serif`
-        ctx.textAlign = "center"
-        ctx.textBaseline = "top"
-        ctx.fillText(view.label || view.projection.label || "Vista", 0, halfH + 5)
+        const fontSize = labelConfig.fontSize
+        const labelOffset = labelConfig.offset ?? 12
+
+        // Build label text parts
+        const viewName = view.label || view.projection.label || "Vista"
+        const scale = labelConfig.customScale || drawing.sheetConfig.scale
+        // Format scale in standard CAD format (1:25, 1:50, etc.)
+        const scaleText = formatScaleForCAD(scale)
+
+        // Number configuration from label settings
+        const numberSizeMultiplier = labelConfig.numberSize ?? 0.7
+        const numberGap = labelConfig.numberGap ?? 1.5
+
+        // Measure text widths for centering
+        ctx.font = `bold ${fontSize}mm sans-serif`
+        const nameMetrics = ctx.measureText(viewName)
+        const nameWidth = nameMetrics.width
+
+        ctx.font = `${fontSize * 0.8}mm sans-serif`
+        const scaleMetrics = ctx.measureText(scaleText)
+        const scaleWidth = scaleMetrics.width
+
+        // Calculate the widest element for centering
+        const maxWidth = Math.max(nameWidth, scaleWidth)
+
+        // Calculate base position (anchor point)
+        let anchorX = 0
+        let anchorY = 0
+        const isVertical = labelConfig.position === "top" || labelConfig.position === "bottom"
+
+        switch (labelConfig.position) {
+          case "top":
+            anchorY = -halfH - labelOffset
+            break
+          case "bottom":
+            anchorY = halfH + labelOffset
+            break
+          case "left":
+            anchorX = -halfW - labelOffset
+            break
+          case "right":
+            anchorX = halfW + labelOffset
+            break
+        }
+
+        // For vertical positions (top/bottom), stack elements vertically centered
+        // For horizontal positions (left/right), stack elements horizontally
+        if (isVertical) {
+          // Vertical stacking: Number → Name → Underline → Scale
+          // All elements centered horizontally at anchorX
+          const numRadius = fontSize * numberSizeMultiplier
+          // Cap height is roughly 70% of fontSize for sans-serif uppercase
+          const capHeight = fontSize * 0.72
+          // Small gap between text baseline and underline
+          const underlineOffset = fontSize * 0.12
+          // Gap between scale and name (after underline)
+          const scaleGap = fontSize * 0.35
+          // Gap between stacked label elements
+          const elementGap = fontSize * 0.35
+
+          // Calculate Y positions for each element (from anchor)
+          let currentY = anchorY
+          const direction = labelConfig.position === "bottom" ? 1 : -1
+
+          // 1. Draw number (if enabled) - centered, at the start of the label block
+          if (labelConfig.showNumber && labelConfig.number !== undefined) {
+            const numText = String(labelConfig.number)
+            // Center the number circle at the current position
+            const numCenterY = currentY + direction * numRadius
+
+            ctx.save()
+            ctx.fillStyle = colors.projectionLine
+            ctx.strokeStyle = colors.projectionLine
+            ctx.lineWidth = 0.25
+
+            if (labelConfig.numberStyle === "circle") {
+              ctx.beginPath()
+              ctx.arc(anchorX, numCenterY, numRadius, 0, Math.PI * 2)
+              ctx.stroke()
+            } else if (labelConfig.numberStyle === "square") {
+              ctx.strokeRect(
+                anchorX - numRadius,
+                numCenterY - numRadius,
+                numRadius * 2,
+                numRadius * 2
+              )
+            }
+
+            // Draw number text centered in shape
+            ctx.font = `bold ${fontSize * 0.85}mm sans-serif`
+            ctx.textAlign = "center"
+            ctx.textBaseline = "middle"
+            ctx.fillText(numText, anchorX, numCenterY)
+            ctx.restore()
+
+            // Move past the number (diameter + configurable gap)
+            currentY += direction * (numRadius * 2 + numberGap)
+          }
+
+          // 2. Draw view name - centered horizontally
+          let nameBaselineY = currentY
+          if (labelConfig.showLabel) {
+            ctx.save()
+            ctx.font = `bold ${fontSize}mm sans-serif`
+            ctx.fillStyle = colors.projectionLine
+            ctx.textAlign = "center"
+            // Use "alphabetic" baseline for precise underline positioning
+            ctx.textBaseline = "alphabetic"
+
+            // For bottom: baseline is at currentY + capHeight (text goes from currentY to currentY+capHeight)
+            // For top: baseline is at currentY (text goes from currentY-capHeight to currentY)
+            if (labelConfig.position === "bottom") {
+              nameBaselineY = currentY + capHeight
+            } else {
+              nameBaselineY = currentY
+            }
+
+            ctx.fillText(viewName, anchorX, nameBaselineY)
+            ctx.restore()
+
+            // 3. Draw underline - directly under the text baseline, centered, same width as text
+            if (labelConfig.underline !== false) {
+              const underlineY = nameBaselineY + underlineOffset
+
+              ctx.save()
+              ctx.beginPath()
+              ctx.moveTo(anchorX - nameWidth / 2, underlineY)
+              ctx.lineTo(anchorX + nameWidth / 2, underlineY)
+              ctx.strokeStyle = colors.projectionLine
+              ctx.lineWidth = 0.3
+              ctx.stroke()
+              ctx.restore()
+
+              // Move past name + underline + gap
+              if (labelConfig.position === "bottom") {
+                currentY = underlineY + elementGap
+              } else {
+                currentY = nameBaselineY - capHeight - elementGap
+              }
+            } else {
+              // Move past just the name + gap
+              if (labelConfig.position === "bottom") {
+                currentY = nameBaselineY + elementGap
+              } else {
+                currentY = nameBaselineY - capHeight - elementGap
+              }
+            }
+          }
+
+          // 4. Draw scale - centered horizontally, below everything
+          if (labelConfig.showScale) {
+            ctx.save()
+            const scaleFontSize = fontSize * 0.8
+            ctx.font = `${scaleFontSize}mm sans-serif`
+            ctx.fillStyle = colors.projectionLine
+            ctx.textAlign = "center"
+            ctx.textBaseline = labelConfig.position === "bottom" ? "top" : "bottom"
+            ctx.fillText(scaleText, anchorX, currentY)
+            ctx.restore()
+          }
+        } else {
+          // Horizontal layout (left/right) - stack vertically, aligned to edge
+          const textAlign: CanvasTextAlign = labelConfig.position === "left" ? "right" : "left"
+          const numRadius = fontSize * numberSizeMultiplier
+          const capHeight = fontSize * 0.72
+          const underlineOffset = fontSize * 0.12
+          let currentX = anchorX
+
+          // For left position, we draw right-to-left
+          // For right position, we draw left-to-right
+          const dir = labelConfig.position === "left" ? -1 : 1
+
+          // Draw number first (if enabled)
+          if (labelConfig.showNumber && labelConfig.number !== undefined) {
+            const numText = String(labelConfig.number)
+            const numCenterX = currentX + dir * numRadius
+
+            ctx.save()
+            ctx.fillStyle = colors.projectionLine
+            ctx.strokeStyle = colors.projectionLine
+            ctx.lineWidth = 0.25
+
+            if (labelConfig.numberStyle === "circle") {
+              ctx.beginPath()
+              ctx.arc(numCenterX, anchorY, numRadius, 0, Math.PI * 2)
+              ctx.stroke()
+            } else if (labelConfig.numberStyle === "square") {
+              ctx.strokeRect(
+                numCenterX - numRadius,
+                anchorY - numRadius,
+                numRadius * 2,
+                numRadius * 2
+              )
+            }
+
+            ctx.font = `bold ${fontSize * 0.85}mm sans-serif`
+            ctx.textAlign = "center"
+            ctx.textBaseline = "middle"
+            ctx.fillText(numText, numCenterX, anchorY)
+            ctx.restore()
+
+            // Move past the number with configurable gap
+            currentX += dir * (numRadius * 2 + numberGap)
+          }
+
+          // Draw name with underline below, and scale below that
+          if (labelConfig.showLabel || labelConfig.showScale) {
+            const lineHeight = fontSize * 1.4
+
+            if (labelConfig.showLabel) {
+              ctx.save()
+              ctx.font = `bold ${fontSize}mm sans-serif`
+              ctx.fillStyle = colors.projectionLine
+              ctx.textAlign = textAlign
+              ctx.textBaseline = "alphabetic"
+
+              // Position name in upper half
+              const nameY = anchorY - lineHeight / 4 + capHeight / 2
+              ctx.fillText(viewName, currentX, nameY)
+              ctx.restore()
+
+              // Underline - positioned just below the text
+              if (labelConfig.underline !== false) {
+                const underlineY = nameY + underlineOffset
+                const startX = labelConfig.position === "left" ? currentX - nameWidth : currentX
+
+                ctx.save()
+                ctx.beginPath()
+                ctx.moveTo(startX, underlineY)
+                ctx.lineTo(startX + nameWidth, underlineY)
+                ctx.strokeStyle = colors.projectionLine
+                ctx.lineWidth = 0.3
+                ctx.stroke()
+                ctx.restore()
+              }
+            }
+
+            if (labelConfig.showScale) {
+              ctx.save()
+              const scaleFontSize = fontSize * 0.8
+              ctx.font = `${scaleFontSize}mm sans-serif`
+              ctx.fillStyle = colors.projectionLine
+              ctx.textAlign = textAlign
+              ctx.textBaseline = "top"
+              // Position scale in lower half
+              const scaleY = anchorY + lineHeight / 4
+              ctx.fillText(scaleText, currentX, scaleY)
+              ctx.restore()
+            }
+          }
+        }
       }
 
       ctx.restore()
     })
+
+    // Render global hatches (not associated with any view)
+    const globalHatches = (drawing.hatches || []).filter((h: HatchRegion) => !h.viewId && h.visible)
+    if (globalHatches.length > 0) {
+      ctx.save()
+      ctx.translate(drawingCenterX, drawingCenterY)
+      ctx.scale(paperToScreenScale, paperToScreenScale)
+
+      for (const hatch of globalHatches) {
+        renderHatchRegion(ctx, hatch)
+      }
+
+      ctx.restore()
+    }
+
+    // Render alignment guides when dragging views
+    const guidesConfig = drawing.displayOptions?.alignmentGuides ?? DEFAULT_ALIGNMENT_GUIDES_CONFIG
+    renderAlignmentGuides(
+      ctx,
+      drawing.views,
+      draggedView?.viewId ?? null,
+      drawingCenterX,
+      drawingCenterY,
+      paperToScreenScale,
+      guidesConfig
+    )
 
     // Render dimensions
     if (drawing.dimensions?.dimensions) {
@@ -1184,8 +1932,9 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
           if (view) {
             viewOffsetX = view.position[0]
             viewOffsetY = view.position[1]
-            // Check if this is an isometric projection
-            isIsometric = view.projectionType === "Isometric"
+            // Check if this is an isometric projection (including all variants)
+            const projType = typeof view.projectionType === "string" ? view.projectionType : ""
+            isIsometric = projType.startsWith("Isometric")
           }
         }
 
@@ -1282,13 +2031,13 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
         const paperX = sp.point.x
         const paperY = sp.point.y
 
-        // Draw circle
+        // Fixed 1.5mm paper size for selection dots
         ctx.beginPath()
-        ctx.arc(paperX, -paperY, 3 / paperToScreenScale, 0, Math.PI * 2)
+        ctx.arc(paperX, -paperY, 1.5, 0, Math.PI * 2)
         ctx.fillStyle = index === 0 ? "#4ade80" : "#22c55e"
         ctx.fill()
         ctx.strokeStyle = "#ffffff"
-        ctx.lineWidth = 1.5 / paperToScreenScale
+        ctx.lineWidth = 0.5 // 0.5mm line width
         ctx.stroke()
       })
 
@@ -1311,7 +2060,8 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
         point: { x: snapPaperX, y: snapPaperY },
       }
 
-      drawSnapIndicator(ctx, snapForDrawing, 8 / paperToScreenScale, DEFAULT_SNAP_STYLE)
+      // Fixed 3.5mm paper size - consistent visual size on the drawing
+      drawSnapIndicator(ctx, snapForDrawing, 3.5, DEFAULT_SNAP_STYLE)
 
       ctx.restore()
     }
@@ -1333,29 +2083,58 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
     t,
   ])
 
-  // Handle resize
+  // Handle resize - uses ResizeObserver to detect container size changes
+  // (e.g., when side panels open/close)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect()
-      canvas.width = rect.width * window.devicePixelRatio
-      canvas.height = rect.height * window.devicePixelRatio
-      canvas.style.width = `${rect.width}px`
-      canvas.style.height = `${rect.height}px`
+      // Only resize if dimensions actually changed
+      const newWidth = rect.width * window.devicePixelRatio
+      const newHeight = rect.height * window.devicePixelRatio
 
-      const ctx = canvas.getContext("2d")
-      if (ctx) {
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+      if (canvas.width !== newWidth || canvas.height !== newHeight) {
+        canvas.width = newWidth
+        canvas.height = newHeight
+        canvas.style.width = `${rect.width}px`
+        canvas.style.height = `${rect.height}px`
+
+        const ctx = canvas.getContext("2d")
+        if (ctx) {
+          ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+        }
       }
 
       render()
     }
 
+    // Use ResizeObserver for container size changes (panel open/close)
+    const resizeObserver = new ResizeObserver(() => {
+      // Use requestAnimationFrame to debounce rapid resize events
+      requestAnimationFrame(resize)
+    })
+
+    // Observe the canvas parent container
+    const parent = canvas.parentElement
+    if (parent) {
+      resizeObserver.observe(parent)
+    }
+
+    // Also observe the canvas itself
+    resizeObserver.observe(canvas)
+
+    // Initial resize
     resize()
+
+    // Window resize as fallback
     window.addEventListener("resize", resize)
-    return () => window.removeEventListener("resize", resize)
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener("resize", resize)
+    }
   }, [render])
 
   // Re-render when drawing changes
@@ -1426,6 +2205,7 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
   }, [drawing])
 
   // Convert screen coordinates to paper coordinates (in mm, relative to paper center)
+  // IMPORTANT: Must correctly invert the viewport transformation (zoom + pan)
   const screenToPaper = useCallback(
     (screenX: number, screenY: number): Point2D => {
       const canvas = canvasRef.current
@@ -1435,19 +2215,33 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
       if (!areaInfo) return { x: 0, y: 0 }
 
       const rect = canvas.getBoundingClientRect()
-      const canvasX = screenX - rect.left
-      const canvasY = screenY - rect.top
+      const canvasWidth = canvas.width / window.devicePixelRatio
+      const canvasHeight = canvas.height / window.devicePixelRatio
 
-      // Convert screen coords to mm (relative to drawing center)
+      // Get position relative to canvas
+      const rawX = screenX - rect.left
+      const rawY = screenY - rect.top
+
+      // Invert the viewport transformation:
+      // Forward: ctx.translate(canvasWidth/2 + pan[0], canvasHeight/2 + pan[1])
+      //          ctx.scale(viewportZoom, viewportZoom)
+      //          ctx.translate(-canvasWidth/2, -canvasHeight/2)
+      //
+      // To invert: first undo pan+center, then undo zoom, then redo center offset
+      const canvasX = (rawX - canvasWidth / 2 - pan[0]) / viewportZoom + canvasWidth / 2
+      const canvasY = (rawY - canvasHeight / 2 - pan[1]) / viewportZoom + canvasHeight / 2
+
+      // Now convert from canvas space (pre-zoom) to paper coordinates
       const paperX = (canvasX - areaInfo.centerX) / areaInfo.paperToScreenScale
       const paperY = -(canvasY - areaInfo.centerY) / areaInfo.paperToScreenScale
 
       return { x: paperX, y: paperY }
     },
-    [getDrawingAreaInfo]
+    [getDrawingAreaInfo, viewportZoom, pan]
   )
 
   // Convert paper coordinates (mm) to screen coordinates
+  // IMPORTANT: Must correctly apply the viewport transformation (zoom + pan)
   const paperToScreen = useCallback(
     (paperX: number, paperY: number): { x: number; y: number } | null => {
       const canvas = canvasRef.current
@@ -1457,12 +2251,25 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
       if (!areaInfo) return null
 
       const rect = canvas.getBoundingClientRect()
-      const screenX = rect.left + areaInfo.centerX + paperX * areaInfo.paperToScreenScale
-      const screenY = rect.top + areaInfo.centerY - paperY * areaInfo.paperToScreenScale
+      const canvasWidth = canvas.width / window.devicePixelRatio
+      const canvasHeight = canvas.height / window.devicePixelRatio
+
+      // First convert paper to canvas space (pre-zoom)
+      const canvasX = areaInfo.centerX + paperX * areaInfo.paperToScreenScale
+      const canvasY = areaInfo.centerY - paperY * areaInfo.paperToScreenScale
+
+      // Apply the viewport transformation:
+      // ctx.translate(canvasWidth/2 + pan[0], canvasHeight/2 + pan[1])
+      // ctx.scale(viewportZoom, viewportZoom)
+      // ctx.translate(-canvasWidth/2, -canvasHeight/2)
+      const screenX =
+        rect.left + (canvasX - canvasWidth / 2) * viewportZoom + canvasWidth / 2 + pan[0]
+      const screenY =
+        rect.top + (canvasY - canvasHeight / 2) * viewportZoom + canvasHeight / 2 + pan[1]
 
       return { x: screenX, y: screenY }
     },
-    [getDrawingAreaInfo]
+    [getDrawingAreaInfo, viewportZoom, pan]
   )
 
   // Auto-fit: reposition all views to fit within the inner drawing area
@@ -1580,6 +2387,11 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
     } | null => {
       if (!drawing) return null
 
+      // Calculate zoom-aware padding: convert screen pixels to paper mm
+      // Use a larger tolerance (15px) for view selection to make it easier
+      const areaInfo = getDrawingAreaInfo()
+      const padding = areaInfo ? 15 / (areaInfo.paperToScreenScale * viewportZoom) : 15 // fallback
+
       for (const view of drawing.views) {
         if (!view.visible) continue
 
@@ -1592,7 +2404,6 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
         const centerY = view.position[1]
 
         // Calculate view bounds in paper coordinates (with padding)
-        const padding = 15 // mm padding for easier selection
         const minX = centerX - viewWidth / 2 - padding
         const maxX = centerX + viewWidth / 2 + padding
         const minY = centerY - viewHeight / 2 - padding
@@ -1611,7 +2422,7 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
 
       return null
     },
-    [drawing]
+    [drawing, getDrawingAreaInfo, viewportZoom]
   )
 
   // Find line at point (hit-testing)
@@ -1628,6 +2439,12 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
       snapToEnd: boolean
     } | null => {
       if (!drawing) return null
+
+      // Calculate zoom-aware tolerance: convert screen pixels to paper mm
+      const areaInfo = getDrawingAreaInfo()
+      const hitTestTolerance = areaInfo
+        ? SCREEN_HIT_TOLERANCE_PX / (areaInfo.paperToScreenScale * viewportZoom)
+        : 10 // fallback
 
       let bestHit: {
         line: Line2D
@@ -1711,7 +2528,7 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
 
       return null
     },
-    [drawing, hitTestTolerance]
+    [drawing, getDrawingAreaInfo, viewportZoom, SCREEN_HIT_TOLERANCE_PX]
   )
 
   // Find dimension at point (hit-testing for dimension selection)
@@ -1719,8 +2536,14 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
     (paperPoint: Point2D): number | null => {
       if (!drawing?.dimensions?.dimensions) return null
 
+      // Calculate zoom-aware tolerance: convert screen pixels to paper mm
+      const areaInfo = getDrawingAreaInfo()
+      const tolerance = areaInfo
+        ? SCREEN_HIT_TOLERANCE_PX / (areaInfo.paperToScreenScale * viewportZoom)
+        : 8 // fallback
+      const textTolerance = tolerance * 1.5 // larger hit area for text
+
       const dimensions = drawing.dimensions.dimensions
-      const tolerance = 8 // mm tolerance for clicking on dimension elements
 
       for (let i = 0; i < dimensions.length; i++) {
         const dim = dimensions[i]
@@ -1742,31 +2565,7 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
           y: paperPoint.y - viewOffsetY,
         }
 
-        // Check dimension line
-        const dimLine = dim.dimensionLine
-        const { distance: dimLineDist } = pointToLineDistance(
-          relativePoint,
-          dimLine.start,
-          dimLine.end
-        )
-        if (dimLineDist < tolerance) {
-          return i
-        }
-
-        // Check extension lines
-        for (const extLine of dim.extensionLines) {
-          const { distance: extLineDist } = pointToLineDistance(
-            relativePoint,
-            extLine.start,
-            extLine.end
-          )
-          if (extLineDist < tolerance) {
-            return i
-          }
-        }
-
-        // Check text position (larger hit area for text)
-        const textTolerance = 15
+        // Check text position first (largest hit area for text)
         const textDist = Math.hypot(
           relativePoint.x - dim.textPosition.x,
           relativePoint.y - dim.textPosition.y
@@ -1774,11 +2573,105 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
         if (textDist < textTolerance) {
           return i
         }
+
+        // Special handling for Angular dimensions - check arc instead of line
+        if (dim.dimType === "Angular" && dim.point2 && dim.arcRadius) {
+          const vertex = dim.point2
+          const radius = dim.arcRadius
+
+          // Distance from point to vertex
+          const distToVertex = Math.hypot(relativePoint.x - vertex.x, relativePoint.y - vertex.y)
+
+          // Check if point is near the arc (within tolerance of the radius distance)
+          const distToArc = Math.abs(distToVertex - radius)
+          if (distToArc < tolerance) {
+            // Also verify the point is within the arc's angle range
+            const p1 = dim.point1
+            const p3 = dim.point3
+            if (p3) {
+              const angle1 = Math.atan2(p1.y - vertex.y, p1.x - vertex.x)
+              const angle2 = Math.atan2(p3.y - vertex.y, p3.x - vertex.x)
+              const pointAngle = Math.atan2(relativePoint.y - vertex.y, relativePoint.x - vertex.x)
+
+              // Normalize angles to [0, 2π)
+              const normalizeAngle = (a: number) => {
+                while (a < 0) a += 2 * Math.PI
+                while (a >= 2 * Math.PI) a -= 2 * Math.PI
+                return a
+              }
+
+              const normAngle1 = normalizeAngle(angle1)
+              const normAngle2 = normalizeAngle(angle2)
+              const normPointAngle = normalizeAngle(pointAngle)
+
+              // Check if point angle is between angle1 and angle2
+              let angleDiff = normAngle2 - normAngle1
+              while (angleDiff < 0) angleDiff += 2 * Math.PI
+              while (angleDiff >= 2 * Math.PI) angleDiff -= 2 * Math.PI
+
+              const isReflex = angleDiff > Math.PI
+              let startAngle = normAngle1
+              let endAngle = normAngle2
+              if (isReflex) {
+                startAngle = normAngle2
+                endAngle = normAngle1
+              }
+
+              // Check if point is within the arc span
+              let pointInArc = false
+              if (startAngle <= endAngle) {
+                pointInArc = normPointAngle >= startAngle && normPointAngle <= endAngle
+              } else {
+                // Arc crosses 0/2π
+                pointInArc = normPointAngle >= startAngle || normPointAngle <= endAngle
+              }
+
+              if (pointInArc) {
+                return i
+              }
+            }
+          }
+
+          // Check extension lines for angular dimensions
+          for (const extLine of dim.extensionLines) {
+            const { distance: extLineDist } = pointToLineDistance(
+              relativePoint,
+              extLine.start,
+              extLine.end
+            )
+            if (extLineDist < tolerance) {
+              return i
+            }
+          }
+        } else {
+          // Linear dimensions - check dimension line
+          const dimLine = dim.dimensionLine
+          const { distance: dimLineDist } = pointToLineDistance(
+            relativePoint,
+            dimLine.start,
+            dimLine.end
+          )
+          if (dimLineDist < tolerance) {
+            return i
+          }
+
+          // Check extension lines
+          for (const extLine of dim.extensionLines) {
+            const { distance: extLineDist } = pointToLineDistance(
+              relativePoint,
+              extLine.start,
+              extLine.end
+            )
+            if (extLineDist < tolerance) {
+              return i
+            }
+          }
+        }
       }
 
       return null
     },
-    [drawing]
+    [drawing, getDrawingAreaInfo, viewportZoom, SCREEN_HIT_TOLERANCE_PX]
   )
 
   // Find annotation at point (hit-testing for annotation selection)
@@ -1786,8 +2679,13 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
     (paperPoint: Point2D): { annotationId: string; hitType: "box" | "anchor" } | null => {
       if (!drawing?.annotations?.annotations) return null
 
+      // Calculate zoom-aware tolerance: convert screen pixels to paper mm
+      const areaInfo = getDrawingAreaInfo()
+      const tolerance = areaInfo
+        ? SCREEN_HIT_TOLERANCE_PX / (areaInfo.paperToScreenScale * viewportZoom)
+        : 8 // fallback
+
       const annotations = drawing.annotations.annotations
-      const tolerance = 8 // mm tolerance
 
       for (const annotation of annotations) {
         // Get the view offset if annotation is attached to a view
@@ -1840,7 +2738,7 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
 
       return null
     },
-    [drawing]
+    [drawing, getDrawingAreaInfo, viewportZoom, SCREEN_HIT_TOLERANCE_PX]
   )
 
   // Mouse handlers for pan, dimensioning, and view dragging
@@ -1972,6 +2870,21 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
             const offsetY = paperPoint.y - viewHit.centerY
             setDraggedView({ viewId: viewHit.view.id, offset: [offsetX, offsetY] })
             setPanStart([e.clientX, e.clientY])
+            e.preventDefault()
+            return
+          }
+        }
+
+        // When views are locked and clicking on empty space (not on a dimension,
+        // annotation, or view), enable pan with left click.
+        // This provides better navigation UX when working with locked layouts.
+        if (viewsLocked) {
+          const viewHit = findViewAtPoint(paperPoint)
+          if (!viewHit) {
+            // Clicking on empty space with locked views - enable pan
+            setIsPanning(true)
+            setPanStart([e.clientX, e.clientY])
+            setPanStartOffset([pan[0], pan[1]])
             e.preventDefault()
             return
           }
@@ -2109,8 +3022,11 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
           setSelectedPoints(newSelection)
           console.log("✅ Point selected:", newSelection.length, "points total", pointInPaperCoords)
 
-          // Create dimension after 2 points are selected
-          if (newSelection.length >= 2) {
+          // Determine required points based on tool type
+          const requiredPoints = activeTool === "angle" ? 3 : 2
+
+          // Create dimension after required points are selected
+          if (newSelection.length >= requiredPoints) {
             console.log("🔧 Attempting to create dimension with points:", newSelection)
 
             // Use the first point's view as the anchor view for the dimension
@@ -2197,6 +3113,21 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
               // Point-to-point: use aligned dimension
               console.log("↗ Creating ALIGNED dimension (point-to-point)")
               dimension = createAlignedDimension(p1, p2, config, scaleAwareOffset)
+            } else if (activeTool === "angle") {
+              // Angle: use angular dimension (needs 3 points)
+              const p3Absolute = newSelection[2].point
+              const p3: Point2D = {
+                x: p3Absolute.x - viewPosX,
+                y: p3Absolute.y - viewPosY,
+              }
+              // Hold Shift to measure exterior/reflex angle instead of interior
+              const measureReflex = e.shiftKey
+              console.log(
+                `📐 Creating ANGULAR dimension (${measureReflex ? "exterior" : "interior"} angle)`
+              )
+              // p1 = first point on leg A, p2 = vertex, p3 = first point on leg B
+              const arcRadius = scaleAwareOffset * 1.5
+              dimension = createAngularDimension(p1, p2, p3, config, arcRadius, measureReflex)
             }
 
             if (dimension) {
@@ -2210,7 +3141,8 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
               console.error("❌ Failed to create dimension - dimension is null")
             }
           } else {
-            console.log(`⏳ Waiting for ${2 - newSelection.length} more point(s)`)
+            const remaining = requiredPoints - newSelection.length
+            console.log(`⏳ Waiting for ${remaining} more point(s)`)
           }
         }
 
@@ -2282,13 +3214,42 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
             y: paperPoint.y - viewOffsetY,
           }
 
-          // Calculate perpendicular offset from the line between point1 and point2
-          const newOffset = calculatePerpendicularOffset(relativePoint, dim.point1, dim.point2)
+          // Handle Angular dimensions differently - adjust arc radius
+          if (dim.dimType === "Angular" && dim.point3) {
+            const vertex = dim.point2
+            // Calculate distance from cursor to vertex = new radius
+            const newRadius = Math.sqrt(
+              (relativePoint.x - vertex.x) ** 2 + (relativePoint.y - vertex.y) ** 2
+            )
+            // Clamp radius to reasonable bounds (min 5mm, max 100mm)
+            const clampedRadius = Math.max(5, Math.min(100, newRadius))
 
-          // Recalculate dimension geometry with new offset
-          const updates = recalculateDimensionWithOffset(dim, newOffset)
-          if (Object.keys(updates).length > 0) {
-            updateDimension(drawing.id, draggedDimension.dimensionIndex, updates)
+            // Get dimension config for text height
+            const dimConfig = drawing.sheetConfig?.dimensions ?? {
+              textHeight: 3.5,
+              arrowSize: 2.5,
+              extensionOvershoot: 2,
+              extensionGap: 2,
+              offset: 10,
+              precision: 2,
+              showUnit: false,
+              unit: "mm",
+              arrowStyle: "Closed" as const,
+            }
+
+            const updates = recalculateAngularDimensionWithRadius(dim, clampedRadius, dimConfig)
+            if (Object.keys(updates).length > 0) {
+              updateDimension(drawing.id, draggedDimension.dimensionIndex, updates)
+            }
+          } else {
+            // Linear dimensions - calculate perpendicular offset
+            const newOffset = calculatePerpendicularOffset(relativePoint, dim.point1, dim.point2)
+
+            // Recalculate dimension geometry with new offset
+            const updates = recalculateDimensionWithOffset(dim, newOffset)
+            if (Object.keys(updates).length > 0) {
+              updateDimension(drawing.id, draggedDimension.dimensionIndex, updates)
+            }
           }
         }
         return
@@ -2336,35 +3297,24 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
         return
       }
 
-      // Hover detection for "+" button - always show at PAPER CENTER
+      // Hover detection for view highlighting and cursor
       const viewHit = findViewAtPoint(paperPoint)
-      if (viewHit && drawing) {
-        setHoveredViewId(viewHit.view.id)
-        // Position "+" button at CENTER OF THE PAPER SHEET (not the view)
-        const canvas = canvasRef.current
-        if (canvas) {
-          const canvasWidth = canvas.width / window.devicePixelRatio
-          const canvasHeight = canvas.height / window.devicePixelRatio
-
-          // The paper is always centered in the canvas.
-          // The viewport transform zooms around the canvas center, so the paper center
-          // stays at canvas center regardless of zoom level - only pan affects it.
-          setHoveredViewScreenPos({
-            x: canvasWidth / 2 + pan[0],
-            y: canvasHeight / 2 + pan[1],
-          })
-        }
-      } else {
-        setHoveredViewId(null)
-        setHoveredViewScreenPos(null)
-      }
+      setHoveredViewId(viewHit ? viewHit.view.id : null)
 
       // Snap point detection for dimensioning
       if (activeTool && drawing) {
+        // Calculate zoom-aware tolerance
+        // IMPORTANT: Must include viewportZoom to get accurate screen-space tolerance
+        const areaInfo = getDrawingAreaInfo()
+        const effectiveScale = areaInfo ? areaInfo.paperToScreenScale * viewportZoom : 1
+        const paperTolerance = areaInfo
+          ? calculatePaperTolerance(SCREEN_SNAP_TOLERANCE_PX, effectiveScale)
+          : snapConfig.tolerance
+
         // Find snap points in all visible views
         let foundSnap: { snap: SnapPoint; viewId: string; viewPosition: [number, number] } | null =
           null
-        let nearestDistance = snapConfig.tolerance
+        let nearestDistance = paperTolerance
 
         for (const view of drawing.views) {
           if (!view.visible) continue
@@ -2396,8 +3346,14 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
           // Extract snap points for this view
           const viewSnapPoints = extractSnapPoints(centeredLines, snapConfig)
 
-          // Find nearest snap to cursor
-          const snap = findNearestSnapPoint(localPoint, viewSnapPoints, centeredLines, snapConfig)
+          // Find nearest snap to cursor (using zoom-aware tolerance)
+          const snap = findNearestSnapPoint(
+            localPoint,
+            viewSnapPoints,
+            centeredLines,
+            snapConfig,
+            paperTolerance
+          )
 
           if (snap) {
             const dist = Math.hypot(localPoint.x - snap.point.x, localPoint.y - snap.point.y)
@@ -2427,6 +3383,7 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
       drawing,
       snapConfig,
       screenToPaper,
+      getDrawingAreaInfo,
       findViewAtPoint,
       updateViewPosition,
       updateDimension,
@@ -2434,6 +3391,7 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
       isPanning,
       panStart,
       panStartOffset,
+      viewportZoom,
     ]
   )
 
@@ -2488,9 +3446,127 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
     setPan([0, 0])
   }, [])
 
+  // Global keyboard shortcuts for drawings view
+  useEffect(() => {
+    const handleGlobalKeydown = (e: KeyboardEvent) => {
+      // Don't handle shortcuts if user is typing in an input (except ESC)
+      const target = e.target as HTMLElement
+      const isTyping =
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable
+      if (isTyping && e.key !== "Escape") return
+
+      // ESC - Cancel all operations
+      if (e.key === "Escape") {
+        const hadActiveState =
+          editingAnnotationId !== null ||
+          selectedPoints.length > 0 ||
+          selectedAnnotationId !== null ||
+          selectedDimensionIndex !== null ||
+          activeTool !== null ||
+          draggedView !== null ||
+          draggedDimension !== null ||
+          draggedAnnotation !== null
+
+        if (hadActiveState) {
+          // Cancel annotation editing
+          if (editingAnnotationId !== null) {
+            setEditingAnnotationId(null)
+            setEditingAnnotationText("")
+            setEditingAnnotationPos(null)
+          }
+          // Clear all selected points
+          if (selectedPoints.length > 0) {
+            setSelectedPoints([])
+          }
+          // Clear annotation selection
+          if (selectedAnnotationId !== null) {
+            setSelectedAnnotationId(null)
+          }
+          // Clear dimension selection
+          if (selectedDimensionIndex !== null) {
+            clearSelection()
+          }
+          // Deactivate any active tool
+          if (activeTool !== null) {
+            setActiveTool(null)
+          }
+          // Cancel any drag operations
+          setDraggedView(null)
+          setDraggedDimension(null)
+          setDraggedAnnotation(null)
+          // Clear hover states
+          setActiveSnap(null)
+          setHoveredLine(null)
+          setHoveredViewId(null)
+
+          e.preventDefault()
+          e.stopPropagation()
+        }
+        return
+      }
+
+      // Only process other shortcuts if we have a drawing
+      if (!drawing) return
+
+      // 0 or Home - Reset zoom (Zoom Total)
+      if (e.key === "0" || e.key === "Home") {
+        e.preventDefault()
+        resetZoom()
+        return
+      }
+
+      // L - Lock/Unlock views
+      if (e.key === "l" || e.key === "L") {
+        e.preventDefault()
+        setViewsLocked((prev) => !prev)
+        return
+      }
+
+      // F - Fit all views (Ajustar)
+      if (e.key === "f" || e.key === "F") {
+        if (drawing.views.length > 0) {
+          e.preventDefault()
+          fitAllViews()
+        }
+        return
+      }
+    }
+
+    document.addEventListener("keydown", handleGlobalKeydown)
+    return () => document.removeEventListener("keydown", handleGlobalKeydown)
+  }, [
+    editingAnnotationId,
+    selectedPoints.length,
+    selectedAnnotationId,
+    selectedDimensionIndex,
+    activeTool,
+    draggedView,
+    draggedDimension,
+    draggedAnnotation,
+    clearSelection,
+    setActiveTool,
+    drawing,
+    resetZoom,
+    fitAllViews,
+  ])
+
   // Always call hooks
   const { addView, generateProjection, updateDrawing } = useDrawingStore()
+  const modellerObjects = useObjects()
   const [showAddViewPopover, setShowAddViewPopover] = useState(false)
+  const [selectedShapeIdForView, setSelectedShapeIdForView] = useState<string | null>(null)
+
+  // Get objects that have valid backend shapes for projection
+  const availableShapesForDrawing = useMemo(() => {
+    return modellerObjects.filter((obj) => {
+      // Check if this object has a valid backend shape
+      const backendId = shapeIdMap.get(obj.id)
+      return !!backendId
+    })
+  }, [modellerObjects])
+
+  // Determine if we need to select a shape first
+  const needsShapeSelection = drawing && drawing.sourceShapeIds.length === 0
 
   type StandardViewKey = "Top" | "Front" | "Right" | "Left" | "Bottom" | "Back" | "Isometric"
 
@@ -2602,44 +3678,96 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
     [drawing, hoveredViewId]
   )
 
+  // Handle selecting a shape from the modeller for this drawing
+  const handleSelectShapeForDrawing = useCallback(
+    (sceneObjectId: string) => {
+      if (!drawing) return
+      setSelectedShapeIdForView(sceneObjectId)
+    },
+    [drawing]
+  )
+
   const handleAddView = useCallback(
     async (projectionType: ProjectionType) => {
-      if (!drawing || !drawing.sourceShapeIds.length) return
+      if (!drawing) return
+
+      // DEBUG: Log current state
+      console.log("[Viewport2D] handleAddView - Current state:", {
+        drawingId: drawing.id,
+        sourceShapeIds: drawing.sourceShapeIds,
+        selectedShapeIdForView,
+        shapeIdMapSize: shapeIdMap.size,
+        shapeIdMapEntries: Array.from(shapeIdMap.entries()),
+      })
+
+      // Determine which scene object ID to use (stable ID, NOT backend ID)
+      let sceneObjectId = drawing.sourceShapeIds[0]
+
+      // If drawing has no source shapes, use the selected shape
+      if (!sceneObjectId && selectedShapeIdForView) {
+        sceneObjectId = selectedShapeIdForView
+        // Update the drawing with this source shape (always use sceneObjectId, never backendId)
+        console.log("[Viewport2D] Setting sourceShapeIds to:", [selectedShapeIdForView])
+        updateDrawing(drawing.id, {
+          sourceShapeIds: [selectedShapeIdForView],
+        })
+      }
+
+      if (!sceneObjectId) {
+        console.error("[Viewport2D] No shape selected for view")
+        return
+      }
+
+      console.log("[Viewport2D] Using sceneObjectId:", sceneObjectId)
+
+      // Get the backend shape ID from the map (sceneObjectId -> backendShapeId)
+      // The backend ID is ephemeral and changes on app restart, so we NEVER store it in sourceShapeIds
+      const backendId = shapeIdMap.get(sceneObjectId)
+      if (!backendId) {
+        console.error(
+          "[Viewport2D] Backend shape ID not found for sceneObjectId:",
+          sceneObjectId,
+          "Available mappings:",
+          Array.from(shapeIdMap.entries())
+        )
+        return
+      }
+
+      console.log("[Viewport2D] Found backendId:", backendId, "for sceneObjectId:", sceneObjectId)
 
       try {
-        const originalId = drawing.sourceShapeIds[0]
         const unitFactor = getModelMetersToDrawingUnitsFactor(drawing.sheetConfig.units)
+
+        // IMPORTANT: Always use backendId for projection generation
+        // sourceShapeIds stores the stable sceneObjectId, not the ephemeral backendId
         const projection = await generateProjection(
-          originalId,
+          backendId,
           projectionType,
           drawing.sheetConfig.scale * unitFactor
-        ).catch(async (err) => {
-          const mapped = shapeIdMap.get(originalId)
-          if (!mapped) throw err
-          const retry = await generateProjection(
-            mapped,
-            projectionType,
-            drawing.sheetConfig.scale * unitFactor
-          )
-          updateDrawing(drawing.id, {
-            sourceShapeIds: [mapped, ...drawing.sourceShapeIds.slice(1)],
-          })
-          return retry
-        })
+        )
 
         // Calculate smart position based on existing views
         const position = calculateNewViewPosition(projection.bounding_box)
 
         addView(drawing.id, projectionType, projection, position)
         setShowAddViewPopover(false)
+        setSelectedShapeIdForView(null) // Reset selection
 
         // Auto-fit to show all views after a brief delay to allow state update
         setTimeout(() => fitAllViews(), 100)
       } catch (error) {
-        console.error("Error adding view:", error)
+        console.error("[Viewport2D] Error adding view:", error)
       }
     },
-    [drawing, generateProjection, addView, updateDrawing, calculateNewViewPosition, fitAllViews]
+    [
+      drawing,
+      selectedShapeIdForView,
+      generateProjection,
+      addView,
+      updateDrawing,
+      calculateNewViewPosition,
+      fitAllViews,
+    ]
   )
 
   return (
@@ -2648,7 +3776,7 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
         id="drawing-viewport-canvas"
         ref={canvasRef}
         className={cn(
-          "h-full w-full",
+          "h-full w-full outline-none focus:outline-none focus-visible:outline-none",
           isPanning
             ? "cursor-grabbing"
             : draggedView
@@ -2660,7 +3788,9 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
                   : selectedDimensionIndex !== null
                     ? "cursor-ns-resize"
                     : viewsLocked
-                      ? "cursor-default"
+                      ? hoveredViewId
+                        ? "cursor-default" // Over a view (locked, can't drag)
+                        : "cursor-grab" // Empty space - pan available
                       : hoveredViewId
                         ? "cursor-grab"
                         : "cursor-default"
@@ -2674,36 +3804,61 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
-            console.log("⌨️ ESC pressed - Current state:", {
-              selectedPoints: selectedPoints.length,
-              selectedDimension: selectedDimensionIndex,
-              selectedAnnotation: selectedAnnotationId,
-              editingAnnotation: editingAnnotationId,
-              activeTool,
-            })
+            // ESC cancels ALL operations at once - full reset to neutral state
+            const hadActiveState =
+              editingAnnotationId !== null ||
+              selectedPoints.length > 0 ||
+              selectedAnnotationId !== null ||
+              selectedDimensionIndex !== null ||
+              activeTool !== null ||
+              draggedView !== null ||
+              draggedDimension !== null ||
+              draggedAnnotation !== null
 
-            // Clear in priority order: editing > points > selections > active tool
-            if (editingAnnotationId !== null) {
-              console.log("🚫 Cancelled annotation editing (Escape)")
-              setEditingAnnotationId(null)
-              setEditingAnnotationText("")
-              setEditingAnnotationPos(null)
-              e.preventDefault()
-            } else if (selectedPoints.length > 0) {
-              console.log("🚫 Cancelled point selection (Escape)")
-              setSelectedPoints([])
-              e.preventDefault()
-            } else if (selectedAnnotationId !== null) {
-              console.log("🚫 Cleared annotation selection (Escape)")
-              setSelectedAnnotationId(null)
-              e.preventDefault()
-            } else if (selectedDimensionIndex !== null) {
-              console.log("🚫 Cleared dimension selection (Escape)")
-              clearSelection()
-              e.preventDefault()
-            } else if (activeTool !== null) {
-              console.log("🚫 Deactivated tool (Escape):", activeTool)
-              setActiveTool(null)
+            if (hadActiveState) {
+              // Cancel annotation editing
+              if (editingAnnotationId !== null) {
+                setEditingAnnotationId(null)
+                setEditingAnnotationText("")
+                setEditingAnnotationPos(null)
+              }
+
+              // Clear all selected points (dimensioning in progress)
+              if (selectedPoints.length > 0) {
+                setSelectedPoints([])
+              }
+
+              // Clear annotation selection
+              if (selectedAnnotationId !== null) {
+                setSelectedAnnotationId(null)
+              }
+
+              // Clear dimension selection
+              if (selectedDimensionIndex !== null) {
+                clearSelection()
+              }
+
+              // Deactivate any active tool
+              if (activeTool !== null) {
+                setActiveTool(null)
+              }
+
+              // Cancel any drag operations
+              if (draggedView !== null) {
+                setDraggedView(null)
+              }
+              if (draggedDimension !== null) {
+                setDraggedDimension(null)
+              }
+              if (draggedAnnotation !== null) {
+                setDraggedAnnotation(null)
+              }
+
+              // Clear hover states
+              setActiveSnap(null)
+              setHoveredLine(null)
+              setHoveredViewId(null)
+
               e.preventDefault()
             }
           }
@@ -2773,7 +3928,13 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
 
       {/* Add First View Button - if no views exist */}
       {drawing && drawing.views.length === 0 && (
-        <Popover open={showAddViewPopover} onOpenChange={setShowAddViewPopover}>
+        <Popover
+          open={showAddViewPopover}
+          onOpenChange={(open) => {
+            setShowAddViewPopover(open)
+            if (!open) setSelectedShapeIdForView(null) // Reset selection when closing
+          }}
+        >
           <PopoverTrigger asChild>
             <Button
               className="absolute top-14 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm border border-border/50 shadow-lg"
@@ -2784,24 +3945,86 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
               {t("drawings.views.addBaseView")}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-2">
-            <div className="space-y-1">
-              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                {t("drawings.views.selectOrientation")}
+          <PopoverContent className="w-72 p-2">
+            {/* Step 1: Select shape if drawing has no source shapes */}
+            {needsShapeSelection && !selectedShapeIdForView ? (
+              <div className="space-y-2">
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                  {t("drawings.views.selectShape", "Selecciona un objeto del modelador")}
+                </div>
+                {availableShapesForDrawing.length === 0 ? (
+                  <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                    <p>{t("drawings.views.noShapesAvailable", "No hay objetos disponibles")}</p>
+                    <p className="text-xs mt-1">
+                      {t("drawings.views.createShapeFirst", "Crea objetos en el modelador primero")}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3"
+                      onClick={() => {
+                        setShowAddViewPopover(false)
+                        setView("modeller")
+                      }}
+                    >
+                      {t("drawings.backToModeller")}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {availableShapesForDrawing.map((obj) => (
+                      <Button
+                        key={obj.id}
+                        size="sm"
+                        variant="ghost"
+                        className="w-full h-9 text-xs justify-start px-2"
+                        onClick={() => handleSelectShapeForDrawing(obj.id)}
+                      >
+                        <span className="truncate">{obj.name}</span>
+                        <span className="ml-auto text-[10px] text-muted-foreground capitalize">
+                          {obj.type}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-1">
-                {availableProjectionTypes.map(({ type, label, key }) => (
-                  <Button
-                    key={key}
-                    size="sm"
-                    className="h-8 text-xs justify-start"
-                    onClick={() => handleAddView(type)}
-                  >
-                    {label}
-                  </Button>
-                ))}
+            ) : (
+              /* Step 2: Select view orientation */
+              <div className="space-y-1">
+                {/* Show selected shape if one was just selected */}
+                {selectedShapeIdForView && (
+                  <div className="flex items-center justify-between px-2 py-1.5 mb-2 bg-primary/10 rounded text-xs">
+                    <span className="text-primary font-medium truncate">
+                      {availableShapesForDrawing.find((o) => o.id === selectedShapeIdForView)?.name}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-5 w-5 p-0"
+                      onClick={() => setSelectedShapeIdForView(null)}
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                )}
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                  {t("drawings.views.selectOrientation")}
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  {availableProjectionTypes.map(({ type, label, key }) => (
+                    <Button
+                      key={key}
+                      size="sm"
+                      className="h-8 text-xs justify-start"
+                      onClick={() => handleAddView(type)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </PopoverContent>
         </Popover>
       )}
@@ -2816,56 +4039,6 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
         <HugeiconsIcon icon={ArrowLeft01Icon} className="size-4 mr-1" />
         {t("drawings.backToModeller")}
       </Button>
-
-      {/* "+" Button on hovered view - Shapr3D style */}
-      {drawing && hoveredViewId && hoveredViewScreenPos && !draggedView && (
-        <Popover open={showAddViewPopover} onOpenChange={setShowAddViewPopover}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="absolute z-10 size-8 rounded-full bg-white text-slate-900 shadow-lg flex items-center justify-center hover:bg-slate-100 transition-colors"
-              style={{
-                left: hoveredViewScreenPos.x - 16,
-                top: hoveredViewScreenPos.y - 16,
-              }}
-              onClick={() => setShowAddViewPopover(true)}
-            >
-              <HugeiconsIcon icon={Add01Icon} className="size-5" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-48 p-1.5" align="start">
-            <div className="space-y-0.5">
-              {availableProjectionTypes.map(({ type, label, key }) => {
-                const isAdded = existingViewTypes.has(key)
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
-                      isAdded
-                        ? "text-muted-foreground cursor-not-allowed"
-                        : "hover:bg-muted cursor-pointer"
-                    )}
-                    disabled={isAdded}
-                    onClick={() => handleAddView(type)}
-                  >
-                    <span className="flex items-center gap-2">
-                      {isAdded && (
-                        <HugeiconsIcon
-                          icon={CheckmarkCircle01Icon}
-                          className="size-4 text-green-500"
-                        />
-                      )}
-                      {label}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
-      )}
 
       {/* Drawing info overlay */}
       {drawing && (
@@ -3007,25 +4180,28 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
       )}
 
       {/* View controls */}
-      <div className="absolute bottom-4 right-4 flex items-center gap-2">
+      <div className="absolute bottom-4 right-4 flex items-center gap-1.5 p-1.5 rounded-lg bg-background/95 backdrop-blur-sm border border-border/50 shadow-lg">
         {/* Lock/Unlock views button */}
         {drawing && drawing.views.length > 0 && (
           <button
             type="button"
             onClick={() => setViewsLocked(!viewsLocked)}
             className={cn(
-              "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md transition-all shadow-sm",
+              "group flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md transition-all",
               viewsLocked
-                ? "bg-primary text-primary-foreground shadow-md"
-                : "text-muted-foreground bg-background/90 hover:bg-background border border-border/50"
+                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
-            title={viewsLocked ? t("drawings.views.unlockViews") : t("drawings.views.lockViews")}
+            title={`${viewsLocked ? t("drawings.views.unlockViews") : t("drawings.views.lockViews")} (L)`}
           >
             <HugeiconsIcon
               icon={viewsLocked ? SquareLock01Icon : SquareUnlock01Icon}
               className="size-4"
             />
-            {viewsLocked ? t("drawings.views.locked") : t("drawings.views.lock")}
+            <span>{viewsLocked ? t("drawings.views.locked") : t("drawings.views.lock")}</span>
+            <kbd className="ml-1 px-1 py-0.5 text-[10px] font-mono rounded bg-muted/80 text-muted-foreground group-hover:bg-muted">
+              L
+            </kbd>
           </button>
         )}
         {/* Ajustar: repositions all views in a grid within the paper */}
@@ -3033,10 +4209,13 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
           <button
             type="button"
             onClick={fitAllViews}
-            className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded hover:bg-background"
-            title={t("drawings.views.fitViewsTooltip")}
+            className="group flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+            title={`${t("drawings.views.fitViewsTooltip")} (F)`}
           >
-            {t("drawings.views.fitViews")}
+            <span>{t("drawings.views.fitViews")}</span>
+            <kbd className="px-1 py-0.5 text-[10px] font-mono rounded bg-muted/80 text-muted-foreground group-hover:bg-muted">
+              F
+            </kbd>
           </button>
         )}
         {/* Zoom to Fit: reset zoom and pan to show entire sheet */}
@@ -3045,15 +4224,18 @@ export function Viewport2D({ className, drawingId }: Viewport2DProps) {
             type="button"
             onClick={resetZoom}
             className={cn(
-              "flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors",
+              "group flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md transition-all",
               viewportZoom !== 1 || pan[0] !== 0 || pan[1] !== 0
-                ? "bg-primary/20 text-primary border border-primary/30"
-                : "text-muted-foreground bg-background/80 hover:bg-background"
+                ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 hover:bg-sky-500/25"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
-            title={t("drawings.viewport.zoomTotalTooltip")}
+            title={`${t("drawings.viewport.zoomTotalTooltip")} (0)`}
           >
             <HugeiconsIcon icon={ViewIcon} className="size-3.5" />
-            {t("drawings.viewport.zoomTotal")}
+            <span>{t("drawings.viewport.zoomTotal")}</span>
+            <kbd className="px-1 py-0.5 text-[10px] font-mono rounded bg-muted/80 text-muted-foreground group-hover:bg-muted">
+              0
+            </kbd>
           </button>
         )}
       </div>

@@ -630,10 +630,34 @@ function BottomToolbar() {
             <div className="space-y-0.5">
               <p className="section-label px-2 py-1">Render Quality</p>
               {[
-                { id: "low", name: "Draft", shortcut: "1" },
-                { id: "medium", name: "Modeling", shortcut: "2" },
-                { id: "high", name: "Real-time", shortcut: "3" },
-                { id: "ultra", name: "Cinematic", shortcut: "4" },
+                {
+                  id: "low",
+                  name: "Draft",
+                  shortcut: "1",
+                  shading: "workbench" as const,
+                  desc: "Fast modeling",
+                },
+                {
+                  id: "medium",
+                  name: "Modeling",
+                  shortcut: "2",
+                  shading: "solid" as const,
+                  desc: "Basic lighting",
+                },
+                {
+                  id: "high",
+                  name: "Real-time",
+                  shortcut: "3",
+                  shading: "material" as const,
+                  desc: "PBR preview",
+                },
+                {
+                  id: "ultra",
+                  name: "Cinematic",
+                  shortcut: "4",
+                  shading: "rendered" as const,
+                  desc: "Full effects",
+                },
               ].map((mode) => (
                 <button
                   key={mode.id}
@@ -641,6 +665,9 @@ function BottomToolbar() {
                   onClick={() =>
                     setViewportSettings({
                       postProcessingQuality: mode.id as "low" | "medium" | "high" | "ultra",
+                      shadingMode: mode.shading,
+                      // Disable post-processing for Draft mode for best performance
+                      enablePostProcessing: mode.id !== "low",
                     })
                   }
                   className={cn(
@@ -650,7 +677,10 @@ function BottomToolbar() {
                       "bg-primary/15 text-primary ring-1 ring-primary/30"
                   )}
                 >
-                  <span className="text-xs font-medium">{mode.name}</span>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-medium">{mode.name}</span>
+                    <span className="text-[10px] text-muted-foreground/60">{mode.desc}</span>
+                  </div>
                   <span className="text-xs text-muted-foreground/50 font-mono">
                     {mode.shortcut}
                   </span>
@@ -882,6 +912,10 @@ export function ViewportOverlays({ className }: ViewportOverlaysProps) {
       }
 
       try {
+        // We need both:
+        // - sceneObjectIds: stable frontend IDs (stored in drawing for persistence)
+        // - backendShapeIds: current backend IDs (used for projection generation)
+        const sceneObjectIds: string[] = []
         const backendShapeIds: string[] = []
 
         for (const obj of shapeObjects) {
@@ -895,6 +929,7 @@ export function ViewportOverlays({ className }: ViewportOverlaysProps) {
           if (backendId) {
             const exists = await cadService.shapeExists(backendId)
             if (exists) {
+              sceneObjectIds.push(obj.id) // Store stable frontend ID
               backendShapeIds.push(backendId)
               continue
             }
@@ -903,6 +938,7 @@ export function ViewportOverlays({ className }: ViewportOverlaysProps) {
           // No valid backend ID - try to create shape from parameters
           const newId = await createShapeInBackend(obj)
           if (newId) {
+            sceneObjectIds.push(obj.id) // Store stable frontend ID
             backendShapeIds.push(newId)
           } else {
             const shape = obj as ShapeObject
@@ -915,9 +951,10 @@ export function ViewportOverlays({ className }: ViewportOverlaysProps) {
           return
         }
 
-        // Create drawing with the provided name
+        // Create drawing with SCENE OBJECT IDs (stable, persist across restarts)
+        // NOT backend shape IDs (which change on every app restart)
         const finalName = drawingName || `Dibujo ${new Date().toLocaleDateString()}`
-        const drawingId = createDrawing(finalName, config, backendShapeIds)
+        const drawingId = createDrawing(finalName, config, sceneObjectIds)
 
         // Unit factor for scale conversion
         const unitFactor = getModelMetersToDrawingUnitsFactor(config.units)

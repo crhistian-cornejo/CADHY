@@ -6,10 +6,12 @@
 
 import { Label, Separator, Slider, Switch } from "@cadhy/ui"
 import { useState } from "react"
+import { useUnits } from "@/hooks/use-units"
 import { type SnapConfig, snapManager } from "@/services/snap-manager"
 
 export function SnappingSettingsPanel() {
   const [config, setConfig] = useState<SnapConfig>(snapManager.getConfig())
+  const { lengthLabel, convertLengthToDisplay, precision } = useUnits()
 
   const handleConfigChange = (updates: Partial<SnapConfig>) => {
     const newConfig = { ...config, ...updates }
@@ -48,7 +50,9 @@ export function SnappingSettingsPanel() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs">Snap Distance</Label>
-              <span className="text-xs text-muted-foreground">{config.distance.toFixed(2)} m</span>
+              <span className="text-xs text-muted-foreground">
+                {convertLengthToDisplay(config.distance).toFixed(precision)} {lengthLabel}
+              </span>
             </div>
             <Slider
               value={[config.distance]}
@@ -131,7 +135,9 @@ export function SnappingSettingsPanel() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs">Grid Size</Label>
-              <span className="text-xs text-muted-foreground">{config.gridSize.toFixed(2)} m</span>
+              <span className="text-xs text-muted-foreground">
+                {convertLengthToDisplay(config.gridSize).toFixed(precision)} {lengthLabel}
+              </span>
             </div>
             <Slider
               value={[config.gridSize]}

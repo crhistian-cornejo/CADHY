@@ -34,8 +34,12 @@ export interface Dimension {
   textPosition: Point2D
   point1: Point2D
   point2: Point2D | null
+  /** Third point for Angular dimensions (point1=leg1, point2=vertex, point3=leg2) */
+  point3?: Point2D | null
   extensionLines: ExtensionLine[]
   dimensionLine: DimensionLine
+  /** Arc radius for Angular dimensions */
+  arcRadius?: number
   prefix: string | null
   suffix: string | null
   labelOverride: string | null

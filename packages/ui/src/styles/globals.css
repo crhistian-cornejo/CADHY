@@ -180,13 +180,13 @@
   --secondary: #252526;                     /* Secondary surfaces match panels */
   --secondary-foreground: #d4d4d4;          /* Secondary text */
   --muted: #2d2d30;                         /* Cursor/VSCode muted background */
-  --muted-foreground: #858585;              /* Cursor/VSCode muted text */
+  --muted-foreground: #9c9c9c;              /* Cursor/VSCode muted text - improved contrast */
   --accent: #3e3e42;                        /* Cursor/VSCode accent/hover */
   --accent-foreground: #d4d4d4;             /* Accent text */
   --destructive: #ef4444;                   /* red-500 */
   --border: #3e3e42;                        /* Cursor/VSCode border color */
   --input: #252526;                         /* Input backgrounds match panels */
-  --ring: #858585;                          /* Ring color */
+  --ring: #9c9c9c;                          /* Ring color - improved contrast */
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -199,7 +199,7 @@
   --sidebar-accent: #3e3e42;                /* Sidebar accent */
   --sidebar-accent-foreground: #d4d4d4;     /* Sidebar accent text */
   --sidebar-border: #3e3e42;                /* Sidebar borders */
-  --sidebar-ring: #858585;                  /* Sidebar ring */
+  --sidebar-ring: #9c9c9c;                  /* Sidebar ring - improved contrast */
   /* Custom toolbar background */
   --toolbar-bg: #252526;                    /* Toolbar matches panel background */
   /* Tooltip colors - Cursor/VSCode style */

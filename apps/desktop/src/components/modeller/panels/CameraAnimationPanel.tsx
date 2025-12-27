@@ -282,7 +282,7 @@ export function CameraAnimationPanel({ className, onClose }: CameraAnimationPane
         <h3>{t("animation.title", "Camera Animations")}</h3>
       </div>
 
-      <ScrollArea className="flex-1 p-3">
+      <ScrollArea className="flex-1 p-3" showFadeMasks>
         <div className="space-y-4">
           {/* Create New Animation */}
           <div className="space-y-2">

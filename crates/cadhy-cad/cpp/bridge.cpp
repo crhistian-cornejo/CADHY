@@ -84,6 +84,23 @@ std::unique_ptr<OcctShape> make_cylinder_at(
     }
 }
 
+// Create a cylinder centered at origin (base at z=-height/2, top at z=+height/2)
+// This matches Three.js CylinderGeometry behavior
+std::unique_ptr<OcctShape> make_cylinder_centered(double radius, double height) {
+    try {
+        // Create axis with origin shifted down by height/2
+        gp_Pnt origin(0, 0, -height/2.0);
+        gp_Dir direction(0, 0, 1);
+        gp_Ax2 axis(origin, direction);
+        BRepPrimAPI_MakeCylinder maker(axis, radius, height);
+        maker.Build();
+        if (!maker.IsDone()) return nullptr;
+        return std::make_unique<OcctShape>(maker.Shape());
+    } catch (...) {
+        return nullptr;
+    }
+}
+
 std::unique_ptr<OcctShape> make_sphere(double radius) {
     try {
         BRepPrimAPI_MakeSphere maker(radius);
@@ -126,6 +143,23 @@ std::unique_ptr<OcctShape> make_cone_at(
     try {
         gp_Pnt origin(x, y, z);
         gp_Dir direction(ax, ay, az);
+        gp_Ax2 axis(origin, direction);
+        BRepPrimAPI_MakeCone maker(axis, r1, r2, height);
+        maker.Build();
+        if (!maker.IsDone()) return nullptr;
+        return std::make_unique<OcctShape>(maker.Shape());
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+// Create a cone centered at origin (base at z=-height/2, top at z=+height/2)
+// This matches Three.js ConeGeometry behavior
+std::unique_ptr<OcctShape> make_cone_centered(double r1, double r2, double height) {
+    try {
+        // Create axis with origin shifted down by height/2
+        gp_Pnt origin(0, 0, -height/2.0);
+        gp_Dir direction(0, 0, 1);
         gp_Ax2 axis(origin, direction);
         BRepPrimAPI_MakeCone maker(axis, r1, r2, height);
         maker.Build();
@@ -446,8 +480,21 @@ std::unique_ptr<OcctShape> boolean_fuse(const OcctShape& shape1, const OcctShape
         BRepAlgoAPI_Fuse fuse(shape1.get(), shape2.get());
         fuse.Build();
         if (!fuse.IsDone()) return nullptr;
-        return std::make_unique<OcctShape>(fuse.Shape());
+
+        // CRITICAL: Apply ShapeUpgrade_UnifySameDomain after boolean operations
+        // This removes internal seam edges and unifies coplanar faces.
+        // Parameters: (shape, UnifyEdges=false, UnifyFaces=true, ConcatBSplines=false)
+        // UnifyEdges=false avoids issues with closed curves (cones, cylinders)
+        // UnifyFaces=true merges coplanar faces created at the boolean intersection
+        ShapeUpgrade_UnifySameDomain unifier(fuse.Shape(), Standard_False, Standard_True, Standard_False);
+        unifier.Build();
+
+        return std::make_unique<OcctShape>(unifier.Shape());
+    } catch (const Standard_Failure& e) {
+        std::cerr << "boolean_fuse exception: " << e.GetMessageString() << std::endl;
+        return nullptr;
     } catch (...) {
+        std::cerr << "boolean_fuse: unknown exception" << std::endl;
         return nullptr;
     }
 }
@@ -457,8 +504,18 @@ std::unique_ptr<OcctShape> boolean_cut(const OcctShape& shape1, const OcctShape&
         BRepAlgoAPI_Cut cut(shape1.get(), shape2.get());
         cut.Build();
         if (!cut.IsDone()) return nullptr;
-        return std::make_unique<OcctShape>(cut.Shape());
+
+        // Apply ShapeUpgrade_UnifySameDomain to clean up boolean result
+        // UnifyEdges=false, UnifyFaces=true, ConcatBSplines=false
+        ShapeUpgrade_UnifySameDomain unifier(cut.Shape(), Standard_False, Standard_True, Standard_False);
+        unifier.Build();
+
+        return std::make_unique<OcctShape>(unifier.Shape());
+    } catch (const Standard_Failure& e) {
+        std::cerr << "boolean_cut exception: " << e.GetMessageString() << std::endl;
+        return nullptr;
     } catch (...) {
+        std::cerr << "boolean_cut: unknown exception" << std::endl;
         return nullptr;
     }
 }
@@ -468,8 +525,18 @@ std::unique_ptr<OcctShape> boolean_common(const OcctShape& shape1, const OcctSha
         BRepAlgoAPI_Common common(shape1.get(), shape2.get());
         common.Build();
         if (!common.IsDone()) return nullptr;
-        return std::make_unique<OcctShape>(common.Shape());
+
+        // Apply ShapeUpgrade_UnifySameDomain to clean up boolean result
+        // UnifyEdges=false, UnifyFaces=true, ConcatBSplines=false
+        ShapeUpgrade_UnifySameDomain unifier(common.Shape(), Standard_False, Standard_True, Standard_False);
+        unifier.Build();
+
+        return std::make_unique<OcctShape>(unifier.Shape());
+    } catch (const Standard_Failure& e) {
+        std::cerr << "boolean_common exception: " << e.GetMessageString() << std::endl;
+        return nullptr;
     } catch (...) {
+        std::cerr << "boolean_common: unknown exception" << std::endl;
         return nullptr;
     }
 }
@@ -631,6 +698,130 @@ std::unique_ptr<OcctShape> chamfer_edges(
         return nullptr;
     } catch (...) {
         std::cerr << "chamfer_edges: unknown exception" << std::endl;
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> fillet_edges_advanced(
+    const OcctShape& shape,
+    rust::Slice<const int32_t> edge_indices,
+    rust::Slice<const double> radii,
+    int32_t continuity
+) {
+    try {
+        if (edge_indices.size() != radii.size()) {
+            return nullptr;
+        }
+
+        ChFi3d_FilletShape filletShape = ChFi3d_Rational;
+        GeomAbs_Shape internalContinuity = GeomAbs_C1;
+
+        if (continuity == 2) {
+            internalContinuity = GeomAbs_C2;
+            filletShape = ChFi3d_QuasiAngular;
+        } else if (continuity == 0) {
+            filletShape = ChFi3d_Polynomial;
+        }
+
+        BRepFilletAPI_MakeFillet fillet(shape.get(), filletShape);
+        fillet.SetContinuity(internalContinuity, 0.001);
+
+        TopTools_IndexedMapOfShape edgeMap;
+        TopExp::MapShapes(shape.get(), TopAbs_EDGE, edgeMap);
+
+        for (size_t i = 0; i < edge_indices.size(); i++) {
+            int32_t idx = edge_indices[i] + 1;
+            if (idx >= 1 && idx <= edgeMap.Extent()) {
+                const TopoDS_Edge& edge = TopoDS::Edge(edgeMap(idx));
+                fillet.Add(radii[i], edge);
+            }
+        }
+
+        fillet.Build();
+        if (!fillet.IsDone()) return nullptr;
+
+        return std::make_unique<OcctShape>(fillet.Shape());
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> chamfer_edges_two_distances(
+    const OcctShape& shape,
+    rust::Slice<const int32_t> edge_indices,
+    rust::Slice<const double> distances1,
+    rust::Slice<const double> distances2
+) {
+    try {
+        if (edge_indices.size() != distances1.size() || edge_indices.size() != distances2.size()) {
+            return nullptr;
+        }
+
+        BRepFilletAPI_MakeChamfer chamfer(shape.get());
+
+        TopTools_IndexedMapOfShape edgeMap;
+        TopExp::MapShapes(shape.get(), TopAbs_EDGE, edgeMap);
+
+        TopTools_IndexedDataMapOfShapeListOfShape edgeFaceMap;
+        TopExp::MapShapesAndAncestors(shape.get(), TopAbs_EDGE, TopAbs_FACE, edgeFaceMap);
+
+        for (size_t i = 0; i < edge_indices.size(); i++) {
+            int32_t idx = edge_indices[i] + 1;
+            if (idx >= 1 && idx <= edgeMap.Extent()) {
+                const TopoDS_Edge& edge = TopoDS::Edge(edgeMap(idx));
+                const TopTools_ListOfShape& faces = edgeFaceMap.FindFromKey(edge);
+                if (!faces.IsEmpty()) {
+                    const TopoDS_Face& face = TopoDS::Face(faces.First());
+                    chamfer.Add(distances1[i], distances2[i], edge, face);
+                }
+            }
+        }
+
+        chamfer.Build();
+        if (!chamfer.IsDone()) return nullptr;
+
+        return std::make_unique<OcctShape>(chamfer.Shape());
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<OcctShape> chamfer_edges_distance_angle(
+    const OcctShape& shape,
+    rust::Slice<const int32_t> edge_indices,
+    rust::Slice<const double> distances,
+    rust::Slice<const double> angles
+) {
+    try {
+        if (edge_indices.size() != distances.size() || edge_indices.size() != angles.size()) {
+            return nullptr;
+        }
+
+        BRepFilletAPI_MakeChamfer chamfer(shape.get());
+
+        TopTools_IndexedMapOfShape edgeMap;
+        TopExp::MapShapes(shape.get(), TopAbs_EDGE, edgeMap);
+
+        TopTools_IndexedDataMapOfShapeListOfShape edgeFaceMap;
+        TopExp::MapShapesAndAncestors(shape.get(), TopAbs_EDGE, TopAbs_FACE, edgeFaceMap);
+
+        for (size_t i = 0; i < edge_indices.size(); i++) {
+            int32_t idx = edge_indices[i] + 1;
+            if (idx >= 1 && idx <= edgeMap.Extent()) {
+                const TopoDS_Edge& edge = TopoDS::Edge(edgeMap(idx));
+                const TopTools_ListOfShape& faces = edgeFaceMap.FindFromKey(edge);
+                if (!faces.IsEmpty()) {
+                    const TopoDS_Face& face = TopoDS::Face(faces.First());
+                    chamfer.AddDA(distances[i], angles[i], edge, face);
+                }
+            }
+        }
+
+        chamfer.Build();
+        if (!chamfer.IsDone()) return nullptr;
+
+        return std::make_unique<OcctShape>(chamfer.Shape());
+    } catch (...) {
         return nullptr;
     }
 }
@@ -2605,6 +2796,7 @@ static void count_shape_topology(const TopoDS_Shape& shape, int& faces, int& edg
 }
 
 // Helper function to extract 2D edges from a TopoDS_Shape (with curve tessellation)
+// Uses BRepAdaptor_Curve which works with HLR result edges (they don't have Geom_Curve)
 static int extract_2d_edges(
     const TopoDS_Shape& shape,
     int line_type,
@@ -2617,77 +2809,74 @@ static int extract_2d_edges(
     }
 
     int extracted = 0;
-    int skipped_null_curve = 0;
     int skipped_degenerate = 0;
+    int from_adaptor = 0;
+    int from_vertices = 0;
 
     TopExp_Explorer explorer(shape, TopAbs_EDGE);
     for (; explorer.More(); explorer.Next()) {
         const TopoDS_Edge& edge = TopoDS::Edge(explorer.Current());
 
-        Standard_Real first, last;
-        Handle(Geom_Curve) curve = BRep_Tool::Curve(edge, first, last);
-        if (curve.IsNull()) {
-            skipped_null_curve++;
+        // Skip degenerate edges
+        if (BRep_Tool::Degenerated(edge)) {
+            skipped_degenerate++;
             continue;
         }
 
-        // Check if curve is a straight line
-        GeomAdaptor_Curve adaptor(curve);
-        bool isLine = (adaptor.GetType() == GeomAbs_Line);
+        // Try using BRepAdaptor_Curve (works for all edge types including HLR results)
+        try {
+            BRepAdaptor_Curve adaptor(edge);
+            Standard_Real first = adaptor.FirstParameter();
+            Standard_Real last = adaptor.LastParameter();
 
-        if (isLine) {
-            // For lines, just use start and end points
-            gp_Pnt startPt = curve->Value(first);
-            gp_Pnt endPt = curve->Value(last);
+            // Check for valid parameter range
+            if (Precision::IsInfinite(first) || Precision::IsInfinite(last) || first >= last) {
+                // Fall back to vertex extraction
+                TopoDS_Vertex v1, v2;
+                TopExp::Vertices(edge, v1, v2);
 
-            Line2DFFI line;
-            line.start_x = startPt.X();
-            line.start_y = startPt.Y();
-            line.end_x = endPt.X();
-            line.end_y = endPt.Y();
-            line.line_type = line_type;
+                if (!v1.IsNull() && !v2.IsNull()) {
+                    gp_Pnt p1 = BRep_Tool::Pnt(v1);
+                    gp_Pnt p2 = BRep_Tool::Pnt(v2);
 
-            double len = std::sqrt(
-                std::pow(line.end_x - line.start_x, 2) +
-                std::pow(line.end_y - line.start_y, 2)
-            );
-            if (len <= 1e-7) {
-                skipped_degenerate++;
+                    Line2DFFI line;
+                    line.start_x = p1.X();
+                    line.start_y = p1.Y();
+                    line.end_x = p2.X();
+                    line.end_y = p2.Y();
+                    line.line_type = line_type;
+
+                    double len = std::sqrt(
+                        std::pow(line.end_x - line.start_x, 2) +
+                        std::pow(line.end_y - line.start_y, 2)
+                    );
+                    if (len > 1e-7) {
+                        min_x = std::min({min_x, line.start_x, line.end_x});
+                        min_y = std::min({min_y, line.start_y, line.end_y});
+                        max_x = std::max({max_x, line.start_x, line.end_x});
+                        max_y = std::max({max_y, line.start_y, line.end_y});
+                        lines.push_back(line);
+                        extracted++;
+                        from_vertices++;
+                    }
+                }
                 continue;
             }
 
-            min_x = std::min({min_x, line.start_x, line.end_x});
-            min_y = std::min({min_y, line.start_y, line.end_y});
-            max_x = std::max({max_x, line.start_x, line.end_x});
-            max_y = std::max({max_y, line.start_y, line.end_y});
+            // Check curve type
+            GeomAbs_CurveType curveType = adaptor.GetType();
+            bool isLine = (curveType == GeomAbs_Line);
 
-            lines.push_back(line);
-            extracted++;
-        } else {
-            // For curves (arcs, B-splines, etc.), tessellate into line segments
-            // Calculate number of segments based on curve length and curvature
-            double paramRange = last - first;
-
-            // Estimate curve length for segment count
-            GCPnts_AbscissaPoint::Length(adaptor, first, last);
-            double curveLen = GCPnts_AbscissaPoint::Length(adaptor, first, last);
-
-            // Use more segments for longer/curved edges (min 8, max 64)
-            int numSegments = std::max(8, std::min(64, static_cast<int>(curveLen * 4)));
-            double step = paramRange / numSegments;
-
-            gp_Pnt prevPt = curve->Value(first);
-            for (int i = 1; i <= numSegments; i++) {
-                double param = first + i * step;
-                if (param > last) param = last;
-
-                gp_Pnt currPt = curve->Value(param);
+            if (isLine) {
+                // For lines, just use start and end points
+                gp_Pnt startPt = adaptor.Value(first);
+                gp_Pnt endPt = adaptor.Value(last);
 
                 Line2DFFI line;
-                line.start_x = prevPt.X();
-                line.start_y = prevPt.Y();
-                line.end_x = currPt.X();
-                line.end_y = currPt.Y();
+                line.start_x = startPt.X();
+                line.start_y = startPt.Y();
+                line.end_x = endPt.X();
+                line.end_y = endPt.Y();
                 line.line_type = line_type;
 
                 double len = std::sqrt(
@@ -2702,9 +2891,79 @@ static int extract_2d_edges(
 
                     lines.push_back(line);
                     extracted++;
+                    from_adaptor++;
+                } else {
+                    skipped_degenerate++;
                 }
+            } else {
+                // For curves (arcs, B-splines, etc.), tessellate into line segments
+                double paramRange = last - first;
 
-                prevPt = currPt;
+                // Estimate number of segments based on parameter range
+                int numSegments = std::max(8, std::min(64, static_cast<int>(paramRange * 10)));
+                double step = paramRange / numSegments;
+
+                gp_Pnt prevPt = adaptor.Value(first);
+                for (int i = 1; i <= numSegments; i++) {
+                    double param = first + i * step;
+                    if (param > last) param = last;
+
+                    gp_Pnt currPt = adaptor.Value(param);
+
+                    Line2DFFI line;
+                    line.start_x = prevPt.X();
+                    line.start_y = prevPt.Y();
+                    line.end_x = currPt.X();
+                    line.end_y = currPt.Y();
+                    line.line_type = line_type;
+
+                    double len = std::sqrt(
+                        std::pow(line.end_x - line.start_x, 2) +
+                        std::pow(line.end_y - line.start_y, 2)
+                    );
+                    if (len > 1e-7) {
+                        min_x = std::min({min_x, line.start_x, line.end_x});
+                        min_y = std::min({min_y, line.start_y, line.end_y});
+                        max_x = std::max({max_x, line.start_x, line.end_x});
+                        max_y = std::max({max_y, line.start_y, line.end_y});
+
+                        lines.push_back(line);
+                        extracted++;
+                        from_adaptor++;
+                    }
+
+                    prevPt = currPt;
+                }
+            }
+        } catch (...) {
+            // If BRepAdaptor fails, try direct vertex extraction
+            TopoDS_Vertex v1, v2;
+            TopExp::Vertices(edge, v1, v2);
+
+            if (!v1.IsNull() && !v2.IsNull()) {
+                gp_Pnt p1 = BRep_Tool::Pnt(v1);
+                gp_Pnt p2 = BRep_Tool::Pnt(v2);
+
+                Line2DFFI line;
+                line.start_x = p1.X();
+                line.start_y = p1.Y();
+                line.end_x = p2.X();
+                line.end_y = p2.Y();
+                line.line_type = line_type;
+
+                double len = std::sqrt(
+                    std::pow(line.end_x - line.start_x, 2) +
+                    std::pow(line.end_y - line.start_y, 2)
+                );
+                if (len > 1e-7) {
+                    min_x = std::min({min_x, line.start_x, line.end_x});
+                    min_y = std::min({min_y, line.start_y, line.end_y});
+                    max_x = std::max({max_x, line.start_x, line.end_x});
+                    max_y = std::max({max_y, line.start_y, line.end_y});
+                    lines.push_back(line);
+                    extracted++;
+                    from_vertices++;
+                }
             }
         }
     }
@@ -2712,7 +2971,7 @@ static int extract_2d_edges(
     // Log extraction results for debugging
     std::cerr << "[HLR] extract_2d_edges type=" << line_type
               << ": extracted=" << extracted
-              << ", null_curves=" << skipped_null_curve
+              << " (adaptor=" << from_adaptor << ", vertices=" << from_vertices << ")"
               << ", degenerate=" << skipped_degenerate << std::endl;
 
     return extracted;

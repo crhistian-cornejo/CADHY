@@ -18,7 +18,7 @@ export function ToolsPanel() {
   const [openSections, setOpenSections] = useState<ToolSection[]>(["measurement"])
 
   return (
-    <ScrollArea className="h-full">
+    <ScrollArea className="h-full" showFadeMasks>
       <Accordion
         type="multiple"
         value={openSections}

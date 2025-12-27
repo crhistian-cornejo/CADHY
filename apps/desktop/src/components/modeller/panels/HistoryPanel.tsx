@@ -246,7 +246,7 @@ export function HistoryPanel({ className }: HistoryPanelProps) {
       </div>
 
       {/* History List */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1 min-h-0" showFadeMasks>
         <div className="p-2">
           {reversedHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">

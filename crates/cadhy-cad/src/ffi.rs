@@ -474,6 +474,9 @@ pub mod ffi {
             height: f64,
         ) -> UniquePtr<OcctShape>;
 
+        /// Create a cylinder centered at origin (matching Three.js CylinderGeometry)
+        fn make_cylinder_centered(radius: f64, height: f64) -> UniquePtr<OcctShape>;
+
         /// Create a sphere at origin
         fn make_sphere(radius: f64) -> UniquePtr<OcctShape>;
 
@@ -495,6 +498,9 @@ pub mod ffi {
             r2: f64,
             height: f64,
         ) -> UniquePtr<OcctShape>;
+
+        /// Create a cone centered at origin (matching Three.js ConeGeometry)
+        fn make_cone_centered(r1: f64, r2: f64, height: f64) -> UniquePtr<OcctShape>;
 
         /// Create a torus
         fn make_torus(major_radius: f64, minor_radius: f64) -> UniquePtr<OcctShape>;
@@ -611,6 +617,30 @@ pub mod ffi {
             shape: &OcctShape,
             edge_indices: &[i32],
             distances: &[f64],
+        ) -> UniquePtr<OcctShape>;
+
+        /// Apply advanced fillet with continuity control
+        fn fillet_edges_advanced(
+            shape: &OcctShape,
+            edge_indices: &[i32],
+            radii: &[f64],
+            continuity: i32,
+        ) -> UniquePtr<OcctShape>;
+
+        /// Apply chamfer with two different distances per edge
+        fn chamfer_edges_two_distances(
+            shape: &OcctShape,
+            edge_indices: &[i32],
+            distances1: &[f64],
+            distances2: &[f64],
+        ) -> UniquePtr<OcctShape>;
+
+        /// Apply chamfer with distance and angle per edge
+        fn chamfer_edges_distance_angle(
+            shape: &OcctShape,
+            edge_indices: &[i32],
+            distances: &[f64],
+            angles: &[f64],
         ) -> UniquePtr<OcctShape>;
 
         /// Add draft angle to faces (for mold release)

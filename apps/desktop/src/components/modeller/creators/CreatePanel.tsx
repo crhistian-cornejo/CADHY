@@ -1376,7 +1376,7 @@ export function CreatePanel({ className }: CreatePanelProps) {
       role="region"
       aria-label={t("createPanel.title", "Create Objects")}
     >
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1 min-h-0" showFadeMasks>
         <div className="p-3 space-y-2">
           {/* PRIMITIVES SECTION */}
           <Collapsible open={primitivesOpen} onOpenChange={setPrimitivesOpen}>

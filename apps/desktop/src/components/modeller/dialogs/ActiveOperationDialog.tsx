@@ -3,16 +3,22 @@
  *
  * Floating dialog for active CAD operations, inspired by Plasticity.
  * Shows operation parameters with real-time preview.
- *
- * Features:
- * - Floating position (bottom-left of viewport)
- * - Operation name and status
- * - Parameter inputs with keyboard shortcuts
- * - Grow mode selector
- * - OK/Cancel actions with Esc/Enter hints
  */
 
-import { Button, cn, Input, Label, RadioGroup, RadioGroupItem, Separator } from "@cadhy/ui"
+import {
+  Button,
+  cn,
+  Input,
+  Label,
+  RadioGroup,
+  RadioGroupItem,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
+} from "@cadhy/ui"
 import {
   AlertCircleIcon,
   Cancel01Icon,
@@ -51,35 +57,23 @@ export interface OperationParameter {
   min?: number
   max?: number
   step?: number
-  type?: "number" | "text"
+  type?: "number" | "text" | "select" | "radio"
+  options?: { value: string | number; label: string }[]
 }
 
 export interface ActiveOperationDialogProps {
-  /** Whether the dialog is visible */
   open: boolean
-  /** Operation type (determines icon and behavior) */
   operation: OperationType
-  /** Operation display name */
   title: string
-  /** Current status message */
   status?: string
-  /** Status type for styling */
   statusType?: "info" | "warning" | "error" | "success"
-  /** Operation parameters */
   parameters: OperationParameter[]
-  /** Current grow mode */
   growMode?: GrowMode
-  /** Whether grow mode selector is shown */
   showGrowMode?: boolean
-  /** Called when a parameter value changes */
   onParameterChange?: (id: string, value: number | string) => void
-  /** Called when grow mode changes */
   onGrowModeChange?: (mode: GrowMode) => void
-  /** Called when OK is clicked or Enter is pressed */
   onConfirm?: () => void
-  /** Called when Cancel is clicked or Escape is pressed */
   onCancel?: () => void
-  /** Additional class name */
   className?: string
 }
 
@@ -137,6 +131,68 @@ function ParameterInput({ param, onChange }: ParameterInputProps) {
     } else {
       onChange(e.target.value)
     }
+  }
+
+  if (param.type === "radio") {
+    return (
+      <div className="space-y-1.5 pt-1">
+        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          {param.label}
+        </Label>
+        <RadioGroup
+          value={param.value.toString()}
+          onValueChange={(v) =>
+            onChange(param.id === "continuity" ? parseInt(v as string) : (v as string))
+          }
+          className="flex gap-1"
+        >
+          {param.options?.map((opt) => (
+            <div key={opt.value} className="flex-1">
+              <RadioGroupItem
+                value={opt.value.toString()}
+                id={`${param.id}-${opt.value}`}
+                className="sr-only"
+              />
+              <Label
+                htmlFor={`${param.id}-${opt.value}`}
+                className={cn(
+                  "flex items-center justify-center h-6 text-[10px] rounded-2xl cursor-pointer transition-colors border",
+                  param.value.toString() === opt.value.toString()
+                    ? "bg-primary/20 text-primary border-primary/40"
+                    : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50"
+                )}
+              >
+                {opt.label}
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+    )
+  }
+
+  if (param.type === "select") {
+    return (
+      <div className="flex items-center gap-2">
+        <Label className="text-xs text-muted-foreground min-w-[80px]">{param.label}</Label>
+        <Select value={param.value.toString()} onValueChange={(v) => onChange(v as string)}>
+          <SelectTrigger className="h-7 text-xs bg-muted/30 border-border/40 rounded-2xl flex-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="rounded-2xl border-border/40 bg-background/95 backdrop-blur-md">
+            {param.options?.map((opt) => (
+              <SelectItem
+                key={opt.value}
+                value={opt.value.toString()}
+                className="text-xs rounded-xl"
+              >
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    )
   }
 
   return (
@@ -215,7 +271,6 @@ function GrowModeSelector({ value, onChange }: GrowModeSelectorProps) {
 
 export function ActiveOperationDialog({
   open,
-  operation,
   title,
   status,
   statusType = "info",

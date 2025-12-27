@@ -298,6 +298,201 @@ export function recalculateDimensionWithOffset(
 }
 
 /**
+ * Create an angular dimension from three points
+ * @param p1 - First point on leg A
+ * @param vertex - Vertex (center of angle)
+ * @param p3 - First point on leg B
+ * @param config - Dimension configuration
+ * @param radius - Arc radius (defaults to config.offset * 2)
+ * @param measureReflex - If true, measure the exterior/reflex angle instead of interior
+ */
+export function createAngularDimension(
+  p1: Point2D,
+  vertex: Point2D,
+  p3: Point2D,
+  config: DimensionConfig,
+  radius: number = config.offset * 2,
+  measureReflex: boolean = false
+): Dimension {
+  // Calculate angles from vertex to each point
+  const angle1 = Math.atan2(p1.y - vertex.y, p1.x - vertex.x)
+  const angle2 = Math.atan2(p3.y - vertex.y, p3.x - vertex.x)
+
+  // Calculate the angle between the two legs
+  let angleDiff = angle2 - angle1
+
+  // Normalize to [0, 2π)
+  while (angleDiff < 0) angleDiff += 2 * Math.PI
+  while (angleDiff >= 2 * Math.PI) angleDiff -= 2 * Math.PI
+
+  // Determine which angle to measure based on measureReflex flag
+  const naturallyReflex = angleDiff > Math.PI
+  const shouldDrawReflex = measureReflex ? !naturallyReflex : naturallyReflex
+
+  // Calculate the angle value to display
+  let angleValue: number
+  if (measureReflex) {
+    // User wants the exterior/reflex angle
+    angleValue = naturallyReflex ? angleDiff : 2 * Math.PI - angleDiff
+  } else {
+    // User wants the interior angle (default)
+    angleValue = naturallyReflex ? 2 * Math.PI - angleDiff : angleDiff
+  }
+
+  // Start and end angles for the arc
+  let startAngle = angle1
+  let endAngle = angle2
+  if (shouldDrawReflex) {
+    // Swap to draw the opposite arc
+    startAngle = angle2
+    endAngle = angle1
+  }
+
+  // Normalize angles for consistent arc drawing
+  while (endAngle < startAngle) endAngle += 2 * Math.PI
+
+  // Calculate midpoint angle for text position
+  const midAngle = (startAngle + endAngle) / 2
+
+  // Arc endpoints (on the dimension arc)
+  const arcStart: Point2D = {
+    x: vertex.x + Math.cos(startAngle) * radius,
+    y: vertex.y + Math.sin(startAngle) * radius,
+  }
+  const arcEnd: Point2D = {
+    x: vertex.x + Math.cos(endAngle) * radius,
+    y: vertex.y + Math.sin(endAngle) * radius,
+  }
+
+  // Text position at the midpoint of the arc
+  const textRadius = radius + config.textHeight * 0.5
+  const textPos: Point2D = {
+    x: vertex.x + Math.cos(midAngle) * textRadius,
+    y: vertex.y + Math.sin(midAngle) * textRadius,
+  }
+
+  // Extension lines from vertex towards the leg points
+  const extLen = radius + config.extensionOvershoot
+  const ext1End: Point2D = {
+    x: vertex.x + Math.cos(startAngle) * extLen,
+    y: vertex.y + Math.sin(startAngle) * extLen,
+  }
+  const ext2End: Point2D = {
+    x: vertex.x + Math.cos(endAngle) * extLen,
+    y: vertex.y + Math.sin(endAngle) * extLen,
+  }
+
+  // Convert angle to degrees
+  const angleDegrees = (angleValue * 180) / Math.PI
+
+  return {
+    dimType: "Angular",
+    value: angleDegrees,
+    unit: "°", // Angles always use degrees
+    textPosition: textPos,
+    point1: p1,
+    point2: vertex,
+    point3: p3,
+    arcRadius: radius,
+    extensionLines: [
+      {
+        start: vertex,
+        end: ext1End,
+      },
+      {
+        start: vertex,
+        end: ext2End,
+      },
+    ],
+    dimensionLine: {
+      start: arcStart,
+      end: arcEnd,
+      startArrow: config.arrowStyle,
+      endArrow: config.arrowStyle,
+    },
+    prefix: null,
+    suffix: null,
+    labelOverride: null,
+  }
+}
+
+/**
+ * Recalculate an angular dimension's geometry with a new arc radius
+ */
+export function recalculateAngularDimensionWithRadius(
+  dimension: Dimension,
+  newRadius: number,
+  config: DimensionConfig
+): Partial<Dimension> {
+  if (dimension.dimType !== "Angular" || !dimension.point2 || !dimension.point3) {
+    return {}
+  }
+
+  const p1 = dimension.point1
+  const vertex = dimension.point2
+  const p3 = dimension.point3
+
+  // Calculate angles from vertex to each point
+  const angle1 = Math.atan2(p1.y - vertex.y, p1.x - vertex.x)
+  const angle2 = Math.atan2(p3.y - vertex.y, p3.x - vertex.x)
+
+  // Calculate the angle between the two legs
+  let angleDiff = angle2 - angle1
+  while (angleDiff < 0) angleDiff += 2 * Math.PI
+  while (angleDiff >= 2 * Math.PI) angleDiff -= 2 * Math.PI
+
+  const isReflex = angleDiff > Math.PI
+  let startAngle = angle1
+  let endAngle = angle2
+  if (isReflex) {
+    startAngle = angle2
+    endAngle = angle1
+  }
+  while (endAngle < startAngle) endAngle += 2 * Math.PI
+
+  const midAngle = (startAngle + endAngle) / 2
+
+  const arcStart: Point2D = {
+    x: vertex.x + Math.cos(startAngle) * newRadius,
+    y: vertex.y + Math.sin(startAngle) * newRadius,
+  }
+  const arcEnd: Point2D = {
+    x: vertex.x + Math.cos(endAngle) * newRadius,
+    y: vertex.y + Math.sin(endAngle) * newRadius,
+  }
+
+  const textRadius = newRadius + config.textHeight * 0.5
+  const textPos: Point2D = {
+    x: vertex.x + Math.cos(midAngle) * textRadius,
+    y: vertex.y + Math.sin(midAngle) * textRadius,
+  }
+
+  const extLen = newRadius + config.extensionOvershoot
+  const ext1End: Point2D = {
+    x: vertex.x + Math.cos(startAngle) * extLen,
+    y: vertex.y + Math.sin(startAngle) * extLen,
+  }
+  const ext2End: Point2D = {
+    x: vertex.x + Math.cos(endAngle) * extLen,
+    y: vertex.y + Math.sin(endAngle) * extLen,
+  }
+
+  return {
+    textPosition: textPos,
+    arcRadius: newRadius,
+    extensionLines: [
+      { start: vertex, end: ext1End },
+      { start: vertex, end: ext2End },
+    ],
+    dimensionLine: {
+      ...dimension.dimensionLine,
+      start: arcStart,
+      end: arcEnd,
+    },
+  }
+}
+
+/**
  * Calculate the perpendicular distance from a point to the line defined by two points
  * Returns positive if on one side, negative if on the other
  */

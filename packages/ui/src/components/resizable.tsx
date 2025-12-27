@@ -2,93 +2,101 @@
 
 import { cn } from "@cadhy/ui/lib/utils"
 import * as React from "react"
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"
 
-const ResizableContext = React.createContext<{
-  direction?: "horizontal" | "vertical"
-}>({})
+// ============================================================================
+// ResizablePanelGroup
+// ============================================================================
 
-interface ResizablePanelGroupProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ResizablePanelGroupProps
+  extends Omit<React.ComponentProps<typeof PanelGroup>, "direction"> {
   direction?: "horizontal" | "vertical"
-  autoSaveId?: string
 }
 
 function ResizablePanelGroup({
   className,
   direction = "horizontal",
-  autoSaveId,
   ...props
 }: ResizablePanelGroupProps) {
-  // Note: autoSaveId is accepted but not used in this simple implementation
-  // Future: could implement localStorage persistence using this ID
   return (
-    <ResizableContext.Provider value={{ direction }}>
-      <div
-        data-slot="resizable-panel-group"
-        className={cn(
-          "flex h-full w-full",
-          direction === "horizontal" ? "flex-row" : "flex-col",
-          className
-        )}
-        {...props}
-      />
-    </ResizableContext.Provider>
+    <PanelGroup
+      data-slot="resizable-panel-group"
+      direction={direction}
+      className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
+      {...props}
+    />
   )
 }
 
-interface ResizablePanelProps extends React.HTMLAttributes<HTMLDivElement> {
-  defaultSize?: number
-  minSize?: number
-  maxSize?: number
-}
+// ============================================================================
+// ResizablePanel
+// ============================================================================
 
-const ResizablePanel = React.forwardRef<HTMLDivElement, ResizablePanelProps>(
-  ({ className, defaultSize, minSize, maxSize, style, ...props }, ref) => {
-    const { direction } = React.useContext(ResizableContext)
-    const flexBasis = defaultSize ? `${defaultSize}%` : undefined
-
-    return (
-      <div
-        ref={ref}
-        data-slot="resizable-panel"
-        className={cn("relative", className)}
-        style={{
-          flexBasis,
-          flexGrow: 1,
-          flexShrink: 1,
-          minWidth: direction === "horizontal" && minSize ? `${minSize}%` : undefined,
-          maxWidth: direction === "horizontal" && maxSize ? `${maxSize}%` : undefined,
-          minHeight: direction === "vertical" && minSize ? `${minSize}%` : undefined,
-          maxHeight: direction === "vertical" && maxSize ? `${maxSize}%` : undefined,
-          ...style,
-        }}
-        {...props}
-      />
-    )
-  }
-)
+const ResizablePanel = React.forwardRef<
+  React.ElementRef<typeof Panel>,
+  React.ComponentProps<typeof Panel>
+>(({ className, ...props }, ref) => (
+  <Panel ref={ref} data-slot="resizable-panel" className={cn("relative", className)} {...props} />
+))
 ResizablePanel.displayName = "ResizablePanel"
 
-const ResizableHandle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => {
-    const { direction } = React.useContext(ResizableContext)
-    const isHorizontal = direction === "horizontal"
+// ============================================================================
+// ResizableHandle
+// ============================================================================
 
-    return (
-      <div
-        ref={ref}
-        data-slot="resizable-handle"
-        className={cn(
-          "relative flex items-center justify-center bg-border transition-colors hover:bg-accent",
-          isHorizontal ? "w-px cursor-col-resize" : "h-px cursor-row-resize",
-          className
-        )}
-        {...props}
-      >
-        <div className={cn("z-10 rounded-sm bg-border", isHorizontal ? "h-4 w-1" : "h-1 w-4")} />
+interface ResizableHandleProps
+  extends Omit<React.ComponentProps<typeof PanelResizeHandle>, "children"> {
+  withHandle?: boolean
+}
+
+const ResizableHandle = React.forwardRef<
+  React.ElementRef<typeof PanelResizeHandle>,
+  ResizableHandleProps
+>(({ className, withHandle = true, ...props }, _ref) => (
+  <PanelResizeHandle
+    data-slot="resizable-handle"
+    className={cn(
+      // Base styles - visible line with cursor
+      "relative flex items-center justify-center",
+      "bg-border transition-colors",
+      // Horizontal handle (default)
+      "w-px cursor-col-resize",
+      // Hover/active states
+      "hover:bg-accent",
+      "data-[resize-handle-active]:bg-accent",
+      // No focus ring - avoid visual noise
+      "outline-none focus:outline-none focus-visible:outline-none",
+      // Vertical direction overrides
+      "data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full",
+      "data-[panel-group-direction=vertical]:cursor-row-resize",
+      "[&[data-panel-group-direction=vertical]>div]:rotate-90",
+      className
+    )}
+    {...props}
+  >
+    {withHandle && (
+      <div className="pointer-events-none z-10 flex h-4 w-3 items-center justify-center rounded-sm border bg-border">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="size-2.5"
+          role="img"
+          aria-label="Resize handle"
+        >
+          <title>Resize handle</title>
+          <circle cx="12" cy="5" r="1" />
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="12" cy="19" r="1" />
+        </svg>
       </div>
-    )
-  }
-)
+    )}
+  </PanelResizeHandle>
+))
 ResizableHandle.displayName = "ResizableHandle"
 
 export { ResizableHandle, ResizablePanel, ResizablePanelGroup }

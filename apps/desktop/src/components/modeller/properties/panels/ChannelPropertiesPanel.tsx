@@ -17,6 +17,7 @@ import {
 import { CubeIcon, GridIcon, Move01Icon, WaterEnergyIcon } from "@hugeicons/core-free-icons"
 import { useCallback } from "react"
 import { useTranslation } from "react-i18next"
+import { useUnits } from "@/hooks/use-units"
 import type {
   ChannelObject,
   ChannelSection,
@@ -43,6 +44,7 @@ export interface ChannelPropertiesPanelProps {
 
 export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPanelProps) {
   const { t } = useTranslation()
+  const { lengthLabel, convertLengthToDisplay, precision } = useUnits()
 
   // Handler for simple channel properties
   const handleChange = useCallback(
@@ -337,7 +339,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
         </PropertyRow>
         <PropertyRow label={t("properties.endStation")}>
           <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
-            {endStation.toFixed(2)} m
+            {convertLengthToDisplay(endStation).toFixed(precision)} {lengthLabel}
           </div>
         </PropertyRow>
         <PropertyRow label={t("properties.startElevation")}>
@@ -351,7 +353,7 @@ export function ChannelPropertiesPanel({ object, onUpdate }: ChannelPropertiesPa
         </PropertyRow>
         <PropertyRow label={t("properties.endElevation")}>
           <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
-            {endElevation.toFixed(3)} m
+            {convertLengthToDisplay(endElevation).toFixed(precision)} {lengthLabel}
           </div>
         </PropertyRow>
         {/* Connection info */}

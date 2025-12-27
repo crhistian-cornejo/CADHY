@@ -47,7 +47,146 @@ export const DEFAULT_SNAP_CONFIG: SnapConfig = {
   midpoints: true,
   intersections: true,
   nearest: true,
-  tolerance: 8, // mm
+  tolerance: 8, // mm (fallback, prefer using screen-space tolerance)
+}
+
+// =============================================================================
+// CONTEXTUAL SNAP CONFIGURATION
+// =============================================================================
+
+/**
+ * Dimension tool types (matches DrawingToolsPanel.tsx)
+ * Used for contextual snap filtering
+ */
+export type DimensionToolType = "auto" | "line-length" | "point-to-point" | "angle" | "nota"
+
+/**
+ * Contextual snap configurations for each dimension tool.
+ *
+ * Based on AutoCAD OSNAP behavior:
+ * - Each tool only enables snaps that make sense for its purpose
+ * - Reduces visual clutter and improves precision
+ *
+ * @see https://knowledge.autodesk.com/support/autocad/learn-explore/caas/CloudHelp/cloudhelp/2023/ENU/AutoCAD-Core/files/GUID-A0B0C82B-C0E8-4D59-8A76-9B7B6B4C5D2D-htm.html
+ */
+export const TOOL_SNAP_CONFIGS: Record<DimensionToolType, Partial<SnapConfig>> = {
+  /**
+   * Auto dimension: All snaps enabled for intelligent detection.
+   * The algorithm detects what type of dimension makes sense based on context.
+   */
+  auto: {
+    endpoints: true,
+    midpoints: true,
+    intersections: true,
+    nearest: true,
+  },
+
+  /**
+   * Line length: Only endpoints and nearest.
+   * - Endpoints: To select line termination points
+   * - Nearest: To select any point along the line for partial measurement
+   * - No midpoints/intersections: Not needed for line length
+   */
+  "line-length": {
+    endpoints: true,
+    midpoints: false,
+    intersections: false,
+    nearest: true,
+  },
+
+  /**
+   * Point-to-point: Distance between two arbitrary points.
+   * - Endpoints: Common for measuring between corners
+   * - Midpoints: Useful for center-to-center measurements
+   * - Intersections: Where lines cross
+   * - No nearest: Would be confusing for point-to-point
+   */
+  "point-to-point": {
+    endpoints: true,
+    midpoints: true,
+    intersections: true,
+    nearest: false,
+  },
+
+  /**
+   * Angle measurement: Requires 3 points to form an angle.
+   * - Endpoints: Vertex and angle arms endpoints
+   * - Intersections: Where lines meet to form vertex
+   * - No midpoints: Not typically used for angles
+   * - No nearest: Would cause imprecise angle measurements
+   */
+  angle: {
+    endpoints: true,
+    midpoints: false,
+    intersections: true,
+    nearest: false,
+  },
+
+  /**
+   * Annotation/Note: All snaps - notes can anchor anywhere.
+   */
+  nota: {
+    endpoints: true,
+    midpoints: true,
+    intersections: true,
+    nearest: true,
+  },
+}
+
+/**
+ * Get a snap configuration tailored for a specific dimension tool.
+ * This enables contextual snapping - the system only shows relevant snaps
+ * for the current operation, reducing clutter and improving precision.
+ *
+ * @param tool - The active dimension tool
+ * @param baseConfig - Optional base configuration to merge with
+ * @returns Merged snap configuration for the tool
+ *
+ * @example
+ * // When using the angle tool:
+ * const snapConfig = getSnapConfigForTool("angle")
+ * // Returns: { endpoints: true, midpoints: false, intersections: true, nearest: false, tolerance: 8 }
+ */
+export function getSnapConfigForTool(
+  tool: DimensionToolType | null,
+  baseConfig: SnapConfig = DEFAULT_SNAP_CONFIG
+): SnapConfig {
+  if (!tool) {
+    return baseConfig
+  }
+
+  const toolConfig = TOOL_SNAP_CONFIGS[tool]
+  if (!toolConfig) {
+    return baseConfig
+  }
+
+  return {
+    ...baseConfig,
+    ...toolConfig,
+  }
+}
+
+/**
+ * Default snap tolerance in screen pixels.
+ * This provides consistent snap behavior regardless of zoom level.
+ * A value of 15-20px works well for professional CAD interaction.
+ */
+export const SCREEN_SNAP_TOLERANCE_PX = 18
+
+/**
+ * Calculate zoom-aware tolerance in paper space (mm)
+ * @param screenTolerance - Tolerance in screen pixels
+ * @param paperToScreenScale - Conversion factor (screen pixels per mm)
+ * @returns Tolerance in paper space (mm)
+ */
+export function calculatePaperTolerance(
+  screenTolerance: number,
+  paperToScreenScale: number
+): number {
+  // Convert screen pixels to paper mm
+  // When zoomed in (high scale), tolerance gets smaller (more precise)
+  // When zoomed out (low scale), tolerance gets larger (easier to hit)
+  return screenTolerance / paperToScreenScale
 }
 
 // =============================================================================
@@ -156,7 +295,24 @@ export function closestPointOnLine(
 // =============================================================================
 
 /**
+ * Check if a line type is snappable (visible or hidden, but not construction/auxiliary)
+ */
+function isSnappableLineType(lineType: string): boolean {
+  return (
+    // Visible lines
+    lineType === "VisibleSharp" ||
+    lineType === "VisibleSmooth" ||
+    lineType === "VisibleOutline" ||
+    // Hidden/dashed lines
+    lineType === "HiddenSharp" ||
+    lineType === "HiddenSmooth" ||
+    lineType === "HiddenOutline"
+  )
+}
+
+/**
  * Extract all snap points from a set of lines
+ * Includes both visible and hidden (dashed) lines for complete snapping
  */
 export function extractSnapPoints(
   lines: Line2D[],
@@ -167,15 +323,9 @@ export function extractSnapPoints(
 
   const pointKey = (p: Point2D): string => `${p.x.toFixed(4)},${p.y.toFixed(4)}`
 
-  // Extract endpoints and midpoints
+  // Extract endpoints and midpoints from all snappable lines
   lines.forEach((line, index) => {
-    // Only process visible lines for snapping
-    const isVisible =
-      line.line_type === "VisibleSharp" ||
-      line.line_type === "VisibleSmooth" ||
-      line.line_type === "VisibleOutline"
-
-    if (!isVisible) return
+    if (!isSnappableLineType(line.line_type)) return
 
     // Endpoints
     if (config.endpoints) {
@@ -219,22 +369,15 @@ export function extractSnapPoints(
   })
 
   // Extract intersections (O(n²) but necessary for accuracy)
+  // Includes intersections between visible-visible, visible-hidden, and hidden-hidden lines
   if (config.intersections) {
     for (let i = 0; i < lines.length; i++) {
       const line1 = lines[i]
-      const isVisible1 =
-        line1.line_type === "VisibleSharp" ||
-        line1.line_type === "VisibleSmooth" ||
-        line1.line_type === "VisibleOutline"
-      if (!isVisible1) continue
+      if (!isSnappableLineType(line1.line_type)) continue
 
       for (let j = i + 1; j < lines.length; j++) {
         const line2 = lines[j]
-        const isVisible2 =
-          line2.line_type === "VisibleSharp" ||
-          line2.line_type === "VisibleSmooth" ||
-          line2.line_type === "VisibleOutline"
-        if (!isVisible2) continue
+        if (!isSnappableLineType(line2.line_type)) continue
 
         const intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
 
@@ -260,50 +403,74 @@ export function extractSnapPoints(
 
 /**
  * Find the nearest snap point to a given cursor position
+ * Uses a priority system where high-priority snaps (intersections, endpoints, midpoints)
+ * always win over low-priority snaps (nearest on line) when within tolerance.
+ *
+ * @param cursorPoint - Cursor position in paper coordinates
+ * @param snapPoints - Pre-extracted snap points
+ * @param lines - All lines in the view
+ * @param config - Snap configuration
+ * @param toleranceOverride - Optional tolerance in paper space (use for zoom-aware snapping)
  */
 export function findNearestSnapPoint(
   cursorPoint: Point2D,
   snapPoints: SnapPoint[],
   lines: Line2D[],
-  config: SnapConfig = DEFAULT_SNAP_CONFIG
+  config: SnapConfig = DEFAULT_SNAP_CONFIG,
+  toleranceOverride?: number
 ): SnapPoint | null {
-  let nearestSnap: SnapPoint | null = null
-  let nearestDistance = config.tolerance
+  // Use tolerance override if provided, otherwise fall back to config
+  const tolerance = toleranceOverride ?? config.tolerance
 
-  // First, check predefined snap points (endpoints, midpoints, intersections)
+  // Collect all candidate snaps with their distances
+  const candidates: Array<{ snap: SnapPoint; dist: number }> = []
+
+  // Check predefined snap points (endpoints, midpoints, intersections)
   for (const snap of snapPoints) {
     const dist = distance(cursorPoint, snap.point)
-    if (dist < nearestDistance) {
-      nearestDistance = dist
-      nearestSnap = snap
+    if (dist < tolerance) {
+      candidates.push({ snap, dist })
     }
   }
 
-  // If no predefined snap found, check for nearest point on any line
-  if (!nearestSnap && config.nearest) {
+  // Check for nearest point on any snappable line (visible or hidden)
+  if (config.nearest) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
-      const isVisible =
-        line.line_type === "VisibleSharp" ||
-        line.line_type === "VisibleSmooth" ||
-        line.line_type === "VisibleOutline"
-      if (!isVisible) continue
+      if (!isSnappableLineType(line.line_type)) continue
 
       const closest = closestPointOnLine(cursorPoint, line.start, line.end)
 
-      if (closest.distance < nearestDistance) {
-        nearestDistance = closest.distance
-        nearestSnap = {
-          point: closest.point,
-          type: "nearest",
-          priority: 10,
-          sourceLineIndex: i,
-        }
+      if (closest.distance < tolerance) {
+        candidates.push({
+          snap: {
+            point: closest.point,
+            type: "nearest",
+            priority: 10,
+            sourceLineIndex: i,
+          },
+          dist: closest.distance,
+        })
       }
     }
   }
 
-  return nearestSnap
+  if (candidates.length === 0) {
+    return null
+  }
+
+  // Sort candidates by: 1) priority (lower = better), 2) distance (closer = better)
+  candidates.sort((a, b) => {
+    // First compare by priority - lower priority wins
+    if (a.snap.priority !== b.snap.priority) {
+      return a.snap.priority - b.snap.priority
+    }
+    // Same priority - closer distance wins
+    return a.dist - b.dist
+  })
+
+  // Return the best candidate (lowest priority, closest distance)
+  return candidates[0].snap
 }
 
 // =============================================================================
@@ -328,64 +495,83 @@ export const DEFAULT_SNAP_STYLE: SnapIndicatorStyle = {
 
 /**
  * Draw a snap indicator at the given position
+ * Enhanced for better CAD-like visibility
  */
 export function drawSnapIndicator(
   ctx: CanvasRenderingContext2D,
   snap: SnapPoint,
-  size: number = 6,
+  size: number = 8,
   style: SnapIndicatorStyle = DEFAULT_SNAP_STYLE
 ): void {
   const { point, type } = snap
   const { color, symbol } = style[type]
 
   ctx.save()
-  ctx.strokeStyle = color
-  ctx.fillStyle = "transparent"
-  ctx.lineWidth = 1.5
 
   const x = point.x
   const y = -point.y // Canvas Y is inverted
 
+  // Draw subtle glow/background for better visibility
+  ctx.shadowColor = color
+  ctx.shadowBlur = size * 0.5
+  ctx.strokeStyle = color
+  ctx.fillStyle = "transparent"
+  // Line width proportional to size for consistent appearance at any zoom
+  ctx.lineWidth = size * 0.25
+
   switch (symbol) {
     case "square":
-      // Endpoint: hollow square
+      // Endpoint: hollow square with crosshairs
       ctx.strokeRect(x - size / 2, y - size / 2, size, size)
+      // Add small crosshairs inside
+      ctx.beginPath()
+      ctx.moveTo(x - size * 0.2, y)
+      ctx.lineTo(x + size * 0.2, y)
+      ctx.moveTo(x, y - size * 0.2)
+      ctx.lineTo(x, y + size * 0.2)
+      ctx.stroke()
       break
 
     case "triangle":
-      // Midpoint: hollow triangle
+      // Midpoint: hollow triangle pointing down
       ctx.beginPath()
-      ctx.moveTo(x, y - size / 2)
-      ctx.lineTo(x - size / 2, y + size / 2)
-      ctx.lineTo(x + size / 2, y + size / 2)
+      ctx.moveTo(x, y + size / 2)
+      ctx.lineTo(x - size / 2, y - size / 2)
+      ctx.lineTo(x + size / 2, y - size / 2)
       ctx.closePath()
       ctx.stroke()
       break
 
     case "x":
-      // Intersection: X mark
+      // Intersection: X mark inside a circle for visibility
       ctx.beginPath()
-      ctx.moveTo(x - size / 2, y - size / 2)
-      ctx.lineTo(x + size / 2, y + size / 2)
-      ctx.moveTo(x + size / 2, y - size / 2)
-      ctx.lineTo(x - size / 2, y + size / 2)
+      ctx.arc(x, y, size * 0.6, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(x - size * 0.35, y - size * 0.35)
+      ctx.lineTo(x + size * 0.35, y + size * 0.35)
+      ctx.moveTo(x + size * 0.35, y - size * 0.35)
+      ctx.lineTo(x - size * 0.35, y + size * 0.35)
       ctx.stroke()
       break
 
     case "circle":
-      // Nearest/Center: hollow circle
+      // Nearest/Center: hollow circle with dot
       ctx.beginPath()
       ctx.arc(x, y, size / 2, 0, Math.PI * 2)
       ctx.stroke()
+      // Add center dot for precision
+      ctx.fillStyle = color
+      ctx.beginPath()
+      ctx.arc(x, y, size * 0.15, 0, Math.PI * 2)
+      ctx.fill()
       break
   }
 
-  // Draw tooltip label
-  ctx.fillStyle = color
-  ctx.font = "10px sans-serif"
-  ctx.textAlign = "center"
-  ctx.textBaseline = "bottom"
+  // Remove shadow for text
+  ctx.shadowBlur = 0
 
+  // Draw tooltip label with background
   const labels: Record<SnapType, string> = {
     endpoint: "Extremo",
     midpoint: "Medio",
@@ -394,7 +580,32 @@ export function drawSnapIndicator(
     center: "Centro",
   }
 
-  ctx.fillText(labels[type], x, y - size - 2)
+  const labelText = labels[type]
+  // Font size proportional to indicator size for consistent appearance at any zoom
+  const fontSize = size * 1.1 // Slightly larger than indicator for readability
+  ctx.font = `bold ${fontSize}px sans-serif`
+  ctx.textAlign = "center"
+  ctx.textBaseline = "bottom"
+
+  // Measure text for background
+  const textMetrics = ctx.measureText(labelText)
+  const textWidth = textMetrics.width
+  const textHeight = fontSize
+  const padding = size * 0.25 // Proportional padding
+  const labelY = y - size - size * 0.5 // Proportional offset
+
+  // Draw label background
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)"
+  ctx.fillRect(
+    x - textWidth / 2 - padding,
+    labelY - textHeight - padding,
+    textWidth + padding * 2,
+    textHeight + padding * 2
+  )
+
+  // Draw label text
+  ctx.fillStyle = color
+  ctx.fillText(labelText, x, labelY)
 
   ctx.restore()
 }

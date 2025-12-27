@@ -287,10 +287,12 @@ std::unique_ptr<OcctShape> make_box_at(double x, double y, double z, double dx, 
 std::unique_ptr<OcctShape> make_box_centered(double dx, double dy, double dz);
 std::unique_ptr<OcctShape> make_cylinder(double radius, double height);
 std::unique_ptr<OcctShape> make_cylinder_at(double x, double y, double z, double ax, double ay, double az, double radius, double height);
+std::unique_ptr<OcctShape> make_cylinder_centered(double radius, double height);
 std::unique_ptr<OcctShape> make_sphere(double radius);
 std::unique_ptr<OcctShape> make_sphere_at(double x, double y, double z, double radius);
 std::unique_ptr<OcctShape> make_cone(double r1, double r2, double height);
 std::unique_ptr<OcctShape> make_cone_at(double x, double y, double z, double ax, double ay, double az, double r1, double r2, double height);
+std::unique_ptr<OcctShape> make_cone_centered(double r1, double r2, double height);
 std::unique_ptr<OcctShape> make_torus(double major_radius, double minor_radius);
 std::unique_ptr<OcctShape> make_torus_at(double x, double y, double z, double ax, double ay, double az, double major_radius, double minor_radius);
 std::unique_ptr<OcctShape> make_wedge(double dx, double dy, double dz, double ltx);
@@ -389,6 +391,32 @@ std::unique_ptr<OcctShape> chamfer_edges(
     const OcctShape& shape,
     rust::Slice<const int32_t> edge_indices,
     rust::Slice<const double> distances
+);
+
+/// Apply advanced fillet to specific edges
+/// continuity: 0=C0, 1=C1(G1), 2=C2(G2)
+std::unique_ptr<OcctShape> fillet_edges_advanced(
+    const OcctShape& shape,
+    rust::Slice<const int32_t> edge_indices,
+    rust::Slice<const double> radii,
+    int32_t continuity
+);
+
+/// Apply advanced chamfer to specific edges (two distances)
+std::unique_ptr<OcctShape> chamfer_edges_two_distances(
+    const OcctShape& shape,
+    rust::Slice<const int32_t> edge_indices,
+    rust::Slice<const double> distances1,
+    rust::Slice<const double> distances2
+);
+
+/// Apply advanced chamfer to specific edges (distance and angle)
+/// angles: angle in radians
+std::unique_ptr<OcctShape> chamfer_edges_distance_angle(
+    const OcctShape& shape,
+    rust::Slice<const int32_t> edge_indices,
+    rust::Slice<const double> distances,
+    rust::Slice<const double> angles
 );
 
 /// Add draft angle to faces (for mold release)

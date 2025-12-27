@@ -22,6 +22,57 @@ import type {
 
 const log = loggers.store
 
+/**
+ * Convert a value to an array of numbers for TypedArray restoration.
+ *
+ * After JSON.parse(JSON.stringify()), TypedArrays become objects with numeric keys:
+ *   JSON.stringify(new Float32Array([1,2,3])) → '{"0":1,"1":2,"2":3}'
+ *   JSON.parse(...) → {0: 1, 1: 2, 2: 3} (NOT an array!)
+ *
+ * This function handles all cases:
+ * - Already a TypedArray (return as array)
+ * - Regular array (return as-is)
+ * - Object with numeric keys from JSON serialization (convert to array)
+ */
+function toNumberArray(value: unknown): number[] | null {
+  if (value == null) return null
+
+  // Already a TypedArray - convert to regular array
+  if (value instanceof Float32Array || value instanceof Uint32Array) {
+    return Array.from(value)
+  }
+
+  // Already a regular array
+  if (Array.isArray(value)) {
+    return value
+  }
+
+  // Object with numeric keys (from JSON-serialized TypedArray)
+  if (typeof value === "object" && value !== null) {
+    const obj = value as Record<string, number>
+    const keys = Object.keys(obj)
+
+    // Must have keys and all must be numeric
+    if (keys.length === 0) return null
+
+    // Check if all keys are numeric (strings that represent numbers)
+    const allNumericKeys = keys.every((k) => /^\d+$/.test(k))
+    if (!allNumericKeys) return null
+
+    // Extract values in order (0, 1, 2, ...)
+    const result: number[] = []
+    for (let i = 0; i < keys.length; i++) {
+      const val = obj[String(i)]
+      if (val === undefined) break // Stop at first gap
+      result.push(val)
+    }
+
+    return result.length > 0 ? result : null
+  }
+
+  return null
+}
+
 // Helper function to restore TypedArrays in mesh data after JSON deserialization
 // Also ensures all object properties including transform are preserved
 function restoreHistoryObjects(objects: AnySceneObject[]): AnySceneObject[] {
@@ -50,42 +101,21 @@ function restoreHistoryObjects(objects: AnySceneObject[]): AnySceneObject[] {
         | ChuteObject
       if (objWithMesh.mesh) {
         const mesh = objWithMesh.mesh
-        // Check if arrays are regular arrays (from JSON) and convert to TypedArrays
-        // After JSON.parse(JSON.stringify()), TypedArrays become regular arrays
-        const meshVertices = mesh.vertices as Float32Array | number[] | unknown
-        const meshIndices = mesh.indices as Uint32Array | number[] | unknown
-        const meshNormals = mesh.normals as Float32Array | number[] | unknown | undefined
+
+        // Convert mesh data to number arrays, handling JSON-serialized TypedArrays
+        const verticesArray = toNumberArray(mesh.vertices)
+        const indicesArray = toNumberArray(mesh.indices)
+        const normalsArray = toNumberArray(mesh.normals)
 
         const restoredMesh = {
           ...mesh,
-          vertices:
-            meshVertices instanceof Float32Array
-              ? meshVertices
-              : Array.isArray(meshVertices)
-                ? new Float32Array(meshVertices)
-                : new Float32Array(0),
-          indices:
-            meshIndices instanceof Uint32Array
-              ? meshIndices
-              : Array.isArray(meshIndices)
-                ? new Uint32Array(meshIndices)
-                : new Uint32Array(0),
-          normals: (() => {
-            if (meshNormals instanceof Float32Array) {
-              return meshNormals
-            }
-            if (Array.isArray(meshNormals)) {
-              return new Float32Array(meshNormals)
-            }
-            // Fallback: create normals array matching vertices length
-            if (meshVertices instanceof Float32Array) {
-              return new Float32Array(meshVertices.length)
-            }
-            if (Array.isArray(meshVertices)) {
-              return new Float32Array(meshVertices.length)
-            }
-            return new Float32Array(0)
-          })(),
+          vertices: verticesArray ? new Float32Array(verticesArray) : new Float32Array(0),
+          indices: indicesArray ? new Uint32Array(indicesArray) : new Uint32Array(0),
+          normals: normalsArray
+            ? new Float32Array(normalsArray)
+            : verticesArray
+              ? new Float32Array(verticesArray.length) // Fallback: empty normals matching vertices
+              : new Float32Array(0),
         }
         return { ...objWithMesh, mesh: restoredMesh }
       }
@@ -149,15 +179,55 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
   saveToHistory: (action, details) => {
     const { objects, selectedIds, history, historyIndex } = get()
 
+    // DEBUG: Log compound shapes before serialization
+    const compoundShapes = objects.filter(
+      (obj) => obj.type === "shape" && (obj as ShapeObject).shapeType === "compound"
+    )
+    if (compoundShapes.length > 0) {
+      for (const shape of compoundShapes) {
+        const shapeObj = shape as ShapeObject
+        console.log("[saveToHistory] BEFORE serialize - compound shape:", shapeObj.id, {
+          name: shapeObj.name,
+          hasMesh: !!shapeObj.mesh,
+          verticesType: shapeObj.mesh?.vertices?.constructor?.name,
+          verticesLength: shapeObj.mesh?.vertices?.length ?? 0,
+        })
+      }
+    }
+
     // Remove any redo history (actions after current position)
     const newHistory = history.slice(0, historyIndex + 1)
+
+    // Serialize objects
+    const serializedObjects = JSON.parse(JSON.stringify(objects))
+
+    // DEBUG: Log compound shapes after serialization
+    const serializedCompounds = serializedObjects.filter(
+      (obj: AnySceneObject) => obj.type === "shape" && (obj as ShapeObject).shapeType === "compound"
+    )
+    if (serializedCompounds.length > 0) {
+      for (const shape of serializedCompounds) {
+        const shapeObj = shape as ShapeObject
+        const mesh = shapeObj.mesh as { vertices?: unknown; indices?: unknown } | undefined
+        const verticesKeys =
+          mesh?.vertices && typeof mesh.vertices === "object"
+            ? Object.keys(mesh.vertices as object).length
+            : 0
+        console.log("[saveToHistory] AFTER serialize - compound shape:", shapeObj.id, {
+          name: shapeObj.name,
+          hasMesh: !!mesh,
+          verticesType: mesh?.vertices?.constructor?.name ?? typeof mesh?.vertices,
+          verticesKeys, // Number of keys if it's an object
+        })
+      }
+    }
 
     // Add new entry with current state (after the action)
     newHistory.push({
       id: nanoid(),
       timestamp: Date.now(),
       action,
-      objects: JSON.parse(JSON.stringify(objects)),
+      objects: serializedObjects,
       selection: [...selectedIds],
       details,
     })
@@ -204,6 +274,23 @@ export const createHistorySlice: StateCreator<ModellerStore, [], [], HistorySlic
       "historyIndex:",
       historyIndex
     )
+
+    // DEBUG: Log compound shapes being saved to history
+    const compoundShapes = objects.filter(
+      (obj) => obj.type === "shape" && (obj as ShapeObject).shapeType === "compound"
+    )
+    if (compoundShapes.length > 0) {
+      for (const shape of compoundShapes) {
+        const shapeObj = shape as ShapeObject
+        log.log("[commitToHistory] Saving compound shape:", shapeObj.id, {
+          name: shapeObj.name,
+          hasMesh: !!shapeObj.mesh,
+          verticesType: shapeObj.mesh?.vertices?.constructor?.name,
+          verticesLength: shapeObj.mesh?.vertices?.length ?? 0,
+          indicesLength: shapeObj.mesh?.indices?.length ?? 0,
+        })
+      }
+    }
 
     if (!pendingHistoryState) {
       // No pending state - just save current state
