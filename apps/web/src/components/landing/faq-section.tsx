@@ -1,11 +1,10 @@
 /**
- * FAQ Section Component
+ * FAQ Section Component - CAD Style Terminal Design
  *
- * Frequently asked questions with accordion-style answers.
+ * Interactive FAQ with selectable questions and CAD-style decorative elements.
+ * Features terminal-like IN:/OUT: labels, blur transitions, and animated Bézier curve.
  */
 
-import { ArrowDown01Icon, HelpCircleIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 import { useState } from "react"
 import { useTranslation } from "@/lib/i18n"
 
@@ -102,88 +101,372 @@ const FAQ_ITEMS_ES: FAQItem[] = [
   },
 ]
 
-function FAQItemComponent({
-  item,
-  isOpen,
-  onToggle,
+// CAD-style SVG pattern background component
+function CADPatternBackground() {
+  return (
+    <svg
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        {/* Pattern: CAD blueprint style with small squares and lines */}
+        <pattern id="pattern-cad" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+          {/* Main grid */}
+          <path
+            d="M 80 0 L 0 0 0 80"
+            fill="none"
+            className="stroke-current text-muted-foreground/8"
+            strokeWidth="0.5"
+          />
+          {/* Sub grid */}
+          <path
+            d="M 40 0 L 40 80 M 0 40 L 80 40"
+            fill="none"
+            className="stroke-current text-muted-foreground/5"
+            strokeWidth="0.25"
+          />
+          {/* Corner markers */}
+          <rect
+            x="0"
+            y="0"
+            width="3"
+            height="3"
+            className="fill-current text-muted-foreground/10"
+          />
+          <rect
+            x="38.5"
+            y="0"
+            width="3"
+            height="3"
+            className="fill-current text-muted-foreground/5"
+          />
+          <rect
+            x="0"
+            y="38.5"
+            width="3"
+            height="3"
+            className="fill-current text-muted-foreground/5"
+          />
+          {/* Small cross markers */}
+          <path
+            d="M 20 18 L 20 22 M 18 20 L 22 20"
+            fill="none"
+            className="stroke-current text-muted-foreground/8"
+            strokeWidth="0.5"
+          />
+          <path
+            d="M 60 18 L 60 22 M 58 20 L 62 20"
+            fill="none"
+            className="stroke-current text-muted-foreground/8"
+            strokeWidth="0.5"
+          />
+          <path
+            d="M 20 58 L 20 62 M 18 60 L 22 60"
+            fill="none"
+            className="stroke-current text-muted-foreground/8"
+            strokeWidth="0.5"
+          />
+          <path
+            d="M 60 58 L 60 62 M 58 60 L 62 60"
+            fill="none"
+            className="stroke-current text-muted-foreground/8"
+            strokeWidth="0.5"
+          />
+        </pattern>
+
+        {/* Pattern: Small dots */}
+        <pattern id="pattern-dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="0.5" className="fill-current text-muted-foreground/15" />
+        </pattern>
+      </defs>
+
+      {/* Background layers */}
+      <rect x="0" y="0" width="100%" height="100%" fill="url(#pattern-cad)" />
+      <rect x="0" y="0" width="100%" height="100%" fill="url(#pattern-dots)" />
+    </svg>
+  )
+}
+
+// CAD-style corner decoration component
+function CADCorner({ position }: { position: "tl" | "tr" | "bl" | "br" }) {
+  const baseClasses = "absolute w-4 h-4"
+  const positionClasses = {
+    tl: "top-0 left-0 border-t-2 border-l-2",
+    tr: "top-0 right-0 border-t-2 border-r-2",
+    bl: "bottom-0 left-0 border-b-2 border-l-2",
+    br: "bottom-0 right-0 border-b-2 border-r-2",
+  }
+
+  return (
+    <div className={`${baseClasses} ${positionClasses[position]} border-muted-foreground/30`} />
+  )
+}
+
+// Navigation arrows component
+function NavigationArrows({
+  onUp,
+  onDown,
+  canGoUp,
+  canGoDown,
 }: {
-  item: FAQItem
-  isOpen: boolean
-  onToggle: () => void
+  onUp: () => void
+  onDown: () => void
+  canGoUp: boolean
+  canGoDown: boolean
 }) {
   return (
-    <div className="border border-border bg-card rounded-xl overflow-hidden">
+    <div className="flex items-center gap-1 ml-4">
       <button
         type="button"
-        onClick={onToggle}
-        className="w-full flex items-center justify-between p-6 text-left hover:bg-muted/30 transition-colors"
+        onClick={onUp}
+        disabled={!canGoUp}
+        className={`text-lg font-light transition-opacity ${
+          canGoUp
+            ? "text-foreground hover:text-primary cursor-pointer"
+            : "text-muted-foreground/30 cursor-not-allowed"
+        }`}
+        aria-label="Previous question"
       >
-        <span className="text-foreground font-medium pr-4">{item.question}</span>
-        <HugeiconsIcon
-          icon={ArrowDown01Icon}
-          size={20}
-          className={`text-muted-foreground flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-        />
+        ↑
       </button>
-      <div
-        className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-96" : "max-h-0"}`}
+      <button
+        type="button"
+        onClick={onDown}
+        disabled={!canGoDown}
+        className={`text-lg font-light transition-opacity ${
+          canGoDown
+            ? "text-foreground hover:text-primary cursor-pointer"
+            : "text-muted-foreground/30 cursor-not-allowed"
+        }`}
+        aria-label="Next question"
       >
-        <div className="px-6 pb-6 text-sm text-muted-foreground leading-relaxed">{item.answer}</div>
-      </div>
+        ↓
+      </button>
     </div>
   )
 }
 
+// Question item with blur/scale/rotation effects based on distance
+function QuestionItem({
+  question,
+  distance,
+  onClick,
+  isSelected,
+}: {
+  question: string
+  distance: number
+  onClick: () => void
+  isSelected: boolean
+}) {
+  // Calculate rotation based on distance (positive above, negative below)
+  const rotationAmount = distance
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-12 flex items-center origin-left transform-gpu cursor-pointer font-medium transition-all duration-300 ease-in-out select-none text-left w-full hover:translate-x-0 hover:scale-100 hover:opacity-100 hover:blur-none"
+      style={{
+        // Distance-based transformations
+        transform: `
+          translateX(${-Math.abs(distance) * 2}px)
+          scale(${1 - Math.abs(distance) * 0.03})
+          rotate(${rotationAmount * -0.5}deg)
+        `,
+        opacity: isSelected ? 1 : Math.max(0.3, 1 - Math.abs(distance) * 0.15),
+        filter: isSelected ? "none" : `blur(${Math.abs(distance) * 0.8}px)`,
+        transitionDuration: `${Math.abs(distance) * 50 + 150}ms`,
+      }}
+    >
+      <div className="flex items-start gap-3">
+        {/* Selection indicator line */}
+        <div
+          className={`mt-2 h-1.5 transition-all duration-200 ${
+            isSelected ? "w-4 bg-foreground" : "w-1 bg-muted-foreground/30"
+          }`}
+        />
+        <span className={isSelected ? "font-semibold text-foreground" : "text-foreground/80"}>
+          {question}
+        </span>
+      </div>
+    </button>
+  )
+}
+
 export function FAQSection() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0)
+  const [selectedIndex, setSelectedIndex] = useState(0)
   const { t, language } = useTranslation()
 
   const faqItems = language === "es" ? FAQ_ITEMS_ES : FAQ_ITEMS_EN
+  const selectedItem = faqItems[selectedIndex]
+
+  // Guard against undefined selectedItem
+  if (!selectedItem) return null
+
+  const handleUp = () => {
+    if (selectedIndex > 0) {
+      setSelectedIndex(selectedIndex - 1)
+    }
+  }
+
+  const handleDown = () => {
+    if (selectedIndex < faqItems.length - 1) {
+      setSelectedIndex(selectedIndex + 1)
+    }
+  }
 
   return (
-    <section className="relative border-t border-border bg-background py-24 px-8 lg:px-16" id="faq">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.02] dark:opacity-[0.05] pointer-events-none" />
+    <section
+      className="relative border-t border-border bg-background py-24 px-8 lg:px-16 overflow-hidden"
+      id="faq"
+    >
+      {/* CAD Pattern Background */}
+      <CADPatternBackground />
 
-      <div className="relative z-10 max-w-4xl mx-auto">
-        {/* Header */}
+      <div className="relative z-10 max-w-6xl mx-auto">
+        {/* Header - CAD Style */}
         <div className="mb-12 text-center">
-          <div className="inline-flex items-center gap-2 border border-border bg-card px-3 py-1 mb-6 rounded-full">
-            <HugeiconsIcon icon={HelpCircleIcon} size={12} className="text-muted-foreground" />
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground">
-              {t.faq.badge}
-            </span>
-          </div>
-          <h2 className="text-4xl lg:text-5xl font-bold tracking-tighter text-foreground mb-4">
-            {t.faq.title}
+          <h2 className="text-xs font-mono tracking-[0.3em] text-muted-foreground mb-4">
+            COMMON QUESTIONS
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">{t.faq.description}</p>
+          <div className="flex items-center justify-center gap-4">
+            <div className="h-px w-16 bg-gradient-to-r from-transparent to-muted-foreground/30" />
+            <div className="w-2 h-2 border border-muted-foreground/50 rotate-45" />
+            <div className="h-px w-16 bg-gradient-to-l from-transparent to-muted-foreground/30" />
+          </div>
         </div>
 
-        {/* FAQ Items */}
-        <div className="space-y-4">
-          {faqItems.map((item, index) => (
-            <FAQItemComponent
-              key={item.question}
-              item={item}
-              isOpen={openIndex === index}
-              onToggle={() => setOpenIndex(openIndex === index ? null : index)}
-            />
-          ))}
+        {/* Main Content - Two Column Layout */}
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+          {/* Left Panel - Questions List with Blur Effect */}
+          <div className="relative">
+            {/* CAD Corner Decorations */}
+            <CADCorner position="tl" />
+            <CADCorner position="bl" />
+
+            {/* Questions container with transform offset */}
+            <div
+              className="flex flex-col py-4 pl-6 pr-4 transition-transform duration-300 ease-in-out overflow-hidden"
+              style={{
+                transform: `translateY(${-selectedIndex * 48 + 96}px)`,
+              }}
+            >
+              {faqItems.map((item, index) => (
+                <QuestionItem
+                  key={item.question}
+                  question={item.question}
+                  distance={index - selectedIndex}
+                  onClick={() => setSelectedIndex(index)}
+                  isSelected={index === selectedIndex}
+                />
+              ))}
+            </div>
+
+            {/* Gradient masks for top and bottom fade */}
+            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-background to-transparent pointer-events-none z-10" />
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
+
+            {/* Decorative vertical line */}
+            <div className="absolute left-0 top-8 bottom-8 w-px bg-gradient-to-b from-transparent via-muted-foreground/20 to-transparent" />
+          </div>
+
+          {/* Right Panel - Answer Display */}
+          <div className="relative">
+            {/* CAD Corner Decorations */}
+            <CADCorner position="tr" />
+            <CADCorner position="br" />
+
+            <div className="py-4 px-6 min-h-[300px]">
+              {/* Question Header with Navigation */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-muted-foreground tracking-wider">
+                    IN:
+                  </span>
+                  <span className="font-mono text-sm uppercase tracking-wide text-foreground">
+                    {selectedItem.question.replace("?", "").replace("¿", "").slice(0, 40)}
+                    {selectedItem.question.length > 40 ? "..." : ""}?
+                  </span>
+                </div>
+                <NavigationArrows
+                  onUp={handleUp}
+                  onDown={handleDown}
+                  canGoUp={selectedIndex > 0}
+                  canGoDown={selectedIndex < faqItems.length - 1}
+                />
+              </div>
+
+              {/* Separator line */}
+              <div className="flex items-center gap-2 mb-6">
+                <div className="h-px flex-1 bg-border" />
+                <div className="w-1 h-1 bg-muted-foreground/50" />
+                <div className="w-1 h-1 bg-muted-foreground/30" />
+                <div className="w-1 h-1 bg-muted-foreground/20" />
+              </div>
+
+              {/* Answer Content with transition */}
+              <div className="space-y-4" key={selectedIndex}>
+                <div className="flex items-start gap-4 animate-fade-in">
+                  <span className="font-mono text-xs text-muted-foreground tracking-wider mt-0.5 flex-shrink-0">
+                    OUT:
+                  </span>
+                  <div className="space-y-4">
+                    <p className="text-foreground leading-relaxed">{selectedItem.answer}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Question counter */}
+              <div className="absolute bottom-4 right-6 font-mono text-[10px] text-muted-foreground/50 tracking-widest">
+                {String(selectedIndex + 1).padStart(2, "0")}/
+                {String(faqItems.length).padStart(2, "0")}
+              </div>
+            </div>
+
+            {/* Decorative bottom detail */}
+            <div className="absolute bottom-0 left-6 right-6 flex items-center gap-2">
+              <div className="h-px flex-1 bg-gradient-to-r from-muted-foreground/10 via-muted-foreground/30 to-muted-foreground/10" />
+            </div>
+          </div>
         </div>
 
-        {/* Contact CTA */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-muted-foreground mb-4">{t.faq.contact}</p>
-          <a
-            href="https://github.com/crhistian-cornejo/CADHY/discussions"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground transition-colors border border-border px-6 py-3 hover:border-foreground/50 rounded-full"
-          >
-            <span>{t.faq.contactLink}</span>
-            <span>&rarr;</span>
-          </a>
+        {/* Bottom CAD Decorations */}
+        <div className="mt-16 flex items-center justify-center gap-8">
+          {/* Left decoration */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-px bg-muted-foreground/20" />
+            <div className="w-2 h-2 border border-muted-foreground/30 rotate-45" />
+            <div className="w-2 h-px bg-muted-foreground/40" />
+          </div>
+
+          {/* Center - Contact CTA */}
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground mb-3 tracking-wide">{t.faq.contact}</p>
+            <a
+              href="https://github.com/crhistian-cornejo/CADHY/discussions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-[10px] font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors border border-border px-5 py-2 hover:border-foreground/50"
+            >
+              <span className="uppercase">{t.faq.contactLink}</span>
+              <span className="text-lg">→</span>
+            </a>
+          </div>
+
+          {/* Right decoration */}
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-px bg-muted-foreground/40" />
+            <div className="w-2 h-2 border border-muted-foreground/30 rotate-45" />
+            <div className="w-8 h-px bg-muted-foreground/20" />
+          </div>
+        </div>
+
+        {/* Blueprint-style coordinate markers */}
+        <div className="absolute top-8 right-8 font-mono text-[8px] text-muted-foreground/30 tracking-wider hidden lg:block">
+          SEC.04
+        </div>
+        <div className="absolute bottom-8 left-8 font-mono text-[8px] text-muted-foreground/30 tracking-wider hidden lg:block">
+          FAQ.001
         </div>
       </div>
     </section>

@@ -36,7 +36,6 @@ import {
   type ChuteObject,
   type ChuteType,
   STILLING_BASIN_TYPE_INFO,
-  type StillingBasinConfig,
   type StillingBasinType,
   type TransitionObject,
   useModellerStore,
@@ -56,6 +55,54 @@ import { ParamInput } from "./shared"
 interface ChuteCreatorProps {
   onClose: () => void
   onCreated: () => void
+}
+
+// ============================================================================
+// HELPERS (Extracted to reduce complexity)
+// ============================================================================
+
+/**
+ * Extracts dimensions from an upstream element (channel or transition)
+ */
+const getUpstreamDimensions = (element: any) => {
+  if (!element) return null
+
+  if (element.type === "transition") {
+    const t = element as TransitionObject
+    return {
+      width: t.outlet.width,
+      depth: t.outlet.depth,
+      sideSlope: t.outlet.sideSlope,
+      thickness: t.outlet.wallThickness,
+    }
+  }
+
+  if (element.type === "channel") {
+    const c = element as ChannelObject
+    const s = c.section
+    const thickness = c.thickness ?? 0.15
+
+    let width = 0
+    let sideSlope = 0
+
+    if (s.type === "rectangular") {
+      width = (s as RectangularSection).width
+    } else if (s.type === "trapezoidal") {
+      width = (s as TrapezoidalSection).bottomWidth
+      sideSlope = (s as TrapezoidalSection).sideSlope
+    } else if (s.type === "triangular") {
+      sideSlope = (s as TriangularSection).sideSlope
+    }
+
+    return {
+      width,
+      depth: s.depth,
+      sideSlope,
+      thickness,
+    }
+  }
+
+  return null
 }
 
 // ============================================================================
@@ -213,30 +260,12 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
 
   // Inherit properties from upstream element when selected
   useEffect(() => {
-    if (!upstreamElement) return
-
-    if (upstreamElement.type === "transition") {
-      const transition = upstreamElement as TransitionObject
-      // Inherit outlet properties for seamless connection
-      setWidth(transition.outlet.width)
-      setDepth(transition.outlet.depth)
-      setSideSlope(transition.outlet.sideSlope)
-      setThickness(transition.outlet.wallThickness)
-    } else if (upstreamElement.type === "channel") {
-      const channel = upstreamElement as ChannelObject
-      const section = channel.section
-      if (section.type === "rectangular") {
-        setWidth((section as RectangularSection).width)
-      } else if (section.type === "trapezoidal") {
-        setWidth((section as TrapezoidalSection).bottomWidth)
-      }
-      setDepth(section.depth)
-      if (section.type === "trapezoidal") {
-        setSideSlope((section as TrapezoidalSection).sideSlope)
-      } else if (section.type === "triangular") {
-        setSideSlope((section as TriangularSection).sideSlope)
-      }
-      // Channels don't have explicit thickness, use default
+    const dims = getUpstreamDimensions(upstreamElement as any)
+    if (dims) {
+      setWidth(dims.width)
+      setDepth(dims.depth)
+      setSideSlope(dims.sideSlope)
+      setThickness(dims.thickness)
     }
   }, [upstreamElement])
 
@@ -275,45 +304,27 @@ export function ChuteCreator({ onClose, onCreated }: ChuteCreatorProps) {
   // Update width when upstream changes
   const handleUpstreamChange = (elementId: string) => {
     setUpstreamId(elementId)
-    if (elementId !== "none") {
-      const element = connectableUpstream.find((e) => e.id === elementId)
-      if (element) {
-        if (element.type === "channel") {
-          const channel = element as ChannelObject
-          const section = channel.section
-          if (section.type === "rectangular") {
-            setWidth((section as { width: number }).width)
-          } else if (section.type === "trapezoidal") {
-            setWidth((section as { bottomWidth: number }).bottomWidth)
-          }
-          setDepth(section.depth)
-          // Copy thickness from channel
-          if ("wallThickness" in section) {
-            setThickness((section as { wallThickness: number }).wallThickness)
-          }
-        } else if (element.type === "transition") {
-          const transition = element as TransitionObject
-          setWidth(transition.outlet.width)
-          setDepth(transition.outlet.depth)
-          setSideSlope(transition.outlet.sideSlope)
-          // Copy thickness from transition outlet
-          setThickness(transition.outlet.wallThickness)
-        }
-      }
+    if (elementId === "none") return
+
+    const element = connectableUpstream.find((e) => e.id === elementId)
+    const dims = getUpstreamDimensions(element as any)
+
+    if (dims) {
+      setWidth(dims.width)
+      setDepth(dims.depth)
+      setSideSlope(dims.sideSlope)
+      setThickness(dims.thickness)
     }
   }
 
   const handleCreate = () => {
     // Build stilling basin config
-    let stillingBasin: StillingBasinConfig | null = null
-
-    if (basinType !== "none") {
-      if (useAutoDesign && autoDesignResult) {
-        stillingBasin = autoDesignResult.config
-      } else {
-        stillingBasin = createSimpleBasinConfig(basinType, basinLength, basinDepth, endSillHeight)
-      }
-    }
+    const stillingBasin =
+      basinType === "none"
+        ? null
+        : useAutoDesign && autoDesignResult
+          ? autoDesignResult.config
+          : createSimpleBasinConfig(basinType, basinLength, basinDepth, endSillHeight)
 
     const newChuteId = addObject({
       name,

@@ -49,6 +49,10 @@ export function useConversation() {
 export type ConversationProps = ComponentProps<"div"> & {
   /** Enable auto-scroll when new content is added (default: true) */
   autoScroll?: boolean
+  /** Show fade masks at top/bottom when content overflows */
+  showFadeMasks?: boolean
+  /** Height of the fade mask gradient */
+  fadeMaskHeight?: string
 }
 
 /**
@@ -59,10 +63,13 @@ export function Conversation({
   children,
   className,
   autoScroll = true,
+  showFadeMasks = false,
+  fadeMaskHeight = "2rem",
   ...props
 }: ConversationProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
+  const [canScrollUp, setCanScrollUp] = useState(false)
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(autoScroll)
   const lastScrollHeightRef = useRef(0)
 
@@ -81,6 +88,10 @@ export function Conversation({
       const threshold = 100
       const atBottom = target.scrollHeight - target.scrollTop - target.clientHeight < threshold
       setIsAtBottom(atBottom)
+
+      // Track if we can scroll up (for fade mask)
+      setCanScrollUp(target.scrollTop > 1)
+
       // Re-enable auto-scroll when user scrolls to bottom
       if (atBottom && !autoScrollEnabled) {
         setAutoScrollEnabled(true)
@@ -123,6 +134,28 @@ export function Conversation({
         className={cn("relative flex h-full flex-col overflow-hidden", className)}
         {...props}
       >
+        {/* Fade masks */}
+        {showFadeMasks && (
+          <>
+            <div
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-background to-transparent transition-opacity duration-150",
+                canScrollUp ? "opacity-100" : "opacity-0"
+              )}
+              style={{ height: fadeMaskHeight }}
+            />
+            <div
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background to-transparent transition-opacity duration-150",
+                !isAtBottom ? "opacity-100" : "opacity-0"
+              )}
+              style={{ height: fadeMaskHeight }}
+            />
+          </>
+        )}
+
         {/* Scrollable container */}
         <div
           ref={scrollRef}

@@ -16,7 +16,7 @@ import {
 } from "@cadhy/ui"
 import { ArrowDown01Icon, Edit01Icon, MoreHorizontalIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useState } from "react"
+
 import { CadIcon } from "@/components/ui/cad-icon"
 import type { HistoryEntry } from "@/stores/modeller/types"
 
@@ -50,7 +50,10 @@ export function HistoryEntryDetails({
       <div className="border-t border-border first:border-t-0">
         {/* Header */}
         <CollapsibleTrigger asChild>
-          <button className="flex w-full items-center gap-3 bg-primary/10 px-4 py-3 hover:bg-primary/15 transition-colors">
+          <button
+            type="button"
+            className="flex w-full items-center gap-3 bg-primary/10 px-4 py-3 hover:bg-primary/15 transition-colors"
+          >
             <div className="flex shrink-0 items-center justify-center">
               <CadIcon name={operationIcon} size={20} className="text-primary" />
             </div>
@@ -58,9 +61,15 @@ export function HistoryEntryDetails({
               <div className="text-sm font-semibold text-foreground">{operationName}</div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon-sm" className="h-6 w-6">
+              <div
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                role="button"
+                tabIndex={-1}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
                 <HugeiconsIcon icon={MoreHorizontalIcon} className="size-4" />
-              </Button>
+              </div>
               <HugeiconsIcon
                 icon={ArrowDown01Icon}
                 className={cn(

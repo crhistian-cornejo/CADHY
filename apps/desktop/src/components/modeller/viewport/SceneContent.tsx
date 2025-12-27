@@ -19,7 +19,7 @@ import {
   TransformControls,
 } from "@react-three/drei"
 import { useFrame, useThree } from "@react-three/fiber"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
 import type {
   OrbitControls as OrbitControlsImpl,
@@ -38,7 +38,6 @@ import {
   type ShapeObject,
   useBoxSelectMode,
   useCameraAnimations,
-  useCameraView,
   useCurrentAnimation,
   useFocusObjectId,
   useGridSettings,
@@ -57,7 +56,137 @@ import { CursorTracker } from "./CursorTracker"
 import { InteractiveCADOperations } from "./InteractiveCADOperations"
 import { SceneObjectMesh } from "./meshes"
 import { PostProcessing, type QualityPreset } from "./PostProcessing"
+import { AutoSectionPlane } from "./SectionPlane"
 import { TopologicalWireframe } from "./TopologicalWireframe"
+
+// ============================================================================
+// HELPER: Restore TypedArrays from serialized history objects
+// ============================================================================
+
+/**
+ * Convert a value to an array of numbers for TypedArray restoration.
+ * After JSON.parse(JSON.stringify()), TypedArrays become objects with numeric keys.
+ *
+ * TypedArray serialization:
+ * - JSON.stringify(new Float32Array([1,2,3])) → '{"0":1,"1":2,"2":3}'
+ * - JSON.parse(...) → {0: 1, 1: 2, 2: 3} (object with numeric keys, NOT an array)
+ */
+function toNumberArray(value: unknown): number[] | null {
+  if (value == null) return null
+
+  // Already a TypedArray - convert to regular array
+  if (value instanceof Float32Array || value instanceof Uint32Array) {
+    return Array.from(value)
+  }
+
+  // Already a regular array
+  if (Array.isArray(value)) {
+    return value
+  }
+
+  // Object with numeric keys (from JSON-serialized TypedArray)
+  if (typeof value === "object" && value !== null) {
+    const obj = value as Record<string, number>
+    const keys = Object.keys(obj)
+
+    // Must have keys and all must be numeric
+    if (keys.length === 0) return null
+
+    // Check if all keys are numeric (strings that represent numbers)
+    const allNumericKeys = keys.every((k) => /^\d+$/.test(k))
+    if (!allNumericKeys) return null
+
+    // Extract values in order (0, 1, 2, ...)
+    const result: number[] = []
+    for (let i = 0; i < keys.length; i++) {
+      const val = obj[String(i)]
+      if (val === undefined) break // Stop at first gap
+      result.push(val)
+    }
+
+    return result.length > 0 ? result : null
+  }
+
+  return null
+}
+
+/**
+ * Restore TypedArrays in mesh data for history preview objects.
+ * This is needed because JSON serialization converts TypedArrays to plain objects.
+ */
+function restoreHistoryObjectsForPreview(objects: AnySceneObject[]): AnySceneObject[] {
+  return objects.map((obj) => {
+    const restoredObj = {
+      ...obj,
+      transform: {
+        position: obj.transform?.position ?? { x: 0, y: 0, z: 0 },
+        rotation: obj.transform?.rotation ?? { x: 0, y: 0, z: 0 },
+        scale: obj.transform?.scale ?? { x: 1, y: 1, z: 1 },
+      },
+    }
+
+    // Restore TypedArrays in mesh data if object has mesh
+    if (
+      restoredObj.type === "shape" ||
+      restoredObj.type === "channel" ||
+      restoredObj.type === "transition" ||
+      restoredObj.type === "chute"
+    ) {
+      const objWithMesh = restoredObj as ShapeObject | ChannelObject
+      if (objWithMesh.mesh) {
+        const mesh = objWithMesh.mesh
+
+        // Analyze original data type for debugging
+        const getDataInfo = (data: unknown) => {
+          if (data == null) return { type: "null", size: 0 }
+          if (data instanceof Float32Array) return { type: "Float32Array", size: data.length }
+          if (data instanceof Uint32Array) return { type: "Uint32Array", size: data.length }
+          if (Array.isArray(data)) return { type: "Array", size: data.length }
+          if (typeof data === "object") return { type: "Object", size: Object.keys(data).length }
+          return { type: typeof data, size: 0 }
+        }
+
+        const verticesInfo = getDataInfo(mesh.vertices)
+        const verticesArray = toNumberArray(mesh.vertices)
+        const indicesArray = toNumberArray(mesh.indices)
+        const normalsArray = toNumberArray(mesh.normals)
+
+        // DEBUG: Log restoration process for compound shapes or any failed restoration
+        const isCompound = (objWithMesh as ShapeObject).shapeType === "compound"
+        const restorationFailed =
+          verticesInfo.size > 0 && (!verticesArray || verticesArray.length === 0)
+
+        if (isCompound || restorationFailed) {
+          console.log("[HistoryPreview] Restoring mesh for:", objWithMesh.id, {
+            shapeType: (objWithMesh as ShapeObject).shapeType,
+            originalVertices: verticesInfo,
+            restoredVerticesLength: verticesArray?.length ?? 0,
+            restoredIndicesLength: indicesArray?.length ?? 0,
+            restorationFailed,
+            // Sample of original data (first 5 keys if object)
+            sampleOriginal:
+              typeof mesh.vertices === "object" && mesh.vertices && !Array.isArray(mesh.vertices)
+                ? Object.entries(mesh.vertices as Record<string, number>).slice(0, 5)
+                : null,
+          })
+        }
+
+        const restoredMesh = {
+          ...mesh,
+          vertices: verticesArray ? new Float32Array(verticesArray) : new Float32Array(0),
+          indices: indicesArray ? new Uint32Array(indicesArray) : new Uint32Array(0),
+          normals: normalsArray
+            ? new Float32Array(normalsArray)
+            : verticesArray
+              ? new Float32Array(verticesArray.length)
+              : new Float32Array(0),
+        }
+        return { ...objWithMesh, mesh: restoredMesh } as AnySceneObject
+      }
+    }
+    return restoredObj
+  })
+}
 
 export interface SceneContentProps {
   showStats?: boolean
@@ -68,7 +197,6 @@ export function SceneContent({ showStats }: SceneContentProps) {
   const selectedIds = useSelectedIds()
   const selectedObjects = useSelectedObjects()
   const transformMode = useTransformMode()
-  const _cameraView = useCameraView()
   const viewportSettings = useViewportSettings()
   const gridSettings = useGridSettings()
   const snapMode = useSnapMode()
@@ -89,28 +217,23 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
   // Get backend shape ID for the first selected object
   const backendShapeId =
-    selectedObjects.length > 0
-      ? shapeIdMap.get(selectedObjects[0].id) || selectedObjects[0].metadata?.backendShapeId
+    selectedObjects.length > 0 && selectedObjects[0]
+      ? shapeIdMap.get(selectedObjects[0].id) ||
+        (selectedObjects[0].metadata?.backendShapeId as string | undefined)
       : null
 
   // Load topology for selected shape
-  const { topology, isLoading: isLoadingTopology } = useTopology({
-    backendShapeId: backendShapeId as string | null,
+  const { topology } = useTopology({
+    backendShapeId: (backendShapeId as string | null) ?? null,
     edgeDeflection: 0.1,
-    enabled: selectedObjects.length > 0 && selectionMode !== "body",
+    enabled: selectedObjects.length > 0 && (selectionMode as string) !== "body",
   })
 
-  // DEBUG: Log topology state
-  useEffect(() => {
-    console.log("[SceneContent] Topology Debug:", {
-      hasTopology: !!topology,
-      topologyEdgesCount: topology?.edges.length,
-      selectedObjectsCount: selectedObjects.length,
-      selectionMode,
-      backendShapeId,
-      isLoadingTopology,
-    })
-  }, [topology, selectedObjects.length, selectionMode, backendShapeId, isLoadingTopology])
+  // DEBUG: Topology state logging removed for performance
+  // Enable only when debugging topology issues:
+  // if (import.meta.env.DEV && false) {
+  //   console.log("[SceneContent] Topology Debug:", { ... })
+  // }
 
   // Topological selection (edges, faces, vertices)
   const {
@@ -121,15 +244,22 @@ export function SceneContent({ showStats }: SceneContentProps) {
     handlePointerMove: handleTopologyPointerMove,
     handlePointerClick: handleTopologyPointerClick,
   } = useTopologicalSelection({
-    topology,
-    selectionMode,
-    objectTransform: selectedObjects.length > 0 ? undefined : undefined, // TODO: get transform matrix
+    topology: topology ?? null,
+    selectionMode: selectionMode,
+    objectTransform: undefined, // TODO: get transform matrix
     enabled: selectedObjects.length > 0 && selectionMode !== "body",
   })
 
   // Temporary and helper objects from new slices
   const temporaryObjects = useModellerStore((s) => s.temporaryObjects)
-  const _helperObjects = useModellerStore((s) => s.helperObjects)
+
+  // Restore TypedArrays for history preview objects (they get serialized when saved to history)
+  const historyPreviewObjects = useMemo(() => {
+    if (historyPreviewIndex === null || !history[historyPreviewIndex]) {
+      return []
+    }
+    return restoreHistoryObjectsForPreview(history[historyPreviewIndex].objects)
+  }, [historyPreviewIndex, history])
 
   // Get invalidate function for render-on-demand
   const { invalidate } = useThree()
@@ -189,16 +319,21 @@ export function SceneContent({ showStats }: SceneContentProps) {
     progress: number
   } | null>(null)
 
+  // Throttle ref for LOD updates (performance optimization)
+  const lastLodUpdateRef = useRef<number>(0)
+
   // Get camera, scene and renderer from Three.js context
   const { camera, scene, gl } = useThree()
 
   // Disable autoUpdate for performance - we'll update manually when needed
   useEffect(() => {
-    scene.autoUpdate = false
-    scene.matrixAutoUpdate = false
+    // Use type assertion as Three.js types may not include these properties
+    const sceneAny = scene as unknown as { autoUpdate: boolean; matrixAutoUpdate: boolean }
+    sceneAny.autoUpdate = false
+    sceneAny.matrixAutoUpdate = false
     return () => {
-      scene.autoUpdate = true
-      scene.matrixAutoUpdate = true
+      sceneAny.autoUpdate = true
+      sceneAny.matrixAutoUpdate = true
     }
   }, [scene])
 
@@ -412,11 +547,18 @@ export function SceneContent({ showStats }: SceneContentProps) {
       }
     }
 
-    // Update LOD (Level of Detail) system for performance optimization
-    lodManager.updateLOD(camera, scene)
+    // Throttle LOD updates to every 100ms (not every frame) for performance
+    // Camera must have changed for LOD update to be meaningful
+    const now = performance.now()
+    if (now - lastLodUpdateRef.current >= 100) {
+      lastLodUpdateRef.current = now
+      lodManager.updateLOD(camera, scene)
+    }
 
-    // Manual matrix updates (since autoUpdate is disabled for performance)
-    scene.updateMatrixWorld()
+    // Only update matrix world when necessary (during animations or transforms)
+    if (focusAnimationRef.current?.active || playbackState === "playing" || isDraggingRef.current) {
+      scene.updateMatrixWorld()
+    }
   })
 
   // Sync camera with store when cameraPosition or cameraTarget changes
@@ -513,10 +655,12 @@ export function SceneContent({ showStats }: SceneContentProps) {
       if (transformControlsRef.current !== controls) {
         // Cleanup old listener if any
         if (transformControlsRef.current) {
-          transformControlsRef.current.removeEventListener(
-            "dragging-changed",
-            handleDraggingChangedRef.current
-          )
+          // Use type assertion for dragging-changed event (Three.js custom event)
+          ;(
+            transformControlsRef.current as unknown as {
+              removeEventListener: (type: string, listener: unknown) => void
+            }
+          ).removeEventListener("dragging-changed", handleDraggingChangedRef.current)
         }
         transformControlsRef.current = controls
       }
@@ -777,6 +921,9 @@ export function SceneContent({ showStats }: SceneContentProps) {
         />
       )}
 
+      {/* Section Plane - Clipping plane for CAD section views */}
+      <AutoSectionPlane />
+
       {/* Click handler for deselection */}
       <mesh
         position={[0, -0.1, 0]}
@@ -832,14 +979,14 @@ export function SceneContent({ showStats }: SceneContentProps) {
 
       {/* History Preview Scene - Ghost Objects (Layer 1.5, RenderOrder 1.5) */}
       {/* These objects show a preview of a past state when hovering over history entries */}
-      {historyPreviewIndex !== null && history[historyPreviewIndex] && (
+      {/* Uses historyPreviewObjects which has TypedArrays restored from JSON serialization */}
+      {historyPreviewIndex !== null && historyPreviewObjects.length > 0 && (
         <group name="history-preview-scene" renderOrder={1.5}>
-          {history[historyPreviewIndex].objects
+          {historyPreviewObjects
             .filter((obj) => obj.visible)
             .map((object) => {
-              // Check if this object exists in current scene
-              const currentObject = visibleObjects.find((o) => o.id === object.id)
-              const isSelected = history[historyPreviewIndex].selection.includes(object.id)
+              const isSelected =
+                history[historyPreviewIndex]?.selection.includes(object.id) ?? false
 
               return (
                 <SceneObjectMesh
@@ -865,55 +1012,58 @@ export function SceneContent({ showStats }: SceneContentProps) {
       </group>
 
       {/* Topological Wireframe - For selected objects in edge/face/vertex mode */}
-      {selectedObjects.length > 0 && topology && selectionMode !== "body" && (
-        <TopologicalWireframe
-          topology={topology}
-          position={[
-            selectedObjects[0].transform.position.x,
-            selectedObjects[0].transform.position.y,
-            selectedObjects[0].transform.position.z,
-          ]}
-          rotation={[
-            (selectedObjects[0].transform.rotation.x * Math.PI) / 180,
-            (selectedObjects[0].transform.rotation.y * Math.PI) / 180,
-            (selectedObjects[0].transform.rotation.z * Math.PI) / 180,
-          ]}
-          scale={[
-            selectedObjects[0].transform.scale.x,
-            selectedObjects[0].transform.scale.y,
-            selectedObjects[0].transform.scale.z,
-          ]}
-          color="#2dd4bf"
-          lineWidth={2}
-          selectedEdges={
-            selectedTopologyElement && selectedTopologyElement.type === "edge"
-              ? [selectedTopologyElement.index]
-              : []
-          }
-          hoveredEdge={
-            hoveredTopologyElement && hoveredTopologyElement.type === "edge"
-              ? hoveredTopologyElement.index
-              : null
-          }
-          onEdgeClick={(edgeIndex) => {
-            const edge = topology.edges.find((e) => e.index === edgeIndex)
-            if (edge) {
-              selectTopologyElement({ ...edge, type: "edge" })
+      {selectedObjects.length > 0 &&
+        selectedObjects[0] &&
+        topology &&
+        (selectionMode as string) !== "body" && (
+          <TopologicalWireframe
+            topology={topology}
+            position={[
+              selectedObjects[0].transform.position.x,
+              selectedObjects[0].transform.position.y,
+              selectedObjects[0].transform.position.z,
+            ]}
+            rotation={[
+              (selectedObjects[0].transform.rotation.x * Math.PI) / 180,
+              (selectedObjects[0].transform.rotation.y * Math.PI) / 180,
+              (selectedObjects[0].transform.rotation.z * Math.PI) / 180,
+            ]}
+            scale={[
+              selectedObjects[0].transform.scale.x,
+              selectedObjects[0].transform.scale.y,
+              selectedObjects[0].transform.scale.z,
+            ]}
+            color="#2dd4bf"
+            lineWidth={2}
+            selectedEdges={
+              selectedTopologyElement && selectedTopologyElement.type === "edge"
+                ? [selectedTopologyElement.index]
+                : []
             }
-          }}
-          onEdgeHover={(edgeIndex) => {
-            if (edgeIndex !== null) {
+            hoveredEdge={
+              hoveredTopologyElement && hoveredTopologyElement.type === "edge"
+                ? hoveredTopologyElement.index
+                : null
+            }
+            onEdgeClick={(edgeIndex) => {
               const edge = topology.edges.find((e) => e.index === edgeIndex)
               if (edge) {
                 selectTopologyElement({ ...edge, type: "edge" })
               }
-            } else {
-              clearTopologySelection()
-            }
-          }}
-          visible={selectionMode !== "body"}
-        />
-      )}
+            }}
+            onEdgeHover={(edgeIndex) => {
+              if (edgeIndex !== null) {
+                const edge = topology.edges.find((e) => e.index === edgeIndex)
+                if (edge) {
+                  selectTopologyElement({ ...edge, type: "edge" })
+                }
+              } else {
+                clearTopologySelection()
+              }
+            }}
+            visible={(selectionMode as string) !== "body"}
+          />
+        )}
 
       {/* Transform Gizmo - attached to selected mesh */}
       {transformMode !== "none" && firstSelectedObject && meshReady && selectedMeshRef.current && (
@@ -953,13 +1103,33 @@ export function SceneContent({ showStats }: SceneContentProps) {
       {(viewportSettings.enablePostProcessing ?? false) && (
         <PostProcessing
           quality={(viewportSettings.postProcessingQuality ?? "medium") as QualityPreset}
+          // Core Effects
           enableSSAO={viewportSettings.ambientOcclusion ?? false}
           enableBloom
           enableAA={viewportSettings.antialiasing ?? true}
-          reflection={viewportSettings.reflection ?? 0}
           brightness={viewportSettings.brightness ?? 1}
           contrast={viewportSettings.contrast ?? 1}
-          rimLight={viewportSettings.rimLight ?? 0}
+          // Phase 1: SSR
+          enableSSR={viewportSettings.enableSSR ?? false}
+          ssrIntensity={viewportSettings.ssrIntensity ?? 0.5}
+          ssrMaxDistance={viewportSettings.ssrMaxDistance ?? 10}
+          // Phase 1: DOF
+          enableDOF={viewportSettings.enableDOF ?? false}
+          dofFocusDistance={viewportSettings.dofFocusDistance ?? -1}
+          dofAperture={viewportSettings.dofAperture ?? 0.025}
+          dofBokehScale={viewportSettings.dofBokehScale ?? 2}
+          camera={camera}
+          cameraTarget={orbitControlsRef.current?.target}
+          // Phase 2: Edge Detection (outline selected objects)
+          enableEdgeDetection={viewportSettings.enableEdgeDetection ?? false}
+          edgeColor={viewportSettings.edgeColor ?? "#000000"}
+          edgeThickness={viewportSettings.edgeThickness ?? 1}
+          selectedObjects={selectedMeshRef.current ? [selectedMeshRef.current] : []}
+          // Phase 3: Cinematic Effects
+          enableVignette={viewportSettings.enableVignette ?? false}
+          vignetteIntensity={viewportSettings.vignetteIntensity ?? 0.3}
+          enableChromaticAberration={viewportSettings.enableChromaticAberration ?? false}
+          chromaticAberrationOffset={viewportSettings.chromaticAberrationOffset ?? 0.002}
         />
       )}
 

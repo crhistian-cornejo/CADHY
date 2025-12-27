@@ -440,7 +440,7 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       name: "Perspective View",
       description: "Switch to perspective view",
       category: "navigation",
-      keys: ["Numpad0"],
+      keys: ["Numpad0", "meta+3"],
       context: "viewport",
     },
     useCallback(() => useModellerStore.getState().setCameraView("perspective"), [])
@@ -452,7 +452,7 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       name: "Top View",
       description: "Switch to top view",
       category: "navigation",
-      keys: ["Numpad7"],
+      keys: ["Numpad7", "meta+1"],
       context: "viewport",
     },
     useCallback(() => useModellerStore.getState().setCameraView("top"), [])
@@ -464,7 +464,7 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       name: "Front View",
       description: "Switch to front view",
       category: "navigation",
-      keys: ["Numpad1"],
+      keys: ["Numpad1", "meta+2"],
       context: "viewport",
     },
     useCallback(() => useModellerStore.getState().setCameraView("front"), [])
@@ -476,7 +476,7 @@ export function useAppHotkeys(options: UseAppHotkeysOptions = {}) {
       name: "Right View",
       description: "Switch to right view",
       category: "navigation",
-      keys: ["Numpad3"],
+      keys: ["Numpad3", "meta+4"],
       context: "viewport",
     },
     useCallback(() => useModellerStore.getState().setCameraView("right"), [])

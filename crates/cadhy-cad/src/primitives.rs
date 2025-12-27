@@ -29,7 +29,9 @@ impl Primitives {
                 "Box dimensions must be positive".to_string(),
             ));
         }
-        let ptr = ffi::make_box(width, depth, height);
+        // Use make_box_centered to match Three.js BoxGeometry behavior
+        // This ensures boolean operations produce correctly positioned results
+        let ptr = ffi::make_box_centered(width, depth, height);
         Shape::from_ptr(ptr)
     }
 
@@ -55,7 +57,7 @@ impl Primitives {
         Shape::from_ptr(ptr)
     }
 
-    /// Create a cylinder with given radius and height
+    /// Create a cylinder with given radius and height, centered at origin
     ///
     /// # Arguments
     /// * `radius` - Cylinder radius
@@ -66,7 +68,9 @@ impl Primitives {
                 "Cylinder dimensions must be positive".to_string(),
             ));
         }
-        let ptr = ffi::make_cylinder(radius, height);
+        // Use make_cylinder_centered to match Three.js CylinderGeometry behavior
+        // This ensures boolean operations produce correctly positioned results
+        let ptr = ffi::make_cylinder_centered(radius, height);
         Shape::from_ptr(ptr)
     }
 
@@ -121,7 +125,7 @@ impl Primitives {
         Shape::from_ptr(ptr)
     }
 
-    /// Create a cone or truncated cone
+    /// Create a cone or truncated cone, centered at origin
     ///
     /// # Arguments
     /// * `base_radius` - Radius at base (bottom)
@@ -133,7 +137,9 @@ impl Primitives {
                 "Cone dimensions must be valid".to_string(),
             ));
         }
-        let ptr = ffi::make_cone(base_radius, top_radius, height);
+        // Use make_cone_centered to match Three.js ConeGeometry behavior
+        // This ensures boolean operations produce correctly positioned results
+        let ptr = ffi::make_cone_centered(base_radius, top_radius, height);
         Shape::from_ptr(ptr)
     }
 

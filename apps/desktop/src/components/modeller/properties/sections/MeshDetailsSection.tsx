@@ -276,7 +276,7 @@ export function MeshDetailsSection({ object }: MeshDetailsSectionProps) {
           </p>
         )}
 
-        {meshData.hasTopology && meshData.faces !== undefined && (
+        {meshData && meshData.hasTopology && meshData.faces !== undefined && (
           <>
             <PropertyRow label={t("properties.faces", "Faces")}>
               <span className="text-xs font-mono text-foreground">

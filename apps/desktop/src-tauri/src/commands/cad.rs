@@ -79,6 +79,26 @@ pub fn shape_exists_in_registry(id: &str) -> bool {
     }
 }
 
+/// Debug: List all shapes in registry with their analysis
+pub fn list_registry_shapes() -> Vec<(String, i32, i32, i32)> {
+    if let Ok(registry) = get_registry().lock() {
+        registry
+            .iter()
+            .map(|(id, shape)| {
+                let analysis = Analysis::analyze(shape);
+                (
+                    id.clone(),
+                    analysis.num_faces,
+                    analysis.num_edges,
+                    analysis.num_solids,
+                )
+            })
+            .collect()
+    } else {
+        vec![]
+    }
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -384,12 +404,43 @@ pub fn cad_create_helix(
 /// Boolean union (fuse) of two shapes
 #[tauri::command(rename_all = "camelCase")]
 pub fn cad_boolean_fuse(shape1_id: String, shape2_id: String) -> Result<ShapeResult, String> {
+    println!("\n[Boolean Fuse] ========== FUSE OPERATION ==========");
     let shape1 = get_shape(&shape1_id)?;
     let shape2 = get_shape(&shape2_id)?;
 
+    // Log input shapes
+    let analysis1 = Analysis::analyze(&shape1);
+    let analysis2 = Analysis::analyze(&shape2);
+    println!(
+        "[Boolean Fuse] Shape 1 ({}): faces={}, edges={}, solids={}",
+        shape1_id, analysis1.num_faces, analysis1.num_edges, analysis1.num_solids
+    );
+    println!(
+        "[Boolean Fuse] Shape 2 ({}): faces={}, edges={}, solids={}",
+        shape2_id, analysis2.num_faces, analysis2.num_edges, analysis2.num_solids
+    );
+
     let result = Operations::fuse(&shape1, &shape2).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
+
+    // Log result shape
+    println!(
+        "[Boolean Fuse] Result: faces={}, edges={}, solids={}",
+        analysis.num_faces, analysis.num_edges, analysis.num_solids
+    );
+
+    // CRITICAL: Validate the result has actual geometry
+    // OpenCASCADE can return "valid" shapes with 0 faces when operations fail silently
+    if analysis.num_faces == 0 && analysis.num_solids == 0 {
+        return Err(
+            "Boolean fuse produced empty geometry. Shapes may not intersect or overlap correctly."
+                .to_string(),
+        );
+    }
+
     let id = store_shape(result)?;
+    println!("[Boolean Fuse] Stored as shape ID: {}", id);
+    println!("[Boolean Fuse] ========== END FUSE ==========\n");
 
     Ok(ShapeResult {
         id,
@@ -405,6 +456,15 @@ pub fn cad_boolean_cut(shape1_id: String, shape2_id: String) -> Result<ShapeResu
 
     let result = Operations::cut(&shape1, &shape2).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
+
+    // CRITICAL: Validate the result has actual geometry
+    if analysis.num_faces == 0 && analysis.num_solids == 0 {
+        return Err(
+            "Boolean cut produced empty geometry. The tool shape may have completely consumed the base, or shapes don't intersect."
+                .to_string(),
+        );
+    }
+
     let id = store_shape(result)?;
 
     Ok(ShapeResult {
@@ -421,6 +481,16 @@ pub fn cad_boolean_common(shape1_id: String, shape2_id: String) -> Result<ShapeR
 
     let result = Operations::common(&shape1, &shape2).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
+
+    // CRITICAL: Validate the result has actual geometry
+    // Intersection of non-overlapping shapes produces empty geometry
+    if analysis.num_faces == 0 && analysis.num_solids == 0 {
+        return Err(
+            "Boolean intersection produced empty geometry. Shapes may not overlap - ensure they share common volume."
+                .to_string(),
+        );
+    }
+
     let id = store_shape(result)?;
 
     Ok(ShapeResult {
@@ -494,6 +564,71 @@ pub fn cad_chamfer_edges(
 
     let result =
         Operations::chamfer_edges(&shape, &edge_indices, &distances).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Apply advanced fillet with continuity control
+#[tauri::command(rename_all = "camelCase")]
+pub fn cad_fillet_edges_advanced(
+    shape_id: String,
+    edge_indices: Vec<i32>,
+    radii: Vec<f64>,
+    continuity: i32,
+) -> Result<ShapeResult, String> {
+    let shape = get_shape(&shape_id)?;
+
+    let result = Operations::fillet_edges_advanced(&shape, &edge_indices, &radii, continuity)
+        .map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Apply chamfer with two different distances per edge
+#[tauri::command(rename_all = "camelCase")]
+pub fn cad_chamfer_edges_two_distances(
+    shape_id: String,
+    edge_indices: Vec<i32>,
+    distances1: Vec<f64>,
+    distances2: Vec<f64>,
+) -> Result<ShapeResult, String> {
+    let shape = get_shape(&shape_id)?;
+
+    let result =
+        Operations::chamfer_edges_two_distances(&shape, &edge_indices, &distances1, &distances2)
+            .map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&result);
+    let id = store_shape(result)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
+/// Apply chamfer with distance and angle per edge
+#[tauri::command(rename_all = "camelCase")]
+pub fn cad_chamfer_edges_distance_angle(
+    shape_id: String,
+    edge_indices: Vec<i32>,
+    distances: Vec<f64>,
+    angles: Vec<f64>,
+) -> Result<ShapeResult, String> {
+    let shape = get_shape(&shape_id)?;
+
+    let result =
+        Operations::chamfer_edges_distance_angle(&shape, &edge_indices, &distances, &angles)
+            .map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
     let id = store_shape(result)?;
 
@@ -759,6 +894,14 @@ pub fn cad_tessellate_binary(shape_id: String, deflection: f64) -> Result<Vec<u8
     let triangle_count = (mesh.indices.len() / 3) as u32;
     let has_normals = !mesh.normals.is_empty();
 
+    // CRITICAL: Validate tessellation produced valid mesh data
+    if vertex_count == 0 || triangle_count == 0 {
+        return Err(format!(
+            "Tessellation produced empty mesh: {} vertices, {} triangles. Shape may have invalid or degenerate geometry.",
+            vertex_count, triangle_count
+        ));
+    }
+
     // Calculate total size:
     // header: 4 (v_count) + 4 (t_count) + 1 (has_normals) = 9 bytes
     // vertices: vertex_count * 3 * 4 bytes
@@ -892,6 +1035,38 @@ pub fn cad_delete_shape(shape_id: String) -> Result<(), String> {
     remove_shape(&shape_id)
 }
 
+/// Serialize a shape to BREP format (base64 encoded)
+/// This allows persisting shapes across app restarts
+#[tauri::command(rename_all = "camelCase")]
+pub fn cad_serialize_shape(shape_id: String) -> Result<String, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+
+    let shape = get_shape(&shape_id)?;
+    let brep_data = shape.to_brep().map_err(|e| e.to_string())?;
+
+    Ok(STANDARD.encode(&brep_data))
+}
+
+/// Deserialize a shape from BREP format (base64 encoded)
+/// Returns the new shape ID in the registry
+#[tauri::command(rename_all = "camelCase")]
+pub fn cad_deserialize_shape(brep_base64: String) -> Result<ShapeResult, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+
+    let brep_data = STANDARD
+        .decode(&brep_base64)
+        .map_err(|e| format!("Failed to decode base64: {}", e))?;
+
+    let shape = Shape::from_brep(&brep_data).map_err(|e| e.to_string())?;
+    let analysis = Analysis::analyze(&shape);
+    let id = store_shape(shape)?;
+
+    Ok(ShapeResult {
+        id,
+        analysis: analysis.into(),
+    })
+}
+
 /// Clear all shapes from the registry
 #[tauri::command]
 pub fn cad_clear_all() -> Result<usize, String> {
@@ -986,10 +1161,34 @@ pub fn cad_simplify(
     unify_faces: bool,
 ) -> Result<ShapeResult, String> {
     let shape = get_shape(&shape_id)?;
+
+    // Log shape BEFORE simplification
+    let before = Analysis::analyze(&shape);
+    println!(
+        "[Simplify] Input shape {}: faces={}, edges={}, solids={}",
+        shape_id, before.num_faces, before.num_edges, before.num_solids
+    );
+
     let result =
         Operations::simplify(&shape, unify_edges, unify_faces).map_err(|e| e.to_string())?;
     let analysis = Analysis::analyze(&result);
+
+    // Log shape AFTER simplification
+    println!(
+        "[Simplify] Output shape: faces={}, edges={}, solids={}",
+        analysis.num_faces, analysis.num_edges, analysis.num_solids
+    );
+
+    // WARNING if faces reduced significantly (possible over-simplification)
+    if analysis.num_faces < before.num_faces / 2 {
+        println!(
+            "[Simplify] ⚠️ WARNING: Face count reduced from {} to {} - possible over-simplification!",
+            before.num_faces, analysis.num_faces
+        );
+    }
+
     let id = store_shape(result)?;
+    println!("[Simplify] Stored as new shape ID: {}", id);
 
     Ok(ShapeResult {
         id,

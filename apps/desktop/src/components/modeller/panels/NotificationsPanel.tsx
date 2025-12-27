@@ -322,7 +322,7 @@ export function NotificationsPanel({ className, compact = false }: Notifications
       />
 
       {/* Notifications List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" showFadeMasks>
         <div className="p-3 space-y-2">
           {notifications.length === 0 ? (
             <EmptyState />

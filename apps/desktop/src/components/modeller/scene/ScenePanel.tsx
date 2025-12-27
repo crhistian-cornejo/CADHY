@@ -975,7 +975,7 @@ export function ScenePanel({ className }: ScenePanelProps) {
       </div>
 
       {/* Object List */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1 min-h-0" showFadeMasks>
         {objects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">

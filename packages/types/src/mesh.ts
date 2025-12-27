@@ -4,7 +4,7 @@ import type { Vec3 } from "./geometry"
 
 export interface MeshData {
   vertices: Float32Array
-  normals: Float32Array
+  normals?: Float32Array
   indices: Uint32Array
   uvs?: Float32Array
 }

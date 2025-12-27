@@ -17,6 +17,7 @@ import {
 import { GridIcon, Layers01Icon, Move01Icon, WaterEnergyIcon } from "@hugeicons/core-free-icons"
 import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { useUnits } from "@/hooks/use-units"
 import {
   type TransitionObject,
   type TransitionSection,
@@ -43,6 +44,7 @@ export interface TransitionPropertiesPanelProps {
 export function TransitionPropertiesPanel({ object, onUpdate }: TransitionPropertiesPanelProps) {
   const { t } = useTranslation()
   const objects = useModellerStore((s) => s.objects)
+  const { lengthLabel, convertLengthToDisplay, precision } = useUnits()
 
   // Get connected channel names
   const upstreamName = useMemo(() => {
@@ -169,12 +171,12 @@ export function TransitionPropertiesPanel({ object, onUpdate }: TransitionProper
         {/* Stations */}
         <PropertyRow label={t("properties.startStation", "Start St.")}>
           <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
-            {object.startStation?.toFixed(2)} m
+            {convertLengthToDisplay(object.startStation ?? 0).toFixed(precision)} {lengthLabel}
           </div>
         </PropertyRow>
         <PropertyRow label={t("properties.endStation", "End St.")}>
           <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
-            {object.endStation?.toFixed(2)} m
+            {convertLengthToDisplay(object.endStation ?? 0).toFixed(precision)} {lengthLabel}
           </div>
         </PropertyRow>
       </PropertySection>

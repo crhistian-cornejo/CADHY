@@ -203,22 +203,38 @@ function SettingsTab() {
     // Regenerate all views with new scale
     if (activeDrawing.sourceShapeIds.length > 0 && activeDrawing.views.length > 0) {
       try {
-        const shapeId = activeDrawing.sourceShapeIds[0]
+        // sourceShapeIds contains stable sceneObjectIds (NOT ephemeral backendIds)
+        const sceneObjectId = activeDrawing.sourceShapeIds[0]
+
+        // Get the backend shape ID from the map (sceneObjectId -> backendShapeId)
+        const backendId = shapeIdMap.get(sceneObjectId)
+        if (!backendId) {
+          console.error(
+            "[DrawingToolsPanel] Backend shape ID not found for sceneObjectId:",
+            sceneObjectId
+          )
+          return
+        }
+
         const unitFactor = getModelMetersToDrawingUnitsFactor(activeDrawing.sheetConfig.units)
 
         // Regenerate each view
         for (const view of activeDrawing.views) {
           try {
+            // Always use backendId for projection generation
             const projection = await generateProjection(
-              shapeId,
+              backendId,
               view.projectionType,
               newScale * unitFactor
-            ).catch(async (err) => {
-              // Retry with mapped ID if needed
-              const mapped = shapeIdMap.get(shapeId)
-              if (!mapped) throw err
-              return await generateProjection(mapped, view.projectionType, newScale * unitFactor)
-            })
+            )
+
+            // Validate projection has lines before updating
+            if (!projection.lines || projection.lines.length === 0) {
+              console.warn(
+                `[ScaleChange] Projection for view ${view.id} (${view.projectionType}) returned 0 lines - keeping old projection`
+              )
+              continue // Skip this view, keep old projection
+            }
 
             updateView(activeDrawing.id, view.id, { projection })
           } catch (error) {
@@ -344,7 +360,7 @@ export function DrawingToolsPanel({ className }: DrawingToolsPanelProps) {
           </TabsTrigger>
         </TabsList>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1" showFadeMasks>
           <TabsContent value="dimensions" className="m-0 data-[state=inactive]:hidden">
             <DimensionsTab />
           </TabsContent>

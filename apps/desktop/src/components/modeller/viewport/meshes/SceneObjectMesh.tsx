@@ -92,18 +92,24 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
     return "#6366f1"
   }, [object, isGhostPreview])
 
-  // Determine opacity
+  // Load viewport settings (must be called before hooks that use it)
+  const viewportSettings = useViewportSettings()
+
+  // Determine opacity - considers X-Ray mode from viewport settings
   const opacity = useMemo(() => {
     // Ghost preview: semi-transparent
     if (isGhostPreview) {
       return 0.3
     }
-    if (viewMode === "xray") return 0.5
+    // X-Ray mode uses configurable opacity from viewport settings
+    if (viewMode === "xray") {
+      return viewportSettings.xrayOpacity ?? 0.3
+    }
     if (object.type === "shape") {
       return (object as ShapeObject).material?.opacity ?? 1
     }
     return 1
-  }, [object, viewMode, isGhostPreview])
+  }, [object, viewMode, isGhostPreview, viewportSettings.xrayOpacity])
 
   // Get material properties
   const materialProps = useMemo(() => {
@@ -118,7 +124,6 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
   }, [object])
 
   // Load PBR textures (only for shapes with post-processing enabled)
-  const viewportSettings = useViewportSettings()
   const shapeMaterial = object.type === "shape" ? (object as ShapeObject).material : undefined
   const pbrTextures = usePBRTextures(shapeMaterial, viewportSettings.enablePostProcessing ?? false)
 
@@ -347,8 +352,44 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
         shapeObj.shapeType
       )
 
+      // DEBUG: Log shape info for non-primitive shapes
+      if (!isBasicPrimitive) {
+        const verticesLength = shapeObj.mesh?.vertices?.length ?? 0
+        const indicesLength = shapeObj.mesh?.indices?.length ?? 0
+        const willUseFallback = verticesLength === 0
+
+        console.log("[SceneObjectMesh] Non-primitive shape:", shapeObj.id, {
+          shapeType: shapeObj.shapeType,
+          name: shapeObj.name,
+          hasMesh: !!shapeObj.mesh,
+          verticesType: shapeObj.mesh?.vertices?.constructor?.name ?? "undefined",
+          verticesLength,
+          indicesLength,
+          willUseFallback,
+          isGhostPreview,
+        })
+
+        // If we're going to use fallback, this is a problem - log more details
+        if (willUseFallback && shapeObj.mesh) {
+          console.warn("[SceneObjectMesh] WILL USE FALLBACK BOX - mesh exists but no vertices!", {
+            meshKeys: Object.keys(shapeObj.mesh),
+            verticesValue: shapeObj.mesh.vertices,
+            vertexCount: shapeObj.mesh.vertexCount,
+          })
+        }
+      }
+
       // Use backend mesh ONLY for non-primitive shapes (boolean results, complex geometry)
       if (shapeObj.mesh?.vertices && shapeObj.mesh.vertices.length > 0 && !isBasicPrimitive) {
+        // DEBUG: Log mesh data for compound shapes
+        console.log("[SceneObjectMesh] Using backend mesh for:", shapeObj.shapeType, {
+          vertexCount: shapeObj.mesh.vertices.length / 3,
+          indexCount: shapeObj.mesh.indices?.length ?? 0,
+          hasNormals: !!shapeObj.mesh.normals?.length,
+          firstVertices: Array.from(shapeObj.mesh.vertices.slice(0, 9)),
+          firstIndices: shapeObj.mesh.indices ? Array.from(shapeObj.mesh.indices.slice(0, 9)) : [],
+        })
+
         const geo = new THREE.BufferGeometry()
 
         // Set vertices - swap Y and Z for Three.js coordinate system
@@ -385,7 +426,10 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
           maxZ = Math.max(maxZ, tz)
         }
 
-        // Second pass: center the geometry (OpenCASCADE creates shapes from origin, Three.js centers them)
+        // Second pass: center the geometry around origin so transform.position works correctly
+        // All shapes (including compound from boolean/mirror) should be centered so that:
+        // 1. The gizmo appears at the correct location (transform.position)
+        // 2. Transforms (move/rotate/scale) work as expected around the object center
         const centerX = (minX + maxX) / 2
         const centerY = (minY + maxY) / 2
         const centerZ = (minZ + maxZ) / 2
@@ -394,6 +438,14 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
           positions[i] -= centerX
           positions[i + 1] -= centerY
           positions[i + 2] -= centerZ
+        }
+
+        // DEBUG: Log centering info for compound shapes
+        if (shapeObj.shapeType === "compound") {
+          console.log("[SceneObjectMesh] Compound shape centered:", {
+            originalCenter: { x: centerX, y: centerY, z: centerZ },
+            transformPosition: shapeObj.transform?.position,
+          })
         }
 
         geo.setAttribute("position", new THREE.BufferAttribute(positions, 3))
@@ -512,6 +564,17 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
               )
           )
         default:
+          // DEBUG: This should NOT happen for compound shapes - they should use backend mesh
+          console.warn(
+            "[SceneObjectMesh] FALLBACK to default box geometry for:",
+            shapeObj.shapeType,
+            {
+              id: shapeObj.id,
+              name: shapeObj.name,
+              hasMesh: !!shapeObj.mesh,
+              meshVertices: shapeObj.mesh?.vertices?.length ?? 0,
+            }
+          )
           return meshCache.getGeometry(
             "box",
             { width: 1, height: 1, depth: 1, segments: 1 },
@@ -571,63 +634,155 @@ export const SceneObjectMesh = React.memo(function SceneObjectMesh({
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
     >
-      {viewportSettings.enablePostProcessing ? (
-        <meshStandardMaterial
-          key={`mat-pbr-${pbrTextures?.albedo?.uuid ?? "none"}`}
-          color={
-            isGhostPreview
-              ? "#10b981" // Ghost preview: green
-              : isSelected
-                ? "#10b981" // Selected: green
-                : isHovered
-                  ? "#3b82f6" // Hovered: blue
-                  : pbrTextures?.albedo
-                    ? "#ffffff"
-                    : color
-          }
-          wireframe={viewMode === "wireframe" || isGhostPreview}
-          transparent={opacity < 1 || viewMode === "xray" || isGhostPreview}
-          opacity={opacity}
-          side={THREE.FrontSide}
-          metalness={Math.min(
-            1,
-            materialProps.metalness + (viewportSettings.reflection ?? 0) * 0.5
-          )}
-          roughness={Math.max(
-            0,
-            materialProps.roughness - (viewportSettings.reflection ?? 0) * 0.3
-          )}
-          // Selection glow effect - emissive for selected objects
-          emissive={
-            isGhostPreview ? "#10b981" : isSelected ? "#10b981" : isHovered ? "#3b82f6" : "#000000"
-          }
-          emissiveIntensity={isGhostPreview ? 0.2 : isSelected ? 0.3 : isHovered ? 0.15 : 0}
-          map={pbrTextures?.albedo ?? null}
-          normalMap={pbrTextures?.normal ?? null}
-          roughnessMap={pbrTextures?.roughness ?? null}
-          metalnessMap={pbrTextures?.metalness ?? null}
-          aoMap={pbrTextures?.ao ?? null}
-          aoMapIntensity={pbrTextures?.ao ? 1 : 0}
-          // Prevent overexposure from environment lighting when using textures
-          // Increase envMapIntensity based on reflection setting
-          envMapIntensity={
-            pbrTextures?.albedo
-              ? 0.5 + (viewportSettings.reflection ?? 0) * 0.5
-              : 1 + (viewportSettings.reflection ?? 0) * 0.5
-          }
-        />
-      ) : (
-        <meshBasicMaterial
-          key="mat-basic"
-          color={
-            isGhostPreview ? "#10b981" : isSelected ? "#f59e0b" : isHovered ? "#3b82f6" : color
-          }
-          wireframe={viewMode === "wireframe" || isGhostPreview}
-          transparent={opacity < 1 || viewMode === "xray" || isGhostPreview}
-          opacity={opacity}
-          side={THREE.FrontSide}
-        />
-      )}
+      {/* Material selection based on shading mode */}
+      {(() => {
+        const shadingMode = viewportSettings.shadingMode ?? "rendered"
+        const isWireframeMode =
+          shadingMode === "wireframe" || viewMode === "wireframe" || isGhostPreview
+        const isTransparent = opacity < 1 || viewMode === "xray" || isGhostPreview
+
+        // Workbench mode - flat colors for modeling (matcap-like)
+        if (shadingMode === "workbench") {
+          return (
+            <meshBasicMaterial
+              key="mat-workbench"
+              color={
+                isGhostPreview ? "#10b981" : isSelected ? "#6ee7b7" : isHovered ? "#93c5fd" : color
+              }
+              wireframe={isWireframeMode}
+              transparent={isTransparent}
+              opacity={opacity}
+              side={THREE.FrontSide}
+            />
+          )
+        }
+
+        // Wireframe mode - only wireframe, no fill
+        if (shadingMode === "wireframe") {
+          return (
+            <meshBasicMaterial
+              key="mat-wireframe"
+              color={
+                isGhostPreview ? "#10b981" : isSelected ? "#10b981" : isHovered ? "#3b82f6" : color
+              }
+              wireframe={true}
+              transparent={isTransparent}
+              opacity={Math.max(0.6, opacity)}
+              side={THREE.FrontSide}
+            />
+          )
+        }
+
+        // Solid mode - basic lighting without heavy effects
+        if (shadingMode === "solid") {
+          return (
+            <meshLambertMaterial
+              key="mat-solid"
+              color={
+                isGhostPreview ? "#10b981" : isSelected ? "#10b981" : isHovered ? "#3b82f6" : color
+              }
+              wireframe={isWireframeMode}
+              transparent={isTransparent}
+              opacity={opacity}
+              side={THREE.FrontSide}
+              emissive={isSelected ? "#10b981" : isHovered ? "#3b82f6" : "#000000"}
+              emissiveIntensity={isSelected ? 0.1 : isHovered ? 0.05 : 0}
+            />
+          )
+        }
+
+        // Material preview mode - PBR without post-processing
+        if (shadingMode === "material" || !viewportSettings.enablePostProcessing) {
+          return (
+            <meshStandardMaterial
+              key={`mat-material-${pbrTextures?.albedo?.uuid ?? "none"}`}
+              color={
+                isGhostPreview
+                  ? "#10b981"
+                  : isSelected
+                    ? "#10b981"
+                    : isHovered
+                      ? "#3b82f6"
+                      : pbrTextures?.albedo
+                        ? "#ffffff"
+                        : color
+              }
+              wireframe={isWireframeMode}
+              transparent={isTransparent}
+              opacity={opacity}
+              side={THREE.FrontSide}
+              metalness={materialProps.metalness}
+              roughness={materialProps.roughness}
+              emissive={
+                isGhostPreview
+                  ? "#10b981"
+                  : isSelected
+                    ? "#10b981"
+                    : isHovered
+                      ? "#3b82f6"
+                      : "#000000"
+              }
+              emissiveIntensity={isGhostPreview ? 0.15 : isSelected ? 0.2 : isHovered ? 0.1 : 0}
+              map={pbrTextures?.albedo ?? null}
+              normalMap={pbrTextures?.normal ?? null}
+              roughnessMap={pbrTextures?.roughness ?? null}
+              metalnessMap={pbrTextures?.metalness ?? null}
+              envMapIntensity={0.5}
+            />
+          )
+        }
+
+        // Rendered mode - full PBR with all effects (default)
+        return (
+          <meshStandardMaterial
+            key={`mat-pbr-${pbrTextures?.albedo?.uuid ?? "none"}`}
+            color={
+              isGhostPreview
+                ? "#10b981"
+                : isSelected
+                  ? "#10b981"
+                  : isHovered
+                    ? "#3b82f6"
+                    : pbrTextures?.albedo
+                      ? "#ffffff"
+                      : color
+            }
+            wireframe={isWireframeMode}
+            transparent={isTransparent}
+            opacity={opacity}
+            side={THREE.FrontSide}
+            metalness={Math.min(
+              1,
+              materialProps.metalness + (viewportSettings.reflection ?? 0) * 0.5
+            )}
+            roughness={Math.max(
+              0,
+              materialProps.roughness - (viewportSettings.reflection ?? 0) * 0.3
+            )}
+            emissive={
+              isGhostPreview
+                ? "#10b981"
+                : isSelected
+                  ? "#10b981"
+                  : isHovered
+                    ? "#3b82f6"
+                    : "#000000"
+            }
+            emissiveIntensity={isGhostPreview ? 0.2 : isSelected ? 0.3 : isHovered ? 0.15 : 0}
+            map={pbrTextures?.albedo ?? null}
+            normalMap={pbrTextures?.normal ?? null}
+            roughnessMap={pbrTextures?.roughness ?? null}
+            metalnessMap={pbrTextures?.metalness ?? null}
+            aoMap={pbrTextures?.ao ?? null}
+            aoMapIntensity={pbrTextures?.ao ? 1 : 0}
+            envMapIntensity={
+              pbrTextures?.albedo
+                ? 0.5 + (viewportSettings.reflection ?? 0) * 0.5
+                : 1 + (viewportSettings.reflection ?? 0) * 0.5
+            }
+          />
+        )
+      })()}
     </mesh>
   )
 })

@@ -461,6 +461,17 @@ export type EnvironmentPreset =
   | "sunset"
   | "warehouse"
 
+/**
+ * Viewport Shading Mode - Blender-style shading presets
+ * Controls how objects are displayed in the viewport
+ */
+export type ViewportShadingMode =
+  | "solid" // Default - basic lighting, no heavy effects
+  | "material" // Material preview - PBR without heavy post-processing
+  | "rendered" // Full rendered view with all effects
+  | "wireframe" // Wireframe only
+  | "workbench" // Flat colors for modeling (matcap-like)
+
 export interface ViewportSettings {
   viewMode: ViewMode
   showGrid: boolean
@@ -494,6 +505,80 @@ export interface ViewportSettings {
   contrast: number
   /** Rim light intensity (0-1) */
   rimLight: number
+
+  // ============================================================================
+  // PHASE 1: ADVANCED RENDERING - Quick Wins
+  // ============================================================================
+
+  /** Viewport shading mode (Blender-style) */
+  shadingMode: ViewportShadingMode
+
+  /** Enable Screen Space Reflections (SSR) */
+  enableSSR: boolean
+  /** SSR intensity (0-1) */
+  ssrIntensity: number
+  /** SSR max distance for reflections */
+  ssrMaxDistance: number
+
+  /** Enable Depth of Field */
+  enableDOF: boolean
+  /** DOF focus distance (auto = -1 to use camera target) */
+  dofFocusDistance: number
+  /** DOF aperture / bokeh size (0-1) */
+  dofAperture: number
+  /** DOF bokeh scale for blur size */
+  dofBokehScale: number
+
+  /** Enable Motion Blur (for animations) */
+  enableMotionBlur: boolean
+  /** Motion blur intensity (0-1) */
+  motionBlurIntensity: number
+
+  // ============================================================================
+  // PHASE 2: CAD PRO FEATURES
+  // ============================================================================
+
+  /** Enable edge detection / outline effect */
+  enableEdgeDetection: boolean
+  /** Edge detection color */
+  edgeColor: string
+  /** Edge detection thickness (1-5) */
+  edgeThickness: number
+  /** Enable hidden line removal (technical drawing mode) */
+  hiddenLineRemoval: boolean
+
+  /** Enable X-Ray transparency mode */
+  enableXRay: boolean
+  /** X-Ray opacity level (0-1) */
+  xrayOpacity: number
+
+  /** Enable section planes */
+  enableSectionPlane: boolean
+  /** Section plane position */
+  sectionPlanePosition: { x: number; y: number; z: number }
+  /** Section plane normal direction */
+  sectionPlaneNormal: { x: number; y: number; z: number }
+  /** Show section cap (filled cut surface) */
+  sectionPlaneCap: boolean
+
+  // ============================================================================
+  // PHASE 3: BLENDER-LIKE RENDERING
+  // ============================================================================
+
+  /** Enable volumetric lighting / god rays */
+  enableVolumetrics: boolean
+  /** Volumetric density (0-1) */
+  volumetricDensity: number
+
+  /** Enable vignette effect */
+  enableVignette: boolean
+  /** Vignette intensity (0-1) */
+  vignetteIntensity: number
+
+  /** Enable chromatic aberration */
+  enableChromaticAberration: boolean
+  /** Chromatic aberration offset */
+  chromaticAberrationOffset: number
 }
 
 // ============================================================================
@@ -626,6 +711,38 @@ export const DEFAULT_VIEWPORT_SETTINGS: ViewportSettings = {
   brightness: 1,
   contrast: 1,
   rimLight: 0,
+
+  // Phase 1: Advanced Rendering - Quick Wins
+  shadingMode: "rendered",
+  enableSSR: false, // Disabled by default for performance
+  ssrIntensity: 0.5,
+  ssrMaxDistance: 10,
+  enableDOF: false, // Disabled by default
+  dofFocusDistance: -1, // -1 = auto focus on camera target
+  dofAperture: 0.025,
+  dofBokehScale: 2,
+  enableMotionBlur: false, // Disabled by default
+  motionBlurIntensity: 0.5,
+
+  // Phase 2: CAD Pro Features
+  enableEdgeDetection: false,
+  edgeColor: "#000000",
+  edgeThickness: 1,
+  hiddenLineRemoval: false,
+  enableXRay: false,
+  xrayOpacity: 0.3,
+  enableSectionPlane: false,
+  sectionPlanePosition: { x: 0, y: 0, z: 0 },
+  sectionPlaneNormal: { x: 0, y: 1, z: 0 },
+  sectionPlaneCap: true,
+
+  // Phase 3: Blender-Like Rendering
+  enableVolumetrics: false,
+  volumetricDensity: 0.1,
+  enableVignette: false,
+  vignetteIntensity: 0.3,
+  enableChromaticAberration: false,
+  chromaticAberrationOffset: 0.002,
 }
 
 // ============================================================================

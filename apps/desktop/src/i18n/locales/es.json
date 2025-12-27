@@ -21,7 +21,8 @@
     "no": "No",
     "rename": "Renombrar",
     "apply": "Aplicar",
-    "more": "Más"
+    "more": "Más",
+    "now": "ahora"
   },
   "camera": {
     "savedViews": "Vistas Guardadas",
@@ -182,7 +183,15 @@
     "low": "Bajo",
     "memoryUsage": "Uso de memoria",
     "gpu": "GPU",
-    "projectSaved": "Proyecto guardado exitosamente"
+    "projectSaved": "Proyecto guardado exitosamente",
+    "usageImpact": "Uso de Recursos",
+    "clickToShowGraphs": "Clic para ver gráficos",
+    "usageImpactDescription": "Uso de recursos de CADHY en el tiempo",
+    "memoryUsed": "Memoria usada por CADHY",
+    "gpuUsageNotAvailable": "El uso de GPU en tiempo real requiere APIs específicas del fabricante",
+    "ramUsed": "RAM Usada",
+    "ramPercent": "RAM %",
+    "hoverToInspect": "Pasa el cursor sobre las barras para ver valores"
   },
   "panels": {
     "viewer": "Visor 3D",
@@ -1007,6 +1016,8 @@
       "lineLengthDesc": "Selecciona una línea para acotar",
       "pointToPoint": "Punto a punto",
       "pointToPointDesc": "Selecciona dos puntos para medir",
+      "angle": "Ángulo",
+      "angleDesc": "3 puntos para el ángulo. Shift = exterior",
       "note": "Nota",
       "noteDesc": "Añade una nota/etiqueta a la geometría",
       "selected": "Cota {{index}} seleccionada",
@@ -1045,8 +1056,12 @@
       "custom": "Personalizado"
     },
     "views": {
+      "addView": "Agregar Vista",
       "addBaseView": "Agregar Vista Base",
-      "selectOrientation": "Selecciona la orientación para la vista base",
+      "selectShape": "Selecciona un objeto del modelador",
+      "noShapesAvailable": "No hay objetos disponibles",
+      "createShapeFirst": "Crea objetos en el modelador primero",
+      "selectOrientation": "Selecciona la orientación para la vista",
       "top": "Planta",
       "front": "Alzado",
       "right": "Perfil Derecho",
@@ -1054,6 +1069,10 @@
       "bottom": "Inferior",
       "back": "Posterior",
       "isometric": "Isométrica",
+      "isometricSW": "SW (Frontal-Derecha)",
+      "isometricSE": "SE (Frontal-Izquierda)",
+      "isometricNE": "NE (Posterior-Izquierda)",
+      "isometricNW": "NW (Posterior-Derecha)",
       "lockViews": "Bloquear vistas",
       "unlockViews": "Desbloquear vistas",
       "locked": "Bloqueado",
@@ -1088,7 +1107,8 @@
       "dimensionsTooltip": "Cotas",
       "geometriesTooltip": "Geometrías",
       "notesTooltip": "Notas",
-      "imageTooltip": "Imagen"
+      "imageTooltip": "Imagen",
+      "addViewTooltip": "Agregar Vista"
     },
     "themes": {
       "blueprint": "Blueprint",
@@ -1143,7 +1163,14 @@
         "title": "Visualización",
         "constructionLines": "Líneas de construcción",
         "viewLabels": "Etiquetas de vistas",
-        "gridReferences": "Referencias de cuadrícula"
+        "gridReferences": "Referencias de cuadrícula",
+        "regenerateViews": "Regenerar Vistas",
+        "regenerating": "Regenerando...",
+        "regenerateHint": "Actualizar proyecciones desde el modelo 3D",
+        "viewsRegenerated": "Regeneradas {{count}}/{{total}} vistas",
+        "regenerationFailed": "No se pudieron regenerar las vistas",
+        "regenerationError": "Error al regenerar las vistas",
+        "noViewsToRegenerate": "No hay vistas para regenerar"
       },
       "lineWidths": {
         "title": "Anchos de línea",
@@ -1152,6 +1179,47 @@
         "dimension": "Líneas de cota",
         "centerline": "Líneas de eje",
         "section": "Líneas de corte"
+      },
+      "viewLabels": {
+        "title": "Etiquetas de vista",
+        "showName": "Mostrar nombre",
+        "showScale": "Mostrar escala",
+        "showNumber": "Mostrar número",
+        "position": "Posición",
+        "positionBottom": "Abajo",
+        "positionTop": "Arriba",
+        "positionLeft": "Izquierda",
+        "positionRight": "Derecha",
+        "numberStyle": "Estilo número",
+        "numberCircle": "Círculo",
+        "numberSquare": "Cuadrado",
+        "numberPlain": "Simple",
+        "numberNone": "Sin número",
+        "numberSize": "Tamaño número",
+        "numberGap": "Separación número (mm)",
+        "fontSize": "Tamaño fuente (mm)",
+        "offset": "Separación (mm)",
+        "underline": "Subrayado"
+      },
+      "hatching": {
+        "title": "Rayado",
+        "noHatches": "No hay rayados en este dibujo",
+        "hint": "Añade rayados en vistas de sección",
+        "region": "Región",
+        "pattern": "Patrón",
+        "angle": "Ángulo (°)",
+        "spacing": "Espaciado (mm)",
+        "scale": "Escala"
+      },
+      "layoutGrid": {
+        "title": "Grid de Layout",
+        "showGrid": "Mostrar grid",
+        "spacing": "Espaciado grid (mm)",
+        "showMinor": "Mostrar grid menor",
+        "snapToGrid": "Ajustar a grid",
+        "alignGuides": "Guías de alineación",
+        "centerGuides": "Guías de centro",
+        "spacingIndicators": "Indicadores de espaciado"
       },
       "export": {
         "title": "Exportar",

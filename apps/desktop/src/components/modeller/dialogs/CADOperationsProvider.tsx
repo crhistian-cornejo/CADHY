@@ -25,6 +25,7 @@ interface CADOperationsContextValue {
   // Transform operations
   executeMirror: (plane?: "yz" | "xz" | "xy", keepOriginal?: boolean) => Promise<boolean>
   dialogState: OperationDialogState
+  setDialogAdvancedValue: (key: string, value: string | number | boolean) => void
 }
 
 const CADOperationsContext = createContext<CADOperationsContextValue | null>(null)
@@ -62,6 +63,7 @@ export function CADOperationsProvider({ children }: CADOperationsProviderProps) 
     executeBooleanIntersect,
     // Transform operations
     executeMirror,
+    setDialogAdvancedValue,
   } = useCADOperations()
 
   return (
@@ -76,18 +78,24 @@ export function CADOperationsProvider({ children }: CADOperationsProviderProps) 
         executeBooleanIntersect,
         executeMirror,
         dialogState,
+        setDialogAdvancedValue,
       }}
     >
       {children}
       <FloatingCADOperationsPanel
         open={dialogState.open}
-        operation={dialogState.operation}
+        operation={dialogState.operation as "fillet" | "chamfer" | "shell" | null}
         title={dialogState.title}
         description={dialogState.description}
         label={dialogState.label}
         value={dialogState.value}
         interactiveMode={dialogState.interactiveMode}
+        continuity={dialogState.continuity}
+        chamferMode={dialogState.chamferMode}
+        value2={dialogState.value2}
+        angle={dialogState.angle}
         onValueChange={setDialogValue}
+        onAdvancedValueChange={setDialogAdvancedValue}
         onApply={applyOperation}
         onCancel={closeDialog}
         onToggleInteractiveMode={toggleInteractiveMode}

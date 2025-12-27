@@ -39,6 +39,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useUnits } from "@/hooks/use-units"
 import type {
   AnySceneObject,
   ChannelObject,
@@ -161,8 +162,46 @@ function calculateShapeMetrics(shape: ShapeObject): {
       dimensions.radius = R
       break
     }
-    default:
+    case "compound":
+    default: {
+      // For compound shapes (boolean results) and other types,
+      // use the analysis data from OpenCASCADE if available
+      const analysis = shape.metadata?.analysis
+      if (analysis) {
+        volume = analysis.volume ?? 0
+        surfaceArea = analysis.surface_area ?? 0
+      } else if (shape.mesh?.vertices && shape.mesh.vertices.length > 0) {
+        // Fallback: estimate bounding box dimensions from mesh
+        const vertices = shape.mesh.vertices
+        let minX = Infinity,
+          maxX = -Infinity
+        let minY = Infinity,
+          maxY = -Infinity
+        let minZ = Infinity,
+          maxZ = -Infinity
+        for (let i = 0; i < vertices.length; i += 3) {
+          const x = vertices[i] ?? 0
+          const y = vertices[i + 1] ?? 0
+          const z = vertices[i + 2] ?? 0
+          if (x < minX) minX = x
+          if (x > maxX) maxX = x
+          if (y < minY) minY = y
+          if (y > maxY) maxY = y
+          if (z < minZ) minZ = z
+          if (z > maxZ) maxZ = z
+        }
+        const w = (maxX - minX) * scaleX
+        const h = (maxY - minY) * scaleY
+        const d = (maxZ - minZ) * scaleZ
+        dimensions.width = w
+        dimensions.height = h
+        dimensions.depth = d
+        // Rough estimate for complex shapes (actual values from analysis are preferred)
+        volume = w * h * d * 0.5 // Assume ~50% fill factor for complex shapes
+        surfaceArea = 2 * (w * h + h * d + w * d)
+      }
       break
+    }
   }
 
   return { volume, surfaceArea, dimensions }
@@ -441,6 +480,15 @@ function calculateSoladoProperties(
 
 function useBIMData(object: AnySceneObject) {
   const { t } = useTranslation()
+  const {
+    convertLengthToDisplay,
+    convertAreaToDisplay,
+    convertVolumeToDisplay,
+    lengthLabel,
+    areaLabel,
+    volumeLabel,
+    precision,
+  } = useUnits()
 
   const bimData = useMemo<BIMData[]>(() => {
     const data: BIMData[] = []
@@ -483,8 +531,8 @@ function useBIMData(object: AnySceneObject) {
         data.push({
           category: t("bim.dimensions", "Dimensions"),
           property: t("bim.width", "Width"),
-          value: formatNumber(metrics.dimensions.width),
-          unit: "m",
+          value: formatNumber(convertLengthToDisplay(metrics.dimensions.width), precision),
+          unit: lengthLabel,
         })
       }
 
@@ -492,8 +540,8 @@ function useBIMData(object: AnySceneObject) {
         data.push({
           category: t("bim.dimensions", "Dimensions"),
           property: t("bim.height", "Height"),
-          value: formatNumber(metrics.dimensions.height),
-          unit: "m",
+          value: formatNumber(convertLengthToDisplay(metrics.dimensions.height), precision),
+          unit: lengthLabel,
         })
       }
 
@@ -501,8 +549,8 @@ function useBIMData(object: AnySceneObject) {
         data.push({
           category: t("bim.dimensions", "Dimensions"),
           property: t("bim.depth", "Depth"),
-          value: formatNumber(metrics.dimensions.depth),
-          unit: "m",
+          value: formatNumber(convertLengthToDisplay(metrics.dimensions.depth), precision),
+          unit: lengthLabel,
         })
       }
 
@@ -510,24 +558,24 @@ function useBIMData(object: AnySceneObject) {
         data.push({
           category: t("bim.dimensions", "Dimensions"),
           property: t("bim.radius", "Radius"),
-          value: formatNumber(metrics.dimensions.radius),
-          unit: "m",
+          value: formatNumber(convertLengthToDisplay(metrics.dimensions.radius), precision),
+          unit: lengthLabel,
         })
       }
 
       data.push({
         category: t("bim.quantities", "Quantities"),
         property: t("bim.volume", "Volume"),
-        value: formatNumber(metrics.volume),
-        unit: "m³",
+        value: formatNumber(convertVolumeToDisplay(metrics.volume), precision),
+        unit: volumeLabel,
         highlight: true,
       })
 
       data.push({
         category: t("bim.quantities", "Quantities"),
         property: t("bim.surfaceArea", "Surface Area"),
-        value: formatNumber(metrics.surfaceArea),
-        unit: "m²",
+        value: formatNumber(convertAreaToDisplay(metrics.surfaceArea), precision),
+        unit: areaLabel,
       })
 
       data.push({
@@ -580,8 +628,8 @@ function useBIMData(object: AnySceneObject) {
         data.push({
           category: t("bim.dimensions", "Dimensions"),
           property: t("bim.width", "Width"),
-          value: formatNumber(channel.section.width),
-          unit: "m",
+          value: formatNumber(convertLengthToDisplay(channel.section.width), precision),
+          unit: lengthLabel,
         })
       }
 
@@ -589,8 +637,8 @@ function useBIMData(object: AnySceneObject) {
         data.push({
           category: t("bim.dimensions", "Dimensions"),
           property: t("bim.bottomWidth", "Bottom Width"),
-          value: formatNumber(channel.section.bottomWidth),
-          unit: "m",
+          value: formatNumber(convertLengthToDisplay(channel.section.bottomWidth), precision),
+          unit: lengthLabel,
         })
       }
 
@@ -598,8 +646,8 @@ function useBIMData(object: AnySceneObject) {
         data.push({
           category: t("bim.dimensions", "Dimensions"),
           property: t("bim.depth", "Depth"),
-          value: formatNumber(channel.section.depth),
-          unit: "m",
+          value: formatNumber(convertLengthToDisplay(channel.section.depth), precision),
+          unit: lengthLabel,
         })
       }
 
@@ -607,8 +655,8 @@ function useBIMData(object: AnySceneObject) {
         data.push({
           category: t("bim.dimensions", "Dimensions"),
           property: t("bim.freeBoard", "Free Board"),
-          value: formatNumber(channel.freeBoard),
-          unit: "m",
+          value: formatNumber(convertLengthToDisplay(channel.freeBoard), precision),
+          unit: lengthLabel,
         })
       }
 
@@ -616,8 +664,8 @@ function useBIMData(object: AnySceneObject) {
         data.push({
           category: t("bim.dimensions", "Dimensions"),
           property: t("bim.thickness", "Wall Thickness"),
-          value: formatNumber(channel.thickness),
-          unit: "m",
+          value: formatNumber(convertLengthToDisplay(channel.thickness), precision),
+          unit: lengthLabel,
         })
       }
 
@@ -1332,7 +1380,7 @@ function BIMTableSheet({
         </SheetHeader>
 
         {/* Table content */}
-        <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
+        <ScrollArea className="flex-1 min-h-0 -mx-6 px-6" showFadeMasks showTopFadeMask={false}>
           {activeCategory === "all" ? (
             // Grouped view
             <div className="space-y-6 pb-6">
@@ -1350,7 +1398,7 @@ function BIMTableSheet({
                 return (
                   <div key={category} className="space-y-3">
                     {/* Category header */}
-                    <div className="flex items-center gap-3 sticky top-0 bg-background/95 backdrop-blur py-2 z-10">
+                    <div className="flex items-center gap-3 sticky top-0 bg-background/95 backdrop-blur py-2 px-4 z-10">
                       <h3 className="text-sm font-semibold text-foreground">{category}</h3>
                       <div className="h-px flex-1 bg-border" />
                       <span className="text-xs text-muted-foreground">
@@ -1358,18 +1406,17 @@ function BIMTableSheet({
                       </span>
                     </div>
 
-                    {/* Category table */}
-                    <div className="rounded-xl border overflow-hidden bg-muted/20">
+                    <div className="rounded-xl border overflow-hidden bg-muted/20 mx-4">
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/50 hover:bg-muted/50 border-b">
-                            <TableHead className="w-[45%] font-semibold text-xs h-10">
+                            <TableHead className="w-[45%] font-semibold text-xs h-10 pl-4">
                               {t("bim.property", "Property")}
                             </TableHead>
                             <TableHead className="font-semibold text-xs text-right h-10">
                               {t("bim.value", "Value")}
                             </TableHead>
-                            <TableHead className="w-24 font-semibold text-xs text-center h-10">
+                            <TableHead className="w-24 font-semibold text-xs text-center h-10 pr-4">
                               {t("bim.unit", "Unit")}
                             </TableHead>
                           </TableRow>
@@ -1377,13 +1424,13 @@ function BIMTableSheet({
                         <TableBody>
                           {filteredItems.map((item, idx) => (
                             <TableRow key={`${item.property}-${idx}`} className="hover:bg-muted/30">
-                              <TableCell className="font-medium text-sm py-3">
+                              <TableCell className="font-medium text-sm py-3 pl-4">
                                 {item.property}
                               </TableCell>
                               <TableCell className="text-right font-mono text-sm py-3">
                                 {item.value}
                               </TableCell>
-                              <TableCell className="text-center text-muted-foreground text-sm py-3">
+                              <TableCell className="text-center text-muted-foreground text-sm py-3 pr-4">
                                 {item.unit || "—"}
                               </TableCell>
                             </TableRow>
@@ -1397,17 +1444,17 @@ function BIMTableSheet({
             </div>
           ) : (
             // Single category view
-            <div className="rounded-xl border overflow-hidden bg-muted/20">
+            <div className="rounded-xl border overflow-hidden bg-muted/20 mx-4">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50 border-b">
-                    <TableHead className="w-[45%] font-semibold text-xs h-10">
+                    <TableHead className="w-[45%] font-semibold text-xs h-10 pl-4">
                       {t("bim.property", "Property")}
                     </TableHead>
                     <TableHead className="font-semibold text-xs text-right h-10">
                       {t("bim.value", "Value")}
                     </TableHead>
-                    <TableHead className="w-24 font-semibold text-xs text-center h-10">
+                    <TableHead className="w-24 font-semibold text-xs text-center h-10 pr-4">
                       {t("bim.unit", "Unit")}
                     </TableHead>
                   </TableRow>
@@ -1415,11 +1462,13 @@ function BIMTableSheet({
                 <TableBody>
                   {filteredData.map((item, idx) => (
                     <TableRow key={`${item.property}-${idx}`} className="hover:bg-muted/30">
-                      <TableCell className="font-medium text-sm py-3">{item.property}</TableCell>
+                      <TableCell className="font-medium text-sm py-3 pl-4">
+                        {item.property}
+                      </TableCell>
                       <TableCell className="text-right font-mono text-sm py-3">
                         {item.value}
                       </TableCell>
-                      <TableCell className="text-center text-muted-foreground text-sm py-3">
+                      <TableCell className="text-center text-muted-foreground text-sm py-3 pr-4">
                         {item.unit || "—"}
                       </TableCell>
                     </TableRow>

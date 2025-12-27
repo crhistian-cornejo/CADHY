@@ -105,6 +105,9 @@ impl Default for ProjectSettings {
 pub struct SceneData {
     pub objects: serde_json::Value,
     pub layers: serde_json::Value,
+    /// Work areas for the modeller
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub areas: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub viewport_settings: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]

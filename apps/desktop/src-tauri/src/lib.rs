@@ -176,8 +176,11 @@ pub fn run() {
             // CAD commands - Modifications
             commands::cad::cad_fillet,
             commands::cad::cad_fillet_edges,
+            commands::cad::cad_fillet_edges_advanced,
             commands::cad::cad_chamfer,
             commands::cad::cad_chamfer_edges,
+            commands::cad::cad_chamfer_edges_two_distances,
+            commands::cad::cad_chamfer_edges_distance_angle,
             commands::cad::cad_shell,
             // CAD commands - Transforms
             commands::cad::cad_translate,
@@ -231,6 +234,8 @@ pub fn run() {
             commands::cad::cad_analyze,
             commands::cad::cad_measure_distance,
             commands::cad::cad_delete_shape,
+            commands::cad::cad_serialize_shape,
+            commands::cad::cad_deserialize_shape,
             commands::cad::cad_clear_all,
             commands::cad::cad_shape_exists,
             commands::cad::cad_shape_count,

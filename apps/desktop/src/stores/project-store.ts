@@ -12,6 +12,8 @@ import { loggers } from "@cadhy/shared"
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import { useShallow } from "zustand/shallow"
+import { shapeIdMap } from "@/hooks/use-cad"
+import * as cadService from "@/services/cad-service"
 import {
   createProject as createProjectService,
   openProject as openProjectService,
@@ -154,9 +156,224 @@ export const useProjectStore = create<ProjectStore>()(
           // Load scene into modeller store
           useModellerStore.getState().loadScene(projectData.scene)
 
+          // Recreate backend shapes from BREP data or parameters for shapes
+          // This allows ALL shapes (primitives and compounds) to have valid backend IDs after project load
+          const objects = useModellerStore.getState().objects
+          const oldToNewBackendIdMap = new Map<string, string>()
+
+          log.info(
+            `[Project Load] Recreating ${objects.filter((o) => o.type === "shape").length} shapes in backend...`
+          )
+
+          for (const obj of objects) {
+            if (obj.type === "shape") {
+              const shapeObj = obj as {
+                shapeType?: string
+                parameters?: Record<string, number>
+                metadata?: { brepData?: string; backendShapeId?: string }
+                id: string
+              }
+
+              // Try to recreate from BREP data first (for compound shapes)
+              if (shapeObj.metadata?.brepData) {
+                try {
+                  const oldBackendId = shapeObj.metadata.backendShapeId
+                  const result = await cadService.deserializeShape(shapeObj.metadata.brepData)
+                  // Update the shapeIdMap with the new backend ID
+                  shapeIdMap.set(obj.id, result.id)
+                  // Track the old → new backend ID mapping for updating drawings
+                  if (oldBackendId) {
+                    oldToNewBackendIdMap.set(oldBackendId, result.id)
+                  }
+
+                  // Retessellate the shape to ensure mesh is fresh
+                  // This is critical for compound shapes created by boolean operations
+                  const meshData = await cadService.tessellate(result.id, 0.1)
+                  const mesh = {
+                    vertices: new Float32Array(meshData.vertices),
+                    indices: new Uint32Array(meshData.indices),
+                    normals: meshData.normals
+                      ? new Float32Array(meshData.normals)
+                      : new Float32Array(meshData.vertices.length),
+                    vertexCount: meshData.vertex_count,
+                    triangleCount: meshData.triangle_count,
+                  }
+
+                  // Update the object's metadata and mesh with fresh data
+                  useModellerStore.getState().updateObject(obj.id, {
+                    mesh,
+                    metadata: {
+                      ...shapeObj.metadata,
+                      backendShapeId: result.id,
+                      analysis: result.analysis, // Update BIM analysis data
+                    },
+                  })
+                  log.info(
+                    `Recreated compound shape ${obj.id} from BREP: ${oldBackendId} -> ${result.id}, mesh vertices: ${mesh.vertexCount}`
+                  )
+                } catch (deserializeError) {
+                  log.error(`Failed to recreate shape ${obj.id} from BREP:`, deserializeError)
+                }
+              }
+              // For primitives without BREP, recreate from parameters
+              else if (shapeObj.shapeType && shapeObj.parameters) {
+                try {
+                  let result: { id: string; analysis?: unknown } | null = null
+                  const params = shapeObj.parameters
+
+                  switch (shapeObj.shapeType) {
+                    case "box": {
+                      const { width = 1, depth = 1, height = 1 } = params
+                      result = await cadService.createBox(width, depth, height)
+                      break
+                    }
+                    case "cylinder": {
+                      const { radius = 0.5, height = 1 } = params
+                      result = await cadService.createCylinder(radius, height)
+                      break
+                    }
+                    case "sphere": {
+                      const { radius = 0.5 } = params
+                      result = await cadService.createSphere(radius)
+                      break
+                    }
+                    case "cone": {
+                      const { baseRadius = 0.5, topRadius = 0, height = 1 } = params
+                      result = await cadService.createCone(baseRadius, topRadius, height)
+                      break
+                    }
+                    case "torus": {
+                      const { majorRadius = 1, minorRadius = 0.25 } = params
+                      result = await cadService.createTorus(majorRadius, minorRadius)
+                      break
+                    }
+                  }
+
+                  if (result) {
+                    shapeIdMap.set(obj.id, result.id)
+                    log.info(
+                      `Recreated primitive shape ${obj.id} (${shapeObj.shapeType}) -> backend ${result.id}`
+                    )
+                  }
+                } catch (primitiveError) {
+                  log.error(
+                    `Failed to recreate primitive ${obj.id} (${shapeObj.shapeType}):`,
+                    primitiveError
+                  )
+                }
+              } else {
+                log.warn(
+                  `Shape ${obj.id} has no BREP data and no recreatable parameters - cannot recreate in backend`
+                )
+              }
+            }
+          }
+
+          log.info(
+            `[Project Load] shapeIdMap now has ${shapeIdMap.size} entries:`,
+            Array.from(shapeIdMap.entries())
+          )
+
           // Load drawings into drawing store
           if (projectData.drawings) {
             useDrawingStore.getState().loadDrawings(projectData.drawings as any)
+
+            // Create reverse mapping: backendShapeId -> sceneObjectId
+            // This is needed to migrate old drawings that stored backendShapeIds
+            // to the new format that stores sceneObjectIds (stable across restarts)
+            const backendIdToSceneIdMap = new Map<string, string>()
+            for (const obj of objects) {
+              if (obj.type === "shape") {
+                const shapeObj = obj as { metadata?: { backendShapeId?: string }; id: string }
+                // Map both old and new backend IDs to the scene object ID
+                if (shapeObj.metadata?.backendShapeId) {
+                  backendIdToSceneIdMap.set(shapeObj.metadata.backendShapeId, obj.id)
+                }
+                // Also map from shapeIdMap (which has the new backend ID)
+                const newBackendId = shapeIdMap.get(obj.id)
+                if (newBackendId) {
+                  backendIdToSceneIdMap.set(newBackendId, obj.id)
+                }
+              }
+            }
+            // Also add entries from oldToNewBackendIdMap
+            for (const [oldId, newId] of oldToNewBackendIdMap) {
+              const sceneId = backendIdToSceneIdMap.get(newId)
+              if (sceneId) {
+                backendIdToSceneIdMap.set(oldId, sceneId)
+              }
+            }
+
+            // Migrate drawings: convert backendShapeIds to sceneObjectIds
+            // This handles the case where old drawings stored backendShapeIds instead of sceneObjectIds
+            const drawings = useDrawingStore.getState().drawings
+            const shapeObjects = objects.filter((obj) => obj.type === "shape")
+
+            for (const drawing of drawings) {
+              const updatedSourceShapeIds = drawing.sourceShapeIds.map((id: string) => {
+                // Check if this ID is already a valid sceneObjectId
+                const isValidSceneObjectId = shapeObjects.some((obj) => obj.id === id)
+                if (isValidSceneObjectId) {
+                  // Already a valid sceneObjectId - no migration needed
+                  return id
+                }
+
+                // Check if this ID is a backendShapeId that needs migration
+                const sceneId = backendIdToSceneIdMap.get(id)
+                if (sceneId) {
+                  log.info(
+                    `Drawing ${drawing.id}: Migrated sourceShapeId from backendId ${id} -> sceneId ${sceneId}`
+                  )
+                  return sceneId
+                }
+
+                // ID is neither a valid sceneObjectId nor a known backendShapeId
+                // This can happen with corrupted data or very old projects
+                // Try to recover by using the first available shape if there's only one
+                if (shapeObjects.length === 1) {
+                  const fallbackSceneId = shapeObjects[0].id
+                  log.warn(
+                    `Drawing ${drawing.id}: sourceShapeId ${id} not found, falling back to only available shape: ${fallbackSceneId}`
+                  )
+                  return fallbackSceneId
+                }
+
+                // Cannot recover - log error and keep the invalid ID (will fail on view regeneration)
+                log.error(
+                  `Drawing ${drawing.id}: sourceShapeId ${id} not found and cannot be recovered. ` +
+                    `Available sceneObjectIds: ${shapeObjects.map((o) => o.id).join(", ")}. ` +
+                    `BackendId mappings: ${Array.from(backendIdToSceneIdMap.entries())
+                      .map(([k, v]) => `${k}->${v}`)
+                      .join(", ")}`
+                )
+                return id
+              })
+
+              if (
+                JSON.stringify(updatedSourceShapeIds) !== JSON.stringify(drawing.sourceShapeIds)
+              ) {
+                useDrawingStore.getState().updateDrawing(drawing.id, {
+                  sourceShapeIds: updatedSourceShapeIds,
+                })
+              }
+            }
+
+            // Regenerate all views in all drawings with fresh projections
+            // This is necessary because views store projection data, which becomes stale
+            // when shapes are recreated with new backend IDs after app restart
+            const drawingsToRegenerate = useDrawingStore.getState().drawings
+            for (const drawing of drawingsToRegenerate) {
+              if (drawing.views.length > 0) {
+                try {
+                  const count = await useDrawingStore.getState().regenerateAllViews(drawing.id)
+                  log.info(
+                    `Regenerated ${count}/${drawing.views.length} views for drawing ${drawing.id}`
+                  )
+                } catch (regenErr) {
+                  log.error(`Failed to regenerate views for drawing ${drawing.id}:`, regenErr)
+                }
+              }
+            }
           } else {
             useDrawingStore.getState().reset()
           }
@@ -199,7 +416,8 @@ export const useProjectStore = create<ProjectStore>()(
         const { currentProject } = get()
         if (!currentProject) return null
 
-        set({ isLoading: true, error: null })
+        // Note: We don't set isLoading for saves to avoid UI disruption
+        // The save happens silently in the background
         try {
           const sceneData = useModellerStore.getState().getSceneData()
           const drawingsData = useDrawingStore.getState().getDrawingsData()
@@ -208,11 +426,8 @@ export const useProjectStore = create<ProjectStore>()(
           // Mark modeller as clean
           useModellerStore.getState().markClean()
 
-          // Update project info
-          set({
-            currentProject: projectInfo,
-            isLoading: false,
-          })
+          // Update project info (no isLoading change to keep UI stable)
+          set({ currentProject: projectInfo })
 
           // Capture and save thumbnail (async, non-blocking)
           // Uses requestAnimationFrame to ensure textures are rendered
@@ -228,7 +443,9 @@ export const useProjectStore = create<ProjectStore>()(
           return projectInfo
         } catch (err) {
           const error = err instanceof Error ? err.message : "Failed to save project"
-          set({ error, isLoading: false })
+          set({ error })
+          // Show error notification in status bar
+          useStatusNotificationStore.getState().showNotification("statusBar.saveError", "error")
           throw new Error(error)
         }
       },
@@ -237,7 +454,8 @@ export const useProjectStore = create<ProjectStore>()(
         const { currentProject } = get()
         if (!currentProject) return null
 
-        set({ isLoading: true, error: null })
+        // Note: We don't set isLoading for saves to avoid UI disruption
+        // The save happens silently in the background
         try {
           const sceneData = useModellerStore.getState().getSceneData()
           const drawingsData = useDrawingStore.getState().getDrawingsData()
@@ -252,11 +470,8 @@ export const useProjectStore = create<ProjectStore>()(
           // Mark modeller as clean
           useModellerStore.getState().markClean()
 
-          // Update to new project
-          set({
-            currentProject: projectInfo,
-            isLoading: false,
-          })
+          // Update to new project (no isLoading change to keep UI stable)
+          set({ currentProject: projectInfo })
 
           // Add to recent projects store (single source of truth)
           useRecentProjectsStore.getState().addProject({
@@ -279,7 +494,9 @@ export const useProjectStore = create<ProjectStore>()(
           return projectInfo
         } catch (err) {
           const error = err instanceof Error ? err.message : "Failed to save project"
-          set({ error, isLoading: false })
+          set({ error })
+          // Show error notification in status bar
+          useStatusNotificationStore.getState().showNotification("statusBar.saveError", "error")
           throw new Error(error)
         }
       },

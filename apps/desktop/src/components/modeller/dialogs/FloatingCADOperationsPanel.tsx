@@ -5,7 +5,20 @@
  * Appears in the bottom-left corner when an operation is active.
  */
 
-import { Button, cn, Label, Slider } from "@cadhy/ui"
+import {
+  Button,
+  cn,
+  Input,
+  Label,
+  RadioGroup,
+  RadioGroupItem,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Slider,
+} from "@cadhy/ui"
 import {
   ArrowDown01Icon,
   ArrowRight01Icon,
@@ -27,7 +40,13 @@ interface FloatingCADOperationsPanelProps {
   max?: number
   step?: number
   interactiveMode?: boolean
+  // Advanced parameters
+  continuity?: number
+  chamferMode?: "constant" | "two-distances" | "distance-angle"
+  value2?: string
+  angle?: string
   onValueChange: (value: string) => void
+  onAdvancedValueChange?: (key: string, value: string | number | boolean) => void
   onApply: () => void
   onCancel: () => void
   onToggleInteractiveMode?: () => void
@@ -44,7 +63,12 @@ export function FloatingCADOperationsPanel({
   max = 10,
   step = 0.1,
   interactiveMode = true,
+  continuity = 1,
+  chamferMode = "constant",
+  value2 = "0.5",
+  angle = "45",
   onValueChange,
+  onAdvancedValueChange,
   onApply,
   onCancel,
   onToggleInteractiveMode,
@@ -59,9 +83,12 @@ export function FloatingCADOperationsPanel({
 
   const handleSliderChange = useCallback(
     (values: number[]) => {
-      const newValue = values[0].toFixed(2)
-      setInputValue(newValue)
-      onValueChange(newValue)
+      const val = values[0]
+      if (val !== undefined) {
+        const newValue = val.toFixed(2)
+        setInputValue(newValue)
+        onValueChange(newValue)
+      }
     },
     [onValueChange]
   )
@@ -179,34 +206,18 @@ export function FloatingCADOperationsPanel({
 
                   {/* Slider + Input - Only show in manual mode */}
                   {!interactiveMode && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium text-foreground/90">{label}</Label>
-                        <input
-                          type="text"
-                          value={inputValue}
-                          onChange={handleInputChange}
-                          onBlur={handleInputBlur}
-                          onKeyDown={handleKeyDown}
-                          className="w-16 h-6 px-2 text-xs text-right bg-muted/30 border border-border/40 rounded-2xl focus:outline-none focus:ring-1 focus:ring-primary/50"
-                          placeholder="0.00"
-                        />
-                      </div>
-
-                      <Slider
-                        value={[numValue]}
-                        onValueChange={handleSliderChange}
-                        min={min}
-                        max={max}
-                        step={step}
-                        className="w-full"
-                      />
-
-                      <div className="flex justify-between text-xs text-muted-foreground/60">
-                        <span>{min}</span>
-                        <span>{max}</span>
-                      </div>
-                    </div>
+                    <ManualControls
+                      label={label}
+                      inputValue={inputValue}
+                      min={min}
+                      max={max}
+                      step={step}
+                      numValue={numValue}
+                      onInputChange={handleInputChange}
+                      onInputBlur={handleInputBlur}
+                      onKeyDown={handleKeyDown}
+                      onSliderChange={handleSliderChange}
+                    />
                   )}
 
                   {/* Value display in interactive mode */}
@@ -217,6 +228,24 @@ export function FloatingCADOperationsPanel({
                         {value} mm
                       </span>
                     </div>
+                  )}
+
+                  {/* Advanced Fillet Parameters */}
+                  {operation === "fillet" && (
+                    <FilletParameters
+                      continuity={continuity}
+                      onAdvancedValueChange={onAdvancedValueChange}
+                    />
+                  )}
+
+                  {/* Advanced Chamfer Parameters */}
+                  {operation === "chamfer" && (
+                    <ChamferParameters
+                      chamferMode={chamferMode}
+                      value2={value2}
+                      angle={angle}
+                      onAdvancedValueChange={onAdvancedValueChange}
+                    />
                   )}
 
                   {/* Mode Toggle (optional) */}
@@ -251,5 +280,163 @@ export function FloatingCADOperationsPanel({
         </motion.div>
       )}
     </AnimatePresence>
+  )
+}
+
+function ManualControls({
+  label,
+  inputValue,
+  min,
+  max,
+  step,
+  numValue,
+  onInputChange,
+  onInputBlur,
+  onKeyDown,
+  onSliderChange,
+}: {
+  label: string
+  inputValue: string
+  min: number
+  max: number
+  step: number
+  numValue: number
+  onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onInputBlur: () => void
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  onSliderChange: (values: number[]) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-medium text-foreground/90">{label}</Label>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={onInputChange}
+          onBlur={onInputBlur}
+          onKeyDown={onKeyDown}
+          className="w-16 h-6 px-2 text-xs text-right bg-muted/30 border border-border/40 rounded-2xl focus:outline-none focus:ring-1 focus:ring-primary/50"
+          placeholder="0.00"
+        />
+      </div>
+
+      <Slider
+        value={[numValue]}
+        onValueChange={onSliderChange}
+        min={min}
+        max={max}
+        step={step}
+        className="w-full"
+      />
+
+      <div className="flex justify-between text-xs text-muted-foreground/60">
+        <span>{min}</span>
+        <span>{max}</span>
+      </div>
+    </div>
+  )
+}
+
+function FilletParameters({
+  continuity,
+  onAdvancedValueChange,
+}: {
+  continuity: number
+  onAdvancedValueChange?: (key: string, value: string | number | boolean) => void
+}) {
+  return (
+    <div className="space-y-2 border-t border-border/30 pt-2 mt-2">
+      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        Continuidad
+      </Label>
+      <RadioGroup
+        value={(continuity ?? 1).toString()}
+        onValueChange={(v) => onAdvancedValueChange?.("continuity", parseInt(v as string))}
+        className="flex gap-1"
+      >
+        {[0, 1, 2].map((c) => (
+          <div key={c} className="flex-1">
+            <RadioGroupItem value={c.toString()} id={`cont-${c}`} className="sr-only" />
+            <Label
+              htmlFor={`cont-${c}`}
+              className={cn(
+                "flex items-center justify-center h-6 text-[10px] rounded-2xl cursor-pointer transition-colors border",
+                continuity === c
+                  ? "bg-primary/20 text-primary border-primary/40"
+                  : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50"
+              )}
+            >
+              {c === 0 ? "C0" : c === 1 ? "G1" : "G2"}
+            </Label>
+          </div>
+        ))}
+      </RadioGroup>
+    </div>
+  )
+}
+
+function ChamferParameters({
+  chamferMode,
+  value2,
+  angle,
+  onAdvancedValueChange,
+}: {
+  chamferMode: string
+  value2: string
+  angle: string
+  onAdvancedValueChange?: (key: string, value: string | number | boolean) => void
+}) {
+  return (
+    <div className="space-y-3 border-t border-border/30 pt-2 mt-2">
+      <div className="space-y-1.5">
+        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          Modo de Chaflán
+        </Label>
+        <Select
+          value={chamferMode || "constant"}
+          onValueChange={(v) => onAdvancedValueChange?.("chamferMode", v as string)}
+        >
+          <SelectTrigger className="h-7 text-xs bg-muted/30 border-border/40 rounded-2xl">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="rounded-2xl border-border/40 bg-background/95 backdrop-blur-md">
+            <SelectItem value="constant" className="text-xs rounded-xl">
+              Constante
+            </SelectItem>
+            <SelectItem value="two-distances" className="text-xs rounded-xl">
+              Dos Distancias
+            </SelectItem>
+            <SelectItem value="distance-angle" className="text-xs rounded-xl">
+              Distancia y Ángulo
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {chamferMode === "two-distances" && (
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-muted-foreground">Distancia 2</Label>
+          <Input
+            type="number"
+            value={value2}
+            onChange={(e) => onAdvancedValueChange?.("value2", e.target.value)}
+            className="w-16 h-6 px-2 text-xs text-right bg-muted/30 border-border/40 rounded-2xl"
+          />
+        </div>
+      )}
+
+      {chamferMode === "distance-angle" && (
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-muted-foreground">Ángulo (º)</Label>
+          <Input
+            type="number"
+            value={angle}
+            onChange={(e) => onAdvancedValueChange?.("angle", e.target.value)}
+            className="w-16 h-6 px-2 text-xs text-right bg-muted/30 border-border/40 rounded-2xl"
+          />
+        </div>
+      )}
+    </div>
   )
 }

@@ -19,6 +19,7 @@ import {
 import { GridIcon, Layers01Icon, Move01Icon, WaterEnergyIcon } from "@hugeicons/core-free-icons"
 import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { useUnits } from "@/hooks/use-units"
 import {
   CHUTE_TYPE_INFO,
   type ChuteObject,
@@ -48,6 +49,7 @@ export interface ChutePropertiesPanelProps {
 export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelProps) {
   const { t } = useTranslation()
   const objects = useModellerStore((s) => s.objects)
+  const { lengthLabel, convertLengthToDisplay, precision } = useUnits()
 
   // Get connected element names
   const upstreamName = useMemo(() => {
@@ -472,7 +474,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
         </PropertyRow>
         <PropertyRow label={t("properties.endStation", "End St.")}>
           <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
-            {object.endStation?.toFixed(2)} m
+            {convertLengthToDisplay(object.endStation ?? 0).toFixed(precision)} {lengthLabel}
           </div>
         </PropertyRow>
         <PropertyRow label={t("properties.startElevation", "Start Elev.")}>
@@ -486,7 +488,7 @@ export function ChutePropertiesPanel({ object, onUpdate }: ChutePropertiesPanelP
         </PropertyRow>
         <PropertyRow label={t("properties.endElevation", "End Elev.")}>
           <div className="h-6 flex items-center text-xs text-muted-foreground px-2 bg-muted/30 rounded-2xl">
-            {object.endElevation?.toFixed(3)} m
+            {convertLengthToDisplay(object.endElevation ?? 0).toFixed(precision)} {lengthLabel}
           </div>
         </PropertyRow>
       </PropertySection>

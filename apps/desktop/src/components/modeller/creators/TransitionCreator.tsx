@@ -45,6 +45,41 @@ interface TransitionCreatorProps {
 // type SectionType = "rectangular" | "trapezoidal" | "triangular"
 
 // ============================================================================
+// HELPERS (Extracted to reduce complexity)
+// ============================================================================
+
+/**
+ * Calculates stilling basin configuration for transitions
+ */
+const calculateTransitionBasin = (
+  enabled: boolean,
+  type: StillingBasinType,
+  length: number,
+  depth: number,
+  hasEndSill: boolean,
+  endSillHeight: number,
+  baffleRows: number
+): StillingBasinConfig | null => {
+  if (!enabled || type === "none") return null
+
+  const config = createSimpleBasinConfig(type, length, depth, hasEndSill ? endSillHeight : 0)
+
+  if (config && type === "type-iii" && baffleRows > 0) {
+    config.baffleBlocks = {
+      rows: baffleRows,
+      blocksPerRow: 5,
+      width: 0.3,
+      height: 0.3,
+      thickness: 0.2,
+      distanceFromInlet: length / 3,
+      rowSpacing: 1,
+    }
+  }
+
+  return config
+}
+
+// ============================================================================
 // TRANSITION TYPE OPTIONS
 // ============================================================================
 
@@ -289,57 +324,45 @@ export function TransitionCreator({ onClose, onCreated }: TransitionCreatorProps
   // Update outlet when downstream channel changes
   const handleDownstreamChange = (channelId: string) => {
     setDownstreamChannelId(channelId)
-    if (channelId !== "none") {
-      const channel = existingChannels.find((c) => c.id === channelId)
-      if (channel) {
-        const section = getSectionFromChannel(channel)
-        setOutletWidth(section.width)
-        setOutletDepth(section.depth)
-        setOutletSideSlope(section.sideSlope)
-      }
+    if (channelId === "none") return
+
+    const channel = existingChannels.find((c) => c.id === channelId)
+    if (channel) {
+      const section = getSectionFromChannel(channel)
+      setOutletWidth(section.width)
+      setOutletDepth(section.depth)
+      setOutletSideSlope(section.sideSlope)
     }
   }
 
   const handleCreate = () => {
     const endStation = startStation + length
 
-    // Get outlet thickness from downstream channel if connected, otherwise use inlet thickness
-    const outletWallThickness =
-      downstreamChannelId !== "none" ? downstreamSection.wallThickness : inletSection.wallThickness
-    const outletFloorThickness =
-      downstreamChannelId !== "none"
-        ? downstreamSection.floorThickness
-        : inletSection.floorThickness
-
-    // Get outlet section type from downstream channel if connected
-    const outletSectionType =
-      downstreamChannelId !== "none" ? downstreamSection.sectionType : inletSection.sectionType
-
+    // Build outlet section
+    const isConnectedDownstream = downstreamChannelId !== "none"
     const outlet: TransitionSection = {
-      sectionType: outletSectionType,
+      sectionType: isConnectedDownstream ? downstreamSection.sectionType : inletSection.sectionType,
       width: outletWidth,
       depth: outletDepth,
       sideSlope: outletSideSlope,
-      wallThickness: outletWallThickness,
-      floorThickness: outletFloorThickness,
+      wallThickness: isConnectedDownstream
+        ? downstreamSection.wallThickness
+        : inletSection.wallThickness,
+      floorThickness: isConnectedDownstream
+        ? downstreamSection.floorThickness
+        : inletSection.floorThickness,
     }
 
     // Build stilling basin config if enabled
-    const stillingBasin: StillingBasinConfig | null = enableStillingBasin
-      ? createSimpleBasinConfig(basinType, basinLength, basinDepth, hasEndSill ? endSillHeight : 0)
-      : null
-
-    if (stillingBasin && basinType === "type-iii" && baffleRows > 0) {
-      stillingBasin.baffleBlocks = {
-        rows: baffleRows,
-        blocksPerRow: 5, // Default
-        width: 0.3,
-        height: 0.3,
-        thickness: 0.2,
-        distanceFromInlet: basinLength / 3,
-        rowSpacing: 1,
-      }
-    }
+    const stillingBasin = calculateTransitionBasin(
+      enableStillingBasin,
+      basinType,
+      basinLength,
+      basinDepth,
+      hasEndSill,
+      endSillHeight,
+      baffleRows
+    )
 
     const newTransitionId = addObject({
       name,

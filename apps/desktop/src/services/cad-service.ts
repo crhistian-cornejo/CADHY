@@ -315,6 +315,27 @@ export async function filletEdges(
 }
 
 /**
+ * Apply advanced fillet with continuity control
+ * @param shapeId - Shape to fillet
+ * @param edgeIndices - Array of edge indices
+ * @param radii - Array of radii
+ * @param continuity - Continuity type: 0=C0, 1=G1, 2=G2
+ */
+export async function filletEdgesAdvanced(
+  shapeId: string,
+  edgeIndices: number[],
+  radii: number[],
+  continuity: number
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_fillet_edges_advanced", {
+    shapeId,
+    edgeIndices,
+    radii,
+    continuity,
+  })
+}
+
+/**
  * Apply chamfer (beveled edges) to all edges of a shape
  */
 export async function chamfer(shapeId: string, distance: number): Promise<ShapeResult> {
@@ -336,6 +357,48 @@ export async function chamferEdges(
     shapeId,
     edgeIndices,
     distances,
+  })
+}
+
+/**
+ * Apply chamfer with two different distances per edge
+ * @param shapeId - Shape to chamfer
+ * @param edgeIndices - Array of edge indices
+ * @param distances1 - Array of first distances
+ * @param distances2 - Array of second distances
+ */
+export async function chamferEdgesTwoDistances(
+  shapeId: string,
+  edgeIndices: number[],
+  distances1: number[],
+  distances2: number[]
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_chamfer_edges_two_distances", {
+    shapeId,
+    edgeIndices,
+    distances1,
+    distances2,
+  })
+}
+
+/**
+ * Apply chamfer with distance and angle per edge
+ * @param shapeId - Shape to chamfer
+ * @param edgeIndices - Array of edge indices
+ * @param distances - Array of distances
+ * @param angles - Array of angles in radians
+ */
+export async function chamferEdgesDistanceAngle(
+  shapeId: string,
+  edgeIndices: number[],
+  distances: number[],
+  angles: number[]
+): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_chamfer_edges_distance_angle", {
+    shapeId,
+    edgeIndices,
+    distances,
+    angles,
   })
 }
 
@@ -1072,6 +1135,33 @@ export async function combine(shapeIds: string[]): Promise<ShapeResult> {
 }
 
 // ============================================================================
+// SHAPE PERSISTENCE (BREP Serialization)
+// ============================================================================
+
+/**
+ * Serialize a shape to BREP format (base64 encoded)
+ * Use this to persist shapes across app restarts.
+ * The BREP data can be stored in project files and deserialized later.
+ *
+ * @param shapeId - ID of the shape to serialize
+ * @returns Base64-encoded BREP data
+ */
+export async function serializeShape(shapeId: string): Promise<string> {
+  return invoke<string>("cad_serialize_shape", { shapeId })
+}
+
+/**
+ * Deserialize a shape from BREP format (base64 encoded)
+ * Recreates the shape in the backend registry with a new ID.
+ *
+ * @param brepBase64 - Base64-encoded BREP data from serializeShape()
+ * @returns ShapeResult with new shape ID
+ */
+export async function deserializeShape(brepBase64: string): Promise<ShapeResult> {
+  return invoke<ShapeResult>("cad_deserialize_shape", { brepBase64 })
+}
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -1142,8 +1232,11 @@ export class CadService {
   // Modifications
   fillet = fillet
   filletEdges = filletEdges
+  filletEdgesAdvanced = filletEdgesAdvanced
   chamfer = chamfer
   chamferEdges = chamferEdges
+  chamferEdgesTwoDistances = chamferEdgesTwoDistances
+  chamferEdgesDistanceAngle = chamferEdgesDistanceAngle
   shell = shell
 
   // Transforms

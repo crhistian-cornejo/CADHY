@@ -1025,7 +1025,7 @@ export function AIChatPanel({ className, onClose, onOpenProject, onNewProject }:
         {!hasProject ? (
           <ProjectRequiredEmptyState onOpenProject={onOpenProject} onNewProject={onNewProject} />
         ) : hasMessages ? (
-          <Conversation autoScroll>
+          <Conversation autoScroll showFadeMasks>
             <ConversationContent className="divide-y divide-border/20 p-0">
               {messages.map((message) => (
                 <ChatMessage

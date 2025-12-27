@@ -10,6 +10,7 @@
 
 import { cn, ScrollArea, Tabs, TabsContent, TabsList, TabsTrigger } from "@cadhy/ui"
 import {
+  AngleIcon,
   ArrowLeftRightIcon,
   CircleIcon,
   DrawingModeIcon,
@@ -30,7 +31,7 @@ import { useDrawingStore } from "@/stores/drawing-store"
 // TYPES
 // ============================================================================
 
-export type DimensionTool = "auto" | "line-length" | "point-to-point" | "nota"
+export type DimensionTool = "auto" | "line-length" | "point-to-point" | "angle" | "nota"
 
 type GeometryTool = "line" | "circle" | "arc" | "rectangle" | "polygon" | "spline"
 
@@ -65,6 +66,12 @@ function DimensionsTab() {
       icon: PackageDimensions01Icon,
       labelKey: "drawings.dimensions.pointToPoint",
       descKey: "drawings.dimensions.pointToPointDesc",
+    },
+    {
+      tool: "angle",
+      icon: AngleIcon,
+      labelKey: "drawings.dimensions.angle",
+      descKey: "drawings.dimensions.angleDesc",
     },
     {
       tool: "nota",
@@ -230,7 +237,7 @@ export function DrawingToolsPanel({ className }: DrawingToolsPanelProps) {
           </TabsTrigger>
         </TabsList>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1" showFadeMasks>
           <TabsContent value="dimensions" className="m-0 data-[state=inactive]:hidden">
             <DimensionsTab />
           </TabsContent>

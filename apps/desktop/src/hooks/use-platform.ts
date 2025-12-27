@@ -155,14 +155,23 @@ export function useIsFullscreen(): boolean {
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   useEffect(() => {
+    // Track if component is still mounted to prevent race conditions
+    let isMounted = true
+    let unlisten: (() => void) | undefined
+
     const checkFullscreen = async () => {
+      if (!isMounted) return
       try {
         const window = getCurrentWindow()
         const fullscreen = await window.isFullscreen()
-        setIsFullscreen(fullscreen)
+        if (isMounted) {
+          setIsFullscreen(fullscreen)
+        }
       } catch {
         // Tauri not available or error
-        setIsFullscreen(false)
+        if (isMounted) {
+          setIsFullscreen(false)
+        }
       }
     }
 
@@ -177,13 +186,20 @@ export function useIsFullscreen(): boolean {
     window.addEventListener("resize", handleResize)
 
     // Also listen for Tauri's window events if available
-    let unlisten: (() => void) | undefined
     const setupListener = async () => {
+      if (!isMounted) return
       try {
         const tauriWindow = getCurrentWindow()
-        unlisten = await tauriWindow.onResized(() => {
+        const unlistenFn = await tauriWindow.onResized(() => {
           checkFullscreen()
         })
+        // Only store the unlisten function if still mounted
+        if (isMounted) {
+          unlisten = unlistenFn
+        } else {
+          // Component unmounted during setup, clean up immediately
+          unlistenFn()
+        }
       } catch {
         // Tauri not available
       }
@@ -191,8 +207,16 @@ export function useIsFullscreen(): boolean {
     setupListener()
 
     return () => {
+      isMounted = false
       window.removeEventListener("resize", handleResize)
-      unlisten?.()
+      // Only call unlisten if it was successfully set up
+      if (unlisten) {
+        try {
+          unlisten()
+        } catch {
+          // Ignore errors during cleanup (listener may already be gone)
+        }
+      }
     }
   }, [])
 

@@ -288,6 +288,10 @@ pub struct ViewLabels {
     pub top: String,
     pub bottom: String,
     pub isometric: String,
+    pub isometric_sw: String,
+    pub isometric_se: String,
+    pub isometric_ne: String,
+    pub isometric_nw: String,
 }
 
 impl Default for ViewLabels {
@@ -307,6 +311,10 @@ impl ViewLabels {
             top: "Vista Superior".to_string(),
             bottom: "Vista Inferior".to_string(),
             isometric: "Isométrica".to_string(),
+            isometric_sw: "Isométrica SW".to_string(),
+            isometric_se: "Isométrica SE".to_string(),
+            isometric_ne: "Isométrica NE".to_string(),
+            isometric_nw: "Isométrica NW".to_string(),
         }
     }
 
@@ -320,6 +328,10 @@ impl ViewLabels {
             top: "Top View".to_string(),
             bottom: "Bottom View".to_string(),
             isometric: "Isometric".to_string(),
+            isometric_sw: "Isometric SW".to_string(),
+            isometric_se: "Isometric SE".to_string(),
+            isometric_ne: "Isometric NE".to_string(),
+            isometric_nw: "Isometric NW".to_string(),
         }
     }
 
@@ -333,6 +345,10 @@ impl ViewLabels {
             top: "Plan".to_string(),
             bottom: "Bottom".to_string(),
             isometric: "ISO".to_string(),
+            isometric_sw: "ISO-SW".to_string(),
+            isometric_se: "ISO-SE".to_string(),
+            isometric_ne: "ISO-NE".to_string(),
+            isometric_nw: "ISO-NW".to_string(),
         }
     }
 }

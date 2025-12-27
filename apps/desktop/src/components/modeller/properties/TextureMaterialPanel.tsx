@@ -218,7 +218,7 @@ export function TextureMaterialPanel({
 
         {/* Texture Grid - contained with proper height and overflow */}
         <div className="relative h-[180px] rounded-2xl border border-border bg-muted/20 overflow-hidden">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full" showFadeMasks>
             <div className="p-2">
               {isLoading ? (
                 <div className="grid grid-cols-2 gap-2">
