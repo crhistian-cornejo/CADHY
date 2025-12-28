@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, test } from "bun:test"
-import { parseShortcut } from "../services/hotkey-registry"
+import { parseShortcut } from "../core/services/hotkey-registry"
 
 describe("parseShortcut", () => {
   test("should parse simple key", () => {

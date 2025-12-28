@@ -137,9 +137,10 @@ std::unique_ptr<OcctShape> make_cylinder(double radius, double height) {
 
 std::unique_ptr<OcctShape> make_cylinder_at(
     double x, double y, double z,
+    double ax, double ay, double az,
     double radius, double height
 ) {
-    gp_Ax2 ax2(gp_Pnt(x, y, z), gp_Dir(0, 0, 1));
+    gp_Ax2 ax2(gp_Pnt(x, y, z), gp_Dir(ax, ay, az));
     BRepPrimAPI_MakeCylinder maker(ax2, radius, height);
     maker.Build();
     if (!maker.IsDone()) {
@@ -261,9 +262,10 @@ std::unique_ptr<OcctShape> make_cone(double radius1, double radius2, double heig
 
 std::unique_ptr<OcctShape> make_cone_at(
     double x, double y, double z,
+    double ax, double ay, double az,
     double radius1, double radius2, double height
 ) {
-    gp_Ax2 ax2(gp_Pnt(x, y, z), gp_Dir(0, 0, 1));
+    gp_Ax2 ax2(gp_Pnt(x, y, z), gp_Dir(ax, ay, az));
     BRepPrimAPI_MakeCone maker(ax2, radius1, radius2, height);
     maker.Build();
     if (!maker.IsDone()) {
@@ -317,6 +319,16 @@ std::unique_ptr<OcctShape> make_cone_segment(
     return std::make_unique<OcctShape>(maker.Shape());
 }
 
+std::unique_ptr<OcctShape> make_cone_centered(double r1, double r2, double height) {
+    gp_Ax2 ax2(gp_Pnt(0, 0, -height/2), gp_Dir(0, 0, 1));
+    BRepPrimAPI_MakeCone maker(ax2, r1, r2, height);
+    maker.Build();
+    if (!maker.IsDone()) {
+        return nullptr;
+    }
+    return std::make_unique<OcctShape>(maker.Shape());
+}
+
 //------------------------------------------------------------------------------
 // Torus
 //------------------------------------------------------------------------------
@@ -332,9 +344,10 @@ std::unique_ptr<OcctShape> make_torus(double major_radius, double minor_radius) 
 
 std::unique_ptr<OcctShape> make_torus_at(
     double x, double y, double z,
+    double ax, double ay, double az,
     double major_radius, double minor_radius
 ) {
-    gp_Ax2 ax2(gp_Pnt(x, y, z), gp_Dir(0, 0, 1));
+    gp_Ax2 ax2(gp_Pnt(x, y, z), gp_Dir(ax, ay, az));
     BRepPrimAPI_MakeTorus maker(ax2, major_radius, minor_radius);
     maker.Build();
     if (!maker.IsDone()) {

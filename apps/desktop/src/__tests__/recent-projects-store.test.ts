@@ -10,7 +10,7 @@
 
 import { beforeEach, describe, expect, test } from "bun:test"
 import type { RecentProject } from "@cadhy/types"
-import { useRecentProjectsStore } from "../stores/recent-projects-store"
+import { useRecentProjectsStore } from "../core/stores/ST_recent_projects"
 
 // Helper to create a test project
 const createTestProject = (

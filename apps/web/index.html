@@ -34,8 +34,16 @@
     <meta name="twitter:image" content="https://cadhy.app/hero/light.png" />
 
     <!-- Favicon & Icons -->
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
+    <!-- SVG favicon for modern browsers (scalable, best quality) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- ICO fallback for legacy browsers and Google -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <!-- PNG favicons for specific sizes -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <!-- Web App Manifest -->
     <link rel="manifest" href="/manifest.json" />
 
     <!-- Schema.org JSON-LD for SoftwareApplication -->
@@ -114,26 +122,69 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
 
+    <!-- Preload LCP image (hero screenshot) for faster loading -->
+    <link rel="preload" as="image" type="image/webp" href="/hero/light.webp" media="(prefers-color-scheme: light)" />
+    <link rel="preload" as="image" type="image/webp" href="/hero/dark.webp" media="(prefers-color-scheme: dark)" />
+
     <!-- DNS Prefetch for external resources -->
     <link rel="dns-prefetch" href="https://github.com" />
 
-    <!-- Chillax font for headings (from Fontshare) -->
+    <!-- Chillax font for headings (from Fontshare) - Async loading -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://api.fontshare.com/v2/css?f[]=chillax@400&display=swap"
+    />
     <link
       href="https://api.fontshare.com/v2/css?f[]=chillax@400&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://api.fontshare.com/v2/css?f[]=chillax@400&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
-    <!-- Inter font for UI -->
+    <!-- Inter font for UI - Async loading -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
-    <!-- JetBrains Mono for code -->
+    <!-- JetBrains Mono for code - Async loading -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
     <!-- Prevent theme flash -->
     <script>
@@ -162,12 +213,6 @@
       })();
     </script>
 
-    <!-- React Grab - Development only -->
-    <script type="module">
-      if (import.meta.env.DEV) {
-        import("react-grab");
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>

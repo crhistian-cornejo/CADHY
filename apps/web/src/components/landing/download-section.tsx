@@ -8,6 +8,7 @@
 import { ArrowRight01Icon, Download02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link } from "react-router-dom"
+import { LinuxIcon, MacIcon, WindowsIcon } from "@/components/icons/platform-icons"
 import { useTranslation } from "@/lib/i18n"
 import { useReleases } from "@/lib/use-releases"
 
@@ -18,16 +19,21 @@ const PlatformNames: Record<string, string> = {
   unknown: "Desktop",
 }
 
+const PlatformIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  macos: MacIcon,
+  windows: WindowsIcon,
+  linux: LinuxIcon,
+  unknown: Download02Icon as any,
+}
+
 export function DownloadSection() {
   const { recommendedDownload, userPlatform, loading } = useReleases()
   const { t } = useTranslation()
   const platformName = PlatformNames[userPlatform] || "Desktop"
+  const PlatformIcon = PlatformIcons[userPlatform] || Download02Icon
 
   return (
-    <section
-      className="relative bg-muted/50 dark:bg-zinc-900 border-t border-border py-32 px-8 lg:px-16"
-      id="downloads"
-    >
+    <section className="relative bg-card/50 backdrop-blur-sm py-20 px-8 lg:px-16" id="downloads">
       <div className="max-w-4xl mx-auto text-center">
         {/* Big headline */}
         <h2 className="text-5xl lg:text-7xl font-bold tracking-tighter text-foreground mb-10">
@@ -49,7 +55,11 @@ export function DownloadSection() {
               className="inline-flex items-center gap-3 px-8 py-4 bg-foreground text-background font-bold text-base hover:bg-foreground/90 transition-colors rounded-full"
             >
               {t.downloadCta.downloadFor} {platformName}
-              <HugeiconsIcon icon={Download02Icon} size={20} />
+              {typeof PlatformIcon === "function" ? (
+                <PlatformIcon className="h-5 w-5 fill-current" />
+              ) : (
+                <HugeiconsIcon icon={PlatformIcon as any} size={20} />
+              )}
             </a>
           ) : (
             <Link
@@ -57,7 +67,11 @@ export function DownloadSection() {
               className="inline-flex items-center gap-3 px-8 py-4 bg-foreground text-background font-bold text-base hover:bg-foreground/90 transition-colors rounded-full"
             >
               {t.downloadCta.downloadFree}
-              <HugeiconsIcon icon={Download02Icon} size={20} />
+              {typeof PlatformIcon === "function" ? (
+                <PlatformIcon className="h-5 w-5 fill-current" />
+              ) : (
+                <HugeiconsIcon icon={PlatformIcon as any} size={20} />
+              )}
             </Link>
           )}
 
@@ -69,7 +83,6 @@ export function DownloadSection() {
             <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground" />
           </Link>
         </div>
-
         {/* Platform links */}
         <div className="mt-8 text-sm text-muted-foreground">
           {t.downloadCta.availableFor}{" "}

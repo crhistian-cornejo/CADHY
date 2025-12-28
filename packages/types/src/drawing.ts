@@ -343,6 +343,159 @@ export interface DrawingView {
   label?: string
   /** Label configuration - if not provided, uses defaults */
   labelConfig?: Partial<ViewLabelConfig>
+  /** Parent view ID (for derived views like details, sections) */
+  parentViewId?: string
+}
+
+// =============================================================================
+// DETAIL VIEWS
+// =============================================================================
+
+/** Shape of the detail boundary indicator */
+export type DetailBoundaryShape = "circle" | "rectangle" | "ellipse"
+
+/**
+ * Detail view configuration.
+ * A detail view shows an enlarged portion of a parent view.
+ */
+export interface DetailViewConfig {
+  /** Parent view from which the detail is extracted */
+  parentViewId: string
+  /** Center point of detail area in parent view coordinates */
+  center: Point2D
+  /** Radius (for circle) or half-width (for rectangle) in parent view mm */
+  radius: number
+  /** Height (only for rectangle/ellipse) */
+  height?: number
+  /** Shape of the boundary indicator */
+  boundaryShape: DetailBoundaryShape
+  /** Magnification scale relative to parent (e.g., 2 = 2x zoom) */
+  magnification: number
+  /** Detail label (e.g., "A", "B", "Detail 1") */
+  label: string
+}
+
+/**
+ * A detail view in a drawing.
+ * Shows an enlarged view of a specific area from a parent view.
+ */
+export interface DetailView {
+  /** Unique identifier */
+  id: string
+  /** Configuration */
+  config: DetailViewConfig
+  /** Position on the sheet [x, y] in mm */
+  position: [number, number]
+  /** Is this detail visible */
+  visible: boolean
+  /** Clipped projection data (subset of parent) */
+  projection?: ProjectionResult
+  /** Label configuration */
+  labelConfig?: Partial<ViewLabelConfig>
+}
+
+/** Default detail view configuration */
+export const DEFAULT_DETAIL_VIEW_CONFIG: Partial<DetailViewConfig> = {
+  boundaryShape: "circle",
+  magnification: 2,
+  radius: 25,
+}
+
+// =============================================================================
+// CALLOUTS AND LEADERS
+// =============================================================================
+
+/** Arrow/terminator style for leader lines */
+export type LeaderTerminatorStyle =
+  | "arrow_filled"
+  | "arrow_open"
+  | "dot"
+  | "dot_filled"
+  | "none"
+  | "origin" // Small circle indicating origin/reference point
+
+/** Leader line routing style */
+export type LeaderRouting =
+  | "straight" // Direct line from anchor to text
+  | "orthogonal" // Right-angle bends only
+  | "spline" // Smooth curved path
+
+/**
+ * A leader line connecting a point to text/balloon.
+ */
+export interface LeaderLine {
+  /** Points along the leader path (first = anchor, last = near text) */
+  points: Point2D[]
+  /** Terminator at the anchor point */
+  terminatorStyle: LeaderTerminatorStyle
+  /** Routing/path style */
+  routing: LeaderRouting
+  /** Line width in mm */
+  lineWidth: number
+}
+
+/**
+ * Balloon style for part callouts.
+ */
+export type BalloonShape = "circle" | "hexagon" | "square" | "triangle" | "flag"
+
+/**
+ * A callout/balloon for identifying parts or features.
+ * Common in assembly drawings and BOM references.
+ */
+export interface Callout {
+  /** Unique identifier */
+  id: string
+  /** View this callout belongs to */
+  viewId: string
+  /** Anchor point in view coordinates */
+  anchor: Point2D
+  /** Leader line configuration */
+  leader: LeaderLine
+  /** Text content (can be item number, note, etc.) */
+  text: string
+  /** Balloon shape (null for text-only callout) */
+  balloonShape?: BalloonShape
+  /** Balloon size (diameter/width in mm) */
+  balloonSize: number
+  /** Reference to BOM item number (for assembly drawings) */
+  bomItemNumber?: number
+  /** Is this callout visible */
+  visible: boolean
+}
+
+/** Default callout configuration */
+export const DEFAULT_CALLOUT_CONFIG = {
+  balloonShape: "circle" as BalloonShape,
+  balloonSize: 8,
+  terminatorStyle: "arrow_filled" as LeaderTerminatorStyle,
+  routing: "orthogonal" as LeaderRouting,
+  lineWidth: 0.35,
+}
+
+/**
+ * A cutting line indicator (e.g., "A-A" line in parent view).
+ * Used to show where a section view cuts through the model.
+ */
+export interface CuttingLine {
+  /** Unique identifier */
+  id: string
+  /** Associated section view ID */
+  sectionViewId: string
+  /** View containing this cutting line */
+  parentViewId: string
+  /** Start point in view coordinates */
+  start: Point2D
+  /** End point in view coordinates */
+  end: Point2D
+  /** Label at each end (e.g., "A") */
+  label: string
+  /** Arrow direction at start (pointing to cut side) */
+  startArrowDirection: [number, number]
+  /** Arrow direction at end */
+  endArrowDirection: [number, number]
+  /** Is this cutting line visible */
+  visible: boolean
 }
 
 // =============================================================================
@@ -427,6 +580,7 @@ export interface DisplayOptions {
 
 import type { AnnotationSet } from "./annotations"
 import type { DimensionSet } from "./dimensions"
+import type { GDTSet } from "./gdt"
 
 export interface Drawing {
   id: string
@@ -437,8 +591,228 @@ export interface Drawing {
   annotations: AnnotationSet
   /** Hatch regions for sections */
   hatches: HatchRegion[]
+  /** Section views (cortes) */
+  sectionViews: SectionView[]
+  /** Detail views (vistas de detalle ampliadas) */
+  detailViews?: DetailView[]
+  /** Callouts/balloons for part identification */
+  callouts?: Callout[]
+  /** Cutting lines showing section cut locations */
+  cuttingLines?: CuttingLine[]
   sourceShapeIds: string[]
   displayOptions?: DisplayOptions
+  /** Dependencies between views for auto-update */
+  dependencies?: ViewDependency[]
+  /** Auto-regenerate configuration */
+  autoRegenerate?: AutoRegenerateConfig
+  /** GD&T annotations (Feature Control Frames, datum symbols) */
+  gdt?: GDTSet
   createdAt: number
   updatedAt: number
+}
+
+// =============================================================================
+// SECTION VIEWS (CORTES/CUTS)
+// =============================================================================
+
+/** Type of section plane */
+export type SectionPlaneType =
+  | "horizontal" // Floor plan section at Z height
+  | "longitudinal" // Front section at Y position
+  | "transversal" // Side section at X position
+  | {
+      type: "custom"
+      origin: [number, number, number]
+      normal: [number, number, number]
+      up: [number, number, number]
+    }
+
+/** A curve in the section result */
+export interface SectionCurve {
+  points: Array<[number, number]>
+  isClosed: boolean
+  isOuter: boolean
+}
+
+/** A single hatch line in a section view */
+export interface SectionHatchLine {
+  start: [number, number]
+  end: [number, number]
+}
+
+/** A hatched region in a section view (material cut) */
+export interface SectionHatchedRegion {
+  boundary: Array<[number, number]>
+  hatchLines: SectionHatchLine[]
+  area: number
+  isOuter: boolean
+}
+
+/** Result from section view generation */
+export interface SectionViewResult {
+  /** Section boundary curves */
+  curves: SectionCurve[]
+  /** Hatched regions (cut material) */
+  hatchedRegions: SectionHatchedRegion[]
+  /** Bounding box [[minX, minY], [maxX, maxY]] */
+  boundingBox: [[number, number], [number, number]]
+  /** Section label (e.g., "A-A") */
+  label: string
+  /** Number of closed regions */
+  numRegions: number
+  /** Total hatch lines generated */
+  totalHatchLines: number
+  /** Source shape ID */
+  shapeId: string
+}
+
+/** Configuration for section view generation */
+export interface SectionViewConfig {
+  /** Plane type */
+  planeType: SectionPlaneType
+  /** Position value (Z, Y, or X depending on plane type) */
+  position: number
+  /** Label for the section (e.g., "A", "B", "1") */
+  label: string
+  /** Hatch angle in degrees (default: 45) */
+  hatchAngle?: number
+  /** Hatch spacing in mm (default: 2.0) */
+  hatchSpacing?: number
+}
+
+/** A section view in a drawing */
+export interface SectionView {
+  /** Unique identifier */
+  id: string
+  /** Configuration used to generate this section */
+  config: SectionViewConfig
+  /** Generated section result */
+  result: SectionViewResult
+  /** Position on the sheet [x, y] in mm */
+  position: [number, number]
+  /** Is this section visible */
+  visible: boolean
+  /** Label configuration */
+  labelConfig?: Partial<ViewLabelConfig>
+  /** Source shape ID */
+  sourceShapeId: string
+}
+
+// =============================================================================
+// VIEW DEPENDENCIES (For auto-update system)
+// =============================================================================
+
+/**
+ * Relationship type between views.
+ * Used to determine how derived views should update when source changes.
+ */
+export type ViewRelationship =
+  | "projected" // Standard orthographic projection from 3D model
+  | "section" // Section/cut derived from a view
+  | "detail" // Detail view (magnified area of parent)
+  | "auxiliary" // Auxiliary view (rotated projection)
+
+/**
+ * Dependency between two views in a drawing.
+ * When sourceViewId changes, derivedViewId should be regenerated.
+ */
+export interface ViewDependency {
+  /** ID of the source view (or "3d-model" for model dependencies) */
+  sourceId: string
+  /** ID of the derived/dependent view */
+  derivedId: string
+  /** Type of relationship */
+  relationship: ViewRelationship
+  /** Should auto-regenerate when source changes */
+  autoUpdate: boolean
+}
+
+/**
+ * Configuration for automatic view regeneration.
+ */
+export interface AutoRegenerateConfig {
+  /** Enable automatic regeneration when 3D model changes */
+  enabled: boolean
+  /** Debounce time in ms before regenerating (prevents spam during editing) */
+  debounceMs: number
+  /** Show notification when views are regenerated */
+  showNotification: boolean
+  /** Only regenerate visible views */
+  onlyVisibleViews: boolean
+}
+
+/** Default auto-regenerate configuration */
+export const DEFAULT_AUTO_REGENERATE_CONFIG: AutoRegenerateConfig = {
+  enabled: true,
+  debounceMs: 500,
+  showNotification: true,
+  onlyVisibleViews: true,
+}
+
+/**
+ * Standard view positions for First-Angle and Third-Angle projection.
+ * Positions are relative offsets from a reference view (usually Front).
+ *
+ * Third-Angle (ANSI/US): Right view is to the RIGHT of Front
+ * First-Angle (ISO/EU): Right view is to the LEFT of Front
+ */
+export interface StandardViewLayout {
+  /** Projection angle standard */
+  projectionAngle: ProjectionAngle
+  /** Spacing between views in mm */
+  viewSpacing: number
+  /** View positions relative to Front view center */
+  positions: {
+    front: [number, number]
+    top: [number, number]
+    right: [number, number]
+    left: [number, number]
+    bottom: [number, number]
+    back: [number, number]
+  }
+}
+
+/**
+ * Get standard view layout for a projection angle.
+ * @param projectionAngle - "first" or "third" angle projection
+ * @param viewSpacing - Space between views in mm (default: 50)
+ * @param viewSize - Approximate view size for positioning (default: 100)
+ */
+export function getStandardViewLayout(
+  projectionAngle: ProjectionAngle,
+  viewSpacing = 50,
+  viewSize = 100
+): StandardViewLayout {
+  const offset = viewSize + viewSpacing
+
+  if (projectionAngle === "third") {
+    // Third-Angle (ANSI): Views unfold "toward" the observer
+    // Top above, Right to the right, etc.
+    return {
+      projectionAngle: "third",
+      viewSpacing,
+      positions: {
+        front: [0, 0],
+        top: [0, offset], // Above front
+        right: [offset, 0], // Right of front
+        left: [-offset, 0], // Left of front
+        bottom: [0, -offset], // Below front
+        back: [offset * 2, 0], // Far right (or omitted)
+      },
+    }
+  }
+  // First-Angle (ISO): Views unfold "away" from observer
+  // Top below, Right to the left, etc.
+  return {
+    projectionAngle: "first",
+    viewSpacing,
+    positions: {
+      front: [0, 0],
+      top: [0, -offset], // Below front (First-Angle)
+      right: [-offset, 0], // Left of front (First-Angle)
+      left: [offset, 0], // Right of front (First-Angle)
+      bottom: [0, offset], // Above front (First-Angle)
+      back: [-offset * 2, 0], // Far left
+    },
+  }
 }

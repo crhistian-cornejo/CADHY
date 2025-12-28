@@ -95,6 +95,26 @@ FaceMesh tessellate_face(
 );
 
 //------------------------------------------------------------------------------
+// Parallel Tessellation (TBB-accelerated)
+//------------------------------------------------------------------------------
+
+/// Tessellate with parallel face extraction using TBB
+/// This is faster than tessellate_deflection for shapes with many faces
+MeshData tessellate_parallel(
+    const OcctShape& shape,
+    double deflection,
+    int num_threads = 0  // 0 = auto-detect
+);
+
+/// Tessellate with full parallel pipeline (mesh generation + extraction)
+MeshData tessellate_parallel_quality(
+    const OcctShape& shape,
+    const MeshQuality& quality
+);
+
+// Note: generate_lods_parallel declared after LODMesh struct definition
+
+//------------------------------------------------------------------------------
 // Adaptive Tessellation
 //------------------------------------------------------------------------------
 
@@ -126,6 +146,15 @@ struct LODMesh {
 };
 
 LODMesh generate_lods(
+    const OcctShape& shape,
+    double high_deflection = 0.01,
+    double medium_deflection = 0.05,
+    double low_deflection = 0.2,
+    double preview_deflection = 1.0
+);
+
+/// Generate multiple LODs in parallel
+LODMesh generate_lods_parallel(
     const OcctShape& shape,
     double high_deflection = 0.01,
     double medium_deflection = 0.05,

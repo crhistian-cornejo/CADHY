@@ -1,16 +1,16 @@
 //! Tauri command modules for CADHY
 //!
-//! Commands are organized by domain for maintainability.
+//! Commands are organized by domain with cmd_ prefix for consistency.
 
-pub mod cad;
-pub mod chat;
-pub mod credits;
-pub mod curves;
-pub mod drawing;
-pub mod drawing_export;
-pub mod dxf;
-pub mod geometry;
-pub mod hydraulics;
-pub mod ifc;
-pub mod project;
-pub mod system;
+pub mod cmd_cad;
+pub mod cmd_chat;
+pub mod cmd_credits;
+pub mod cmd_curves;
+pub mod cmd_drawing;
+pub mod cmd_drawing_export;
+pub mod cmd_dxf;
+pub mod cmd_geometry;
+pub mod cmd_hydraulics;
+pub mod cmd_ifc;
+pub mod cmd_project;
+pub mod cmd_system;

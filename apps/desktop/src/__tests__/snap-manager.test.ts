@@ -16,7 +16,7 @@ import * as THREE from "three"
 // Note: @cadhy/shared is mocked globally in setup.ts
 // Note: material-pool uses the real implementation (loggers are mocked)
 
-import { DEFAULT_SNAP_CONFIG, SnapManager } from "../services/snap-manager"
+import { DEFAULT_SNAP_CONFIG, SnapManager } from "../core/services/SV_snap"
 
 describe("Snap Manager", () => {
   let snapManager: SnapManager
@@ -191,6 +191,9 @@ describe("Snap Manager", () => {
       snapManager.setConfig({
         snapToVertices: false,
         snapToEdges: false,
+        snapToEdgeClosest: false,
+        snapToFaceNormal: false,
+        snapToFaces: false,
         snapToCenters: true,
         snapToGrid: false,
         distance: 1.0,

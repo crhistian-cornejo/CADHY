@@ -17,7 +17,7 @@ import {
   ErrorBoundary,
   PanelErrorBoundary,
   ViewerErrorBoundary,
-} from "../components/common/ErrorBoundary"
+} from "../interface/common/UI_error_boundary"
 
 // Simple children that don't throw
 function SafeChild() {

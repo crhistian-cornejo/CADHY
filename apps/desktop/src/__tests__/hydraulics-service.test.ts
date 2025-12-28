@@ -19,7 +19,7 @@ import {
   type TransitionType,
   type TrapezoidalSectionDef,
   type TriangularSectionDef,
-} from "../services/hydraulics-service"
+} from "../core/services/SV_hydraulics"
 
 describe("Hydraulics Service", () => {
   // ============================================================

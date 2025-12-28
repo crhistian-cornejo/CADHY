@@ -30,8 +30,8 @@
 CADHY/
 ├── apps/
 │   └── desktop/              # Main Tauri app
-│       ├── src/              # React frontend
-│       └── src-tauri/        # Rust backend
+│       ├── src/              # React frontend (see Section 2.1)
+│       └── src-tauri/        # Rust backend (see Section 2.2)
 │
 ├── packages/                 # Shared TS packages
 │   ├── ui/                   # @cadhy/ui - Component library
@@ -48,8 +48,97 @@ CADHY/
 │   ├── cadhy-export/         # File export (STEP, STL)
 │   └── cadhy-project/        # Project file format
 │
-└── tools/                    # Build tools and scripts
+└── tools/                    # Development tools and scripts
+    ├── check_source/         # Code quality checks
+    ├── generators/           # Code scaffolding
+    └── utils_maintenance/    # Maintenance utilities
 ```
+
+### 2.1 Frontend Structure (Blender-Inspired)
+
+```
+apps/desktop/src/
+├── app/                      # Entry point
+├── assets/                   # Static assets
+├── i18n/                     # Internationalization
+│
+├── core/                     # Core infrastructure
+│   ├── kernel/               # KE_* - Data operations
+│   ├── stores/               # ST_* - Zustand state management
+│   │   └── slices/           # Store slices
+│   ├── services/             # SV_* - Backend services
+│   └── types/                # Type definitions
+│
+├── editors/                  # ED_* - Editor workspaces
+│   ├── space_view3d/         # 3D viewport (panels, toolbars, camera)
+│   ├── space_properties/     # Properties panel (sections, types)
+│   ├── space_outliner/       # Scene tree
+│   ├── space_timeline/       # History/timeline
+│   ├── space_drawing/        # 2D drawings
+│   ├── space_projects/       # Project browser
+│   ├── space_results/        # Results view
+│   ├── space_gallery/        # AI gallery
+│   ├── space_ai/             # AI chat
+│   └── space_cadras/         # CADRAS view
+│
+├── operators/                # OP_* - Operations
+│   ├── create/               # Creation operators
+│   ├── context/              # CAD context/providers
+│   └── interactive/          # Interactive operators
+│
+├── render/                   # RE_* - Rendering system
+│   ├── meshes/               # Mesh components
+│   ├── cache/                # Render caches
+│   └── pool/                 # Object pools
+│
+├── interface/                # UI_* - UI components
+│   ├── common/               # Common UI (error boundaries, etc.)
+│   ├── dialogs/              # Dialog components
+│   ├── settings/             # Settings panels
+│   ├── onboarding/           # Onboarding
+│   └── properties/           # Property components
+│
+├── windowmanager/            # WM_* - Window management
+│
+├── lib/                      # Shared utilities
+│   ├── icons/                # IC_* - Icon system
+│   ├── utils/                # UT_* - Utility functions
+│   └── hooks/                # React hooks
+│
+├── commands/                 # Command system
+│
+└── __tests__/                # Tests
+```
+
+### 2.2 Backend Structure (Rust)
+
+```
+apps/desktop/src-tauri/src/
+├── commands/                 # cmd_* - Tauri commands
+│   ├── cmd_cad.rs            # CAD operations
+│   ├── cmd_project.rs        # Project management
+│   ├── cmd_drawing.rs        # Drawing operations
+│   ├── cmd_hydraulics.rs     # Hydraulic calculations
+│   └── ...
+├── lib.rs                    # App entry
+└── main.rs                   # Main entry
+```
+
+### 2.3 Naming Convention (Blender-Inspired)
+
+| Prefix | Purpose | Example |
+|--------|---------|---------|
+| `ED_` | Editor functions | `ED_view3d_main.tsx` |
+| `OP_` | Operators | `OP_create_channel.tsx` |
+| `WM_` | Window manager | `WM_layout.tsx` |
+| `UI_` | UI components | `UI_dialog.tsx` |
+| `RE_` | Rendering | `RE_scene_content.tsx` |
+| `ST_` | Store/State | `ST_scene.ts` |
+| `SV_` | Services | `SV_cad.ts` |
+| `KE_` | Kernel | `KE_topology.ts` |
+| `IC_` | Icons | `IC_tools.ts` |
+| `UT_` | Utilities | `UT_math.ts` |
+| `cmd_` | Rust commands | `cmd_cad.rs` |
 
 ---
 

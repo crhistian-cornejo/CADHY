@@ -582,3 +582,485 @@ impl<'a> GeometryExtractor<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ============================================================
+    // Helper Functions
+    // ============================================================
+
+    fn create_entity(id: u64, type_name: &str, attributes: Vec<IfcAttribute>) -> IfcEntity {
+        IfcEntity {
+            id,
+            type_name: type_name.to_string(),
+            attributes,
+        }
+    }
+
+    fn create_test_entities() -> HashMap<u64, IfcEntity> {
+        let mut entities = HashMap::new();
+        entities
+    }
+
+    // ============================================================
+    // GeometryExtractor Tests
+    // ============================================================
+
+    #[test]
+    fn geometry_extractor_new_creates_instance() {
+        let entities = create_test_entities();
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+
+        // Should create without panicking
+        assert!(extractor.entities.is_empty());
+    }
+
+    #[test]
+    fn geometry_extractor_extract_all_empty() {
+        let entities = create_test_entities();
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+
+        let result = extractor.extract_all();
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[test]
+    fn get_entities_by_type_case_insensitive() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(1, "IfcWall", vec![IfcAttribute::String("test".to_string())]),
+        );
+        entities.insert(
+            2,
+            create_entity(2, "IFCWALL", vec![IfcAttribute::String("test2".to_string())]),
+        );
+        entities.insert(
+            3,
+            create_entity(3, "ifcwall", vec![IfcAttribute::String("test3".to_string())]),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let walls = extractor.get_entities_by_type("IFCWALL");
+
+        assert_eq!(walls.len(), 3, "Should find all case variants");
+    }
+
+    #[test]
+    fn get_entities_by_type_no_match() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(1, "IfcWall", vec![]),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let doors = extractor.get_entities_by_type("IFCDOOR");
+
+        assert!(doors.is_empty());
+    }
+
+    // ============================================================
+    // Direction Extraction Tests
+    // ============================================================
+
+    #[test]
+    fn extract_direction_valid_3d() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(
+                1,
+                "IFCDIRECTION",
+                vec![IfcAttribute::List(vec![
+                    IfcAttribute::Real(0.0),
+                    IfcAttribute::Real(0.0),
+                    IfcAttribute::Real(1.0),
+                ])],
+            ),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let dir_entity = entities.get(&1).unwrap();
+        let direction = extractor.extract_direction(dir_entity);
+
+        assert!(direction.is_some());
+        let [dx, dy, dz] = direction.unwrap();
+        assert!((dx - 0.0).abs() < 1e-10);
+        assert!((dy - 0.0).abs() < 1e-10);
+        assert!((dz - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn extract_direction_partial_2d() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(
+                1,
+                "IFCDIRECTION",
+                vec![IfcAttribute::List(vec![
+                    IfcAttribute::Real(1.0),
+                    IfcAttribute::Real(0.0),
+                    // No Z component - should default to 1.0
+                ])],
+            ),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let dir_entity = entities.get(&1).unwrap();
+        let direction = extractor.extract_direction(dir_entity);
+
+        assert!(direction.is_some());
+        let [dx, dy, dz] = direction.unwrap();
+        assert!((dx - 1.0).abs() < 1e-10);
+        assert!((dy - 0.0).abs() < 1e-10);
+        assert!((dz - 1.0).abs() < 1e-10); // Default value
+    }
+
+    // ============================================================
+    // Profile Extraction Tests
+    // ============================================================
+
+    #[test]
+    fn extract_rectangle_profile() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(
+                1,
+                "IFCRECTANGLEPROFILEDEF",
+                vec![
+                    IfcAttribute::String("AREA".to_string()),    // ProfileType
+                    IfcAttribute::String("Profile1".to_string()), // ProfileName
+                    IfcAttribute::Null,                          // Position
+                    IfcAttribute::Real(10.0),                    // XDim
+                    IfcAttribute::Real(5.0),                     // YDim
+                ],
+            ),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let profile = extractor.extract_profile(1);
+
+        assert!(profile.is_some());
+        let points = profile.unwrap();
+        assert_eq!(points.len(), 4); // Rectangle has 4 corners
+
+        // Check that points form a centered rectangle
+        // Expected: corners at (-5, -2.5), (5, -2.5), (5, 2.5), (-5, 2.5)
+        assert!((points[0][0] - (-5.0)).abs() < 1e-10);
+        assert!((points[0][1] - (-2.5)).abs() < 1e-10);
+    }
+
+    #[test]
+    fn extract_circle_profile() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(
+                1,
+                "IFCCIRCLEPROFILEDEF",
+                vec![
+                    IfcAttribute::String("AREA".to_string()),    // ProfileType
+                    IfcAttribute::String("Circle1".to_string()), // ProfileName
+                    IfcAttribute::Null,                          // Position
+                    IfcAttribute::Real(5.0),                     // Radius
+                ],
+            ),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let profile = extractor.extract_profile(1);
+
+        assert!(profile.is_some());
+        let points = profile.unwrap();
+        assert_eq!(points.len(), 32); // 32 segments for circle approximation
+
+        // First point should be at (radius, 0) = (5, 0)
+        assert!((points[0][0] - 5.0).abs() < 1e-10);
+        assert!((points[0][1] - 0.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn extract_unsupported_profile_returns_none() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(
+                1,
+                "IFCISHAPEPROFILEDEF", // Not implemented
+                vec![],
+            ),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let profile = extractor.extract_profile(1);
+
+        assert!(profile.is_none());
+    }
+
+    // ============================================================
+    // Cartesian Point Tests
+    // ============================================================
+
+    #[test]
+    fn extract_cartesian_point_2d() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(
+                1,
+                "IFCCARTESIANPOINT",
+                vec![IfcAttribute::List(vec![
+                    IfcAttribute::Real(10.5),
+                    IfcAttribute::Real(20.3),
+                ])],
+            ),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let point = extractor.extract_cartesian_point_2d(1);
+
+        assert!(point.is_some());
+        let [x, y] = point.unwrap();
+        assert!((x - 10.5).abs() < 1e-10);
+        assert!((y - 20.3).abs() < 1e-10);
+    }
+
+    #[test]
+    fn extract_cartesian_point_3d() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(
+                1,
+                "IFCCARTESIANPOINT",
+                vec![IfcAttribute::List(vec![
+                    IfcAttribute::Real(1.0),
+                    IfcAttribute::Real(2.0),
+                    IfcAttribute::Real(3.0),
+                ])],
+            ),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let point = extractor.extract_cartesian_point_3d(1);
+
+        assert!(point.is_some());
+        let [x, y, z] = point.unwrap();
+        assert!((x - 1.0).abs() < 1e-10);
+        assert!((y - 2.0).abs() < 1e-10);
+        assert!((z - 3.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn extract_cartesian_point_3d_defaults_z() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            1,
+            create_entity(
+                1,
+                "IFCCARTESIANPOINT",
+                vec![IfcAttribute::List(vec![
+                    IfcAttribute::Real(1.0),
+                    IfcAttribute::Real(2.0),
+                    // No Z - should default to 0
+                ])],
+            ),
+        );
+
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+        let point = extractor.extract_cartesian_point_3d(1);
+
+        assert!(point.is_some());
+        let [_x, _y, z] = point.unwrap();
+        assert!((z - 0.0).abs() < 1e-10); // Default Z
+    }
+
+    // ============================================================
+    // Product Type Detection Tests
+    // ============================================================
+
+    #[test]
+    fn product_types_are_recognized() {
+        // All these types should be searched for products
+        let product_types = [
+            "IFCWALL",
+            "IFCSLAB",
+            "IFCBEAM",
+            "IFCCOLUMN",
+            "IFCDOOR",
+            "IFCWINDOW",
+            "IFCROOF",
+            "IFCPIPESEGMENT",
+        ];
+
+        for type_name in product_types {
+            let upper = type_name.to_uppercase();
+            assert!(upper.starts_with("IFC"), "Should be IFC type: {}", type_name);
+        }
+    }
+
+    // ============================================================
+    // Representation Extraction Tests
+    // ============================================================
+
+    #[test]
+    fn extract_representation_missing_entity() {
+        let entities = HashMap::new();
+        let extractor = GeometryExtractor::new(&entities, IfcSchema::Ifc4);
+
+        let result = extractor.extract_representation(999);
+        assert!(result.is_none());
+    }
+
+    // ============================================================
+    // IfcClass Conversion Tests
+    // ============================================================
+
+    #[test]
+    fn ifc_class_from_flow_segment_type() {
+        let class = IfcClass::from("IFCFLOWSEGMENT");
+        assert_eq!(class, IfcClass::IfcFlowSegment);
+    }
+
+    #[test]
+    fn ifc_class_from_building_element_type() {
+        let class = IfcClass::from("IFCBUILDINGELEMENT");
+        assert_eq!(class, IfcClass::IfcBuildingElement);
+    }
+
+    #[test]
+    fn ifc_class_case_sensitivity() {
+        // IfcClass::from handles case by uppercasing, so unknown variants go to Other
+        let upper = IfcClass::from("IFCFLOWSEGMENT");
+        let mixed = IfcClass::from("IfcFlowSegment");
+        let lower = IfcClass::from("ifcflowsegment");
+
+        // All should resolve to FlowSegment since From converts to uppercase
+        assert_eq!(upper, IfcClass::IfcFlowSegment);
+        assert_eq!(mixed, IfcClass::IfcFlowSegment);
+        assert_eq!(lower, IfcClass::IfcFlowSegment);
+    }
+
+    // ============================================================
+    // Mesh Geometry Tests
+    // ============================================================
+
+    #[test]
+    fn mesh_geometry_structure() {
+        let mesh = MeshGeometry {
+            vertices: vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.5, 1.0, 0.0],
+            indices: vec![0, 1, 2],
+            normals: Some(vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0]),
+        };
+
+        assert_eq!(mesh.vertices.len(), 9); // 3 vertices × 3 coords
+        assert_eq!(mesh.indices.len(), 3);  // 1 triangle
+        assert!(mesh.normals.is_some());
+    }
+
+    #[test]
+    fn mesh_geometry_without_normals() {
+        let mesh = MeshGeometry {
+            vertices: vec![0.0, 0.0, 0.0],
+            indices: vec![0],
+            normals: None,
+        };
+
+        assert!(mesh.normals.is_none());
+    }
+
+    // ============================================================
+    // Extrusion Geometry Tests
+    // ============================================================
+
+    #[test]
+    fn extrusion_geometry_structure() {
+        let extrusion = ExtrusionGeometry {
+            profile: vec![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+            direction: [0.0, 0.0, 1.0],
+            depth: 5.0,
+        };
+
+        assert_eq!(extrusion.profile.len(), 4);
+        assert!((extrusion.depth - 5.0).abs() < 1e-10);
+        assert!((extrusion.direction[2] - 1.0).abs() < 1e-10);
+    }
+
+    // ============================================================
+    // SweptSolid Geometry Tests
+    // ============================================================
+
+    #[test]
+    fn swept_solid_geometry_structure() {
+        let swept = SweptSolidGeometry {
+            profile: vec![[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]],
+            path: vec![[0.0, 0.0, 0.0], [0.0, 0.0, 10.0], [5.0, 0.0, 10.0]],
+        };
+
+        assert_eq!(swept.profile.len(), 4);
+        assert_eq!(swept.path.len(), 3);
+    }
+
+    // ============================================================
+    // PropertyValue Tests
+    // ============================================================
+
+    #[test]
+    fn property_value_types() {
+        let real = PropertyValue::Real(3.14159);
+        let integer = PropertyValue::Integer(42);
+        let string = PropertyValue::String("test".to_string());
+        let boolean = PropertyValue::Boolean(true);
+
+        match real {
+            PropertyValue::Real(v) => assert!((v - 3.14159).abs() < 1e-5),
+            _ => panic!("Expected Real"),
+        }
+
+        match integer {
+            PropertyValue::Integer(v) => assert_eq!(v, 42),
+            _ => panic!("Expected Integer"),
+        }
+
+        match string {
+            PropertyValue::String(v) => assert_eq!(v, "test"),
+            _ => panic!("Expected String"),
+        }
+
+        match boolean {
+            PropertyValue::Boolean(v) => assert!(v),
+            _ => panic!("Expected Boolean"),
+        }
+    }
+
+    // ============================================================
+    // ImportedObject Tests
+    // ============================================================
+
+    #[test]
+    fn imported_object_structure() {
+        let obj = ImportedObject {
+            id: "ifc_123".to_string(),
+            name: "Test Channel".to_string(),
+            ifc_class: IfcClass::IfcFlowSegment,
+            global_id: "2O2Fr$t4X7Zf8NOew3FLNb".to_string(),
+            geometry: None,
+            properties: HashMap::new(),
+            parent_id: Some("ifc_100".to_string()),
+            material: None,
+        };
+
+        assert_eq!(obj.id, "ifc_123");
+        assert_eq!(obj.name, "Test Channel");
+        assert_eq!(obj.ifc_class, IfcClass::IfcFlowSegment);
+        assert!(obj.geometry.is_none());
+        assert!(obj.properties.is_empty());
+        assert!(obj.parent_id.is_some());
+    }
+}

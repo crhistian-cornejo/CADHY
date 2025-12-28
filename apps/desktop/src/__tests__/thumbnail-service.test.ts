@@ -10,7 +10,7 @@ import {
   generatePlaceholderThumbnail,
   getViewportCanvas,
   registerViewportCanvas,
-} from "../services/thumbnail-service"
+} from "../core/services/SV_thumbnail"
 
 describe("Thumbnail Service", () => {
   // ============================================================

@@ -2,6 +2,9 @@
 
 /**
  * Surface type enumeration for face classification
+ *
+ * This is the canonical definition used across all crates.
+ * cadhy-cad reuses this type for consistency.
  */
 export type SurfaceType =
   | "plane"
@@ -11,4 +14,7 @@ export type SurfaceType =
   | "torus"
   | "bezierSurface"
   | "bSplineSurface"
+  | "revolutionSurface"
+  | "extrusionSurface"
+  | "offsetSurface"
   | "other"

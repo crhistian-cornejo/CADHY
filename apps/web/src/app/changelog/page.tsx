@@ -100,7 +100,15 @@ function getSectionStyle(title: string): { color: string; label: string } {
   return { color: "text-muted-foreground", label: title }
 }
 
-function ReleaseEntry({ release }: { release: Release }) {
+function ReleaseEntry({
+  release,
+  index,
+  totalReleases,
+}: {
+  release: Release
+  index: number
+  totalReleases: number
+}) {
   const { t, language } = useTranslation()
   const sections = parseMarkdownBody(release.body)
 
@@ -112,6 +120,9 @@ function ReleaseEntry({ release }: { release: Release }) {
     day: "numeric",
   })
 
+  // Reverse numbering: oldest release = REL.001, newest = highest number
+  const releaseNumber = totalReleases - index
+
   return (
     <article
       id={`v${release.version}`}
@@ -121,7 +132,7 @@ function ReleaseEntry({ release }: { release: Release }) {
       <div className="md:text-right">
         <time
           dateTime={release.publishedAt}
-          className="text-sm text-muted-foreground sticky top-24"
+          className="text-sm font-mono text-muted-foreground sticky top-24 tracking-wider"
         >
           {formattedDate}
         </time>
@@ -129,32 +140,43 @@ function ReleaseEntry({ release }: { release: Release }) {
 
       {/* Content */}
       <div className="relative">
-        {/* Timeline line */}
-        <div className="absolute left-0 top-0 bottom-0 w-px bg-border -ml-[25px] hidden md:block" />
+        {/* Timeline line - simple dashed border */}
+        <div className="absolute left-0 top-0 bottom-0 w-px -ml-[25px] hidden md:block border-l border-dashed border-border" />
 
-        {/* Timeline dot */}
-        <div className="absolute -left-[29px] top-1 w-2 h-2 rounded-full bg-border hidden md:block" />
+        {/* Timeline dot - simple circle */}
+        <div className="absolute -left-[29px] top-1 w-2 h-2 border border-border bg-background hidden md:block" />
 
-        {/* Version header */}
-        <header className="mb-6">
+        {/* Version header with CAD corner marks */}
+        <header className="relative mb-6 p-4 border border-border/50 bg-card/30">
+          {/* CAD corner marks */}
+          <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-muted-foreground/30" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-muted-foreground/30" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-muted-foreground/30" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-muted-foreground/30" />
+
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-xs text-muted-foreground tracking-wider uppercase">
+            <span className="text-[10px] font-mono text-muted-foreground tracking-wider uppercase">
               {t.changelog.badge}
             </span>
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-3">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1">
             {release.version}
             {release.isLatest && (
-              <span className="ml-3 text-xs font-medium tracking-wider px-2 py-1 border border-primary/30 bg-primary/10 text-primary rounded">
+              <span className="ml-3 text-[10px] font-mono tracking-wider px-2 py-1 border border-primary/30 bg-primary/5 text-primary">
                 {t.common.latest.toUpperCase()}
               </span>
             )}
             {release.isPrerelease && (
-              <span className="ml-3 text-xs font-medium tracking-wider px-2 py-1 border border-yellow-500/30 bg-yellow-500/10 text-yellow-500 rounded">
+              <span className="ml-3 text-[10px] font-mono tracking-wider px-2 py-1 border border-yellow-500/30 bg-yellow-500/5 text-yellow-500">
                 PRE-RELEASE
               </span>
             )}
           </h2>
+
+          {/* Figure label */}
+          <span className="absolute -bottom-2 right-4 text-[8px] font-mono text-muted-foreground/40 bg-background px-1">
+            REL.{String(releaseNumber).padStart(3, "0")}
+          </span>
         </header>
 
         {/* Sections */}
@@ -164,14 +186,20 @@ function ReleaseEntry({ release }: { release: Release }) {
               const style = getSectionStyle(section.title)
               return (
                 <section key={`${release.version}-${idx}`}>
-                  <h3 className={`text-lg font-semibold mb-3 ${style.color}`}>{section.title}</h3>
-                  <ul className="space-y-2">
+                  <h3
+                    className={`text-sm font-mono font-semibold mb-3 ${style.color} tracking-wider uppercase`}
+                  >
+                    {section.title}
+                  </h3>
+                  <ul className="space-y-2 border-l border-border/30 pl-4">
                     {section.items.map((item, itemIdx) => (
                       <li
                         key={`${release.version}-${idx}-${itemIdx}`}
                         className="flex items-start gap-2 text-foreground/90"
                       >
-                        <span className="text-muted-foreground mt-1.5 text-xs">-</span>
+                        <span className="text-muted-foreground mt-1.5 text-[10px] font-mono">
+                          —
+                        </span>
                         <span className="text-sm leading-relaxed">{item}</span>
                       </li>
                     ))}
@@ -180,7 +208,7 @@ function ReleaseEntry({ release }: { release: Release }) {
               )
             })
           ) : (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm font-mono">
               {language === "es"
                 ? "Correcciones de errores y mejoras de rendimiento."
                 : "Bug fixes and performance improvements."}
@@ -189,12 +217,12 @@ function ReleaseEntry({ release }: { release: Release }) {
         </div>
 
         {/* GitHub link */}
-        <footer className="mt-6 pt-4 border-t border-border/50">
+        <footer className="mt-6 pt-4 border-t border-dashed border-border/50">
           <a
             href={`https://github.com/crhistian-cornejo/CADHY/releases/tag/${release.tagName}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors"
           >
             <HugeiconsIcon icon={Github01Icon} size={14} />
             {t.changelog.viewOnGithub}
@@ -289,8 +317,13 @@ export default function ChangelogPage() {
               </div>
             ) : (
               <div className="space-y-0">
-                {releases.map((release) => (
-                  <ReleaseEntry key={release.tagName} release={release} />
+                {releases.map((release, index) => (
+                  <ReleaseEntry
+                    key={release.tagName}
+                    release={release}
+                    index={index}
+                    totalReleases={releases.length}
+                  />
                 ))}
               </div>
             )}

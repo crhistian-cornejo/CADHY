@@ -249,6 +249,15 @@ impl IfcExporter {
         site_id
     }
 
+    /// Ensure the exporter is initialized with header entities and project structure.
+    /// This is called automatically when needed.
+    fn ensure_initialized(&mut self) {
+        if self.shape_map.get("owner_history").is_none() {
+            self.add_header_entities();
+            self.add_project_structure();
+        }
+    }
+
     /// Add a hydraulic channel
     pub fn add_hydraulic_channel(
         &mut self,
@@ -256,6 +265,9 @@ impl IfcExporter {
         mesh: &MeshGeometry,
         properties: &HydraulicProperties,
     ) -> IfcResult<u64> {
+        // Ensure header entities exist before adding channels
+        self.ensure_initialized();
+
         let owner_history_id = *self.shape_map.get("owner_history").unwrap();
         let body_context_id = *self.shape_map.get("body_context").unwrap();
         let site_id = *self.shape_map.get("site").unwrap();
@@ -453,10 +465,7 @@ impl IfcExporter {
     /// Write the IFC file to disk
     pub fn write_to_file<P: AsRef<Path>>(&mut self, path: P) -> IfcResult<()> {
         // Initialize if not done
-        if self.entities.is_empty() {
-            self.add_header_entities();
-            self.add_project_structure();
-        }
+        self.ensure_initialized();
 
         let file = File::create(path.as_ref()).map_err(|e| {
             IfcError::WriteError(format!(

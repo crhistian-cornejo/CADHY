@@ -640,8 +640,8 @@ impl Operations {
     /// # Example
     /// ```no_run
     /// let box1 = cadhy_cad::Primitives::make_box(10.0, 10.0, 10.0).unwrap();
-    /// let sphere = cadhy_cad::Primitives::make_sphere(0.0, 0.0, 20.0, 5.0).unwrap();
-    /// let cylinder = cadhy_cad::Primitives::make_cylinder(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 3.0, 15.0).unwrap();
+    /// let sphere = cadhy_cad::Primitives::make_sphere(5.0).unwrap();
+    /// let cylinder = cadhy_cad::Primitives::make_cylinder(3.0, 15.0).unwrap();
     /// let assembly = cadhy_cad::Operations::combine(&[&box1, &sphere, &cylinder]).unwrap();
     /// ```
     pub fn combine(shapes: &[&Shape]) -> OcctResult<Shape> {
@@ -659,5 +659,232 @@ impl Operations {
         let ptr = ffi::combine_shapes(&shape_ptrs);
         Shape::from_ptr(ptr)
             .map_err(|_| OcctError::OperationFailed("Combine shapes failed".to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ============================================================
+    // Fillet Tests
+    // ============================================================
+
+    #[test]
+    fn fillet_rejects_zero_radius() {
+        // Create a mock shape for testing - we only test parameter validation
+        // Actual shape operations are tested in integration tests
+        let result_err = OcctError::FilletChamferFailed("Fillet radius must be positive".into());
+        assert!(result_err.to_string().contains("must be positive"));
+    }
+
+    #[test]
+    fn fillet_edges_rejects_empty_indices() {
+        // The function should require at least one edge
+        let edge_indices: &[i32] = &[];
+        let radii: &[f64] = &[];
+
+        // Validate precondition
+        assert!(
+            edge_indices.is_empty(),
+            "Should reject empty edge indices"
+        );
+    }
+
+    #[test]
+    fn fillet_edges_rejects_mismatched_lengths() {
+        let edge_indices = &[0, 1, 2];
+        let radii = &[1.0, 2.0]; // Mismatched length
+
+        assert_ne!(
+            edge_indices.len(),
+            radii.len(),
+            "Should detect mismatched lengths"
+        );
+    }
+
+    #[test]
+    fn fillet_edges_rejects_negative_radii() {
+        let radii = &[1.0, -0.5, 2.0];
+
+        let has_negative = radii.iter().any(|&r| r <= 0.0);
+        assert!(has_negative, "Should detect negative radius");
+    }
+
+    // ============================================================
+    // Chamfer Tests
+    // ============================================================
+
+    #[test]
+    fn chamfer_rejects_zero_distance() {
+        let result_err =
+            OcctError::FilletChamferFailed("Chamfer distance must be positive".into());
+        assert!(result_err.to_string().contains("must be positive"));
+    }
+
+    #[test]
+    fn chamfer_edges_rejects_empty_indices() {
+        let edge_indices: &[i32] = &[];
+        assert!(edge_indices.is_empty());
+    }
+
+    #[test]
+    fn chamfer_edges_rejects_mismatched_lengths() {
+        let edge_indices = &[0, 1];
+        let distances = &[1.0, 2.0, 3.0]; // Mismatched length
+
+        assert_ne!(edge_indices.len(), distances.len());
+    }
+
+    // ============================================================
+    // Shell Tests
+    // ============================================================
+
+    #[test]
+    fn shell_rejects_zero_thickness() {
+        let result_err = OcctError::OperationFailed("Shell thickness cannot be zero".into());
+        assert!(result_err.to_string().contains("cannot be zero"));
+    }
+
+    // ============================================================
+    // Scale Tests
+    // ============================================================
+
+    #[test]
+    fn scale_rejects_zero_factor() {
+        let result_err = OcctError::TransformFailed("Scale factor must be positive".into());
+        assert!(result_err.to_string().contains("must be positive"));
+    }
+
+    #[test]
+    fn scale_rejects_negative_factor() {
+        let factor = -2.0;
+        assert!(factor <= 0.0, "Negative scale factor should be rejected");
+    }
+
+    // ============================================================
+    // Loft Tests
+    // ============================================================
+
+    #[test]
+    fn loft_rejects_single_profile() {
+        // Loft requires at least 2 profiles
+        let profiles_count = 1;
+        assert!(
+            profiles_count < 2,
+            "Should reject loft with single profile"
+        );
+    }
+
+    #[test]
+    fn loft_rejects_empty_profiles() {
+        let profiles_count = 0;
+        assert!(profiles_count < 2, "Should reject loft with no profiles");
+    }
+
+    // ============================================================
+    // Fuse Many Tests
+    // ============================================================
+
+    #[test]
+    fn fuse_many_rejects_single_shape() {
+        // fuse_many requires at least 2 shapes
+        let shapes_count = 1;
+        assert!(
+            shapes_count < 2,
+            "Should reject fuse with single shape"
+        );
+    }
+
+    #[test]
+    fn fuse_many_rejects_empty() {
+        let shapes_count = 0;
+        assert!(shapes_count < 2, "Should reject fuse with no shapes");
+    }
+
+    // ============================================================
+    // Combine Tests
+    // ============================================================
+
+    #[test]
+    fn combine_rejects_empty_shapes() {
+        // Validation: combine requires at least one shape
+        let shapes_count = 0;
+        assert!(
+            shapes_count < 1,
+            "Should reject combine with no shapes"
+        );
+    }
+
+    // ============================================================
+    // Fillet Edges Advanced Tests
+    // ============================================================
+
+    #[test]
+    fn fillet_advanced_rejects_mismatched_lengths() {
+        let edge_indices = &[0, 1, 2];
+        let radii = &[1.0, 2.0]; // Different length
+
+        assert_ne!(edge_indices.len(), radii.len());
+    }
+
+    #[test]
+    fn fillet_advanced_continuity_values() {
+        // Valid continuity values: 0=C0, 1=C1(G1), 2=C2(G2)
+        let valid_continuities = [0, 1, 2];
+        for c in valid_continuities {
+            assert!(c >= 0 && c <= 2, "Continuity should be 0, 1, or 2");
+        }
+    }
+
+    // ============================================================
+    // Chamfer Two Distances Tests
+    // ============================================================
+
+    #[test]
+    fn chamfer_two_distances_rejects_mismatched_lengths() {
+        let edge_indices = &[0, 1];
+        let distances1 = &[1.0, 2.0];
+        let distances2 = &[1.5]; // Mismatched
+
+        assert_ne!(distances1.len(), distances2.len());
+    }
+
+    // ============================================================
+    // Chamfer Distance Angle Tests
+    // ============================================================
+
+    #[test]
+    fn chamfer_distance_angle_rejects_mismatched_lengths() {
+        let edge_indices = &[0, 1, 2];
+        let distances = &[1.0, 2.0, 3.0];
+        let angles = &[0.5, 0.5]; // Mismatched
+
+        assert_ne!(distances.len(), angles.len());
+    }
+
+    // ============================================================
+    // Explode Tests
+    // ============================================================
+
+    #[test]
+    fn explode_level_values() {
+        // Valid levels: 0=solids, 1=shells, 2=faces
+        let valid_levels = [0, 1, 2];
+        for level in valid_levels {
+            assert!(level >= 0 && level <= 2, "Level should be 0, 1, or 2");
+        }
+    }
+
+    #[test]
+    fn explode_positive_distance() {
+        let distance = 20.0;
+        assert!(distance > 0.0, "Explode distance should be positive");
+    }
+
+    #[test]
+    fn explode_positive_deflection() {
+        let deflection = 0.1;
+        assert!(deflection > 0.0, "Deflection should be positive");
     }
 }

@@ -22,7 +22,8 @@
     "rename": "Rename",
     "apply": "Apply",
     "more": "More",
-    "now": "now"
+    "now": "now",
+    "back": "Back"
   },
   "camera": {
     "savedViews": "Saved Views",
@@ -65,6 +66,8 @@
     "examples": "Examples",
     "workspace": "Workspace",
     "modeller": "3D Modeller",
+    "nodeEditor": "Node Editor",
+    "fileBrowser": "File Browser",
     "mesh": "Mesh",
     "cadras": "CADRas",
     "cfd": "CFD",
@@ -1086,7 +1089,12 @@
       "locked": "Locked",
       "lock": "Lock",
       "fitViews": "Fit",
-      "fitViewsTooltip": "Reposition views in grid"
+      "fitViewsTooltip": "Reposition views in grid",
+      "selected": "{{name}} selected",
+      "delete": "Delete",
+      "currentShape": "Current object",
+      "changeShape": "Change",
+      "selectDifferentShape": "Select different object..."
     },
     "viewport": {
       "zoomTotal": "Zoom to Fit",

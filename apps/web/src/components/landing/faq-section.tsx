@@ -316,26 +316,11 @@ export function FAQSection() {
   }
 
   return (
-    <section
-      className="relative border-t border-border bg-background py-24 px-8 lg:px-16 overflow-hidden"
-      id="faq"
-    >
+    <section className="relative bg-transparent py-24 px-8 lg:px-16 overflow-hidden" id="faq">
       {/* CAD Pattern Background */}
       <CADPatternBackground />
 
       <div className="relative z-10 max-w-6xl mx-auto">
-        {/* Header - CAD Style */}
-        <div className="mb-12 text-center">
-          <h2 className="text-xs font-mono tracking-[0.3em] text-muted-foreground mb-4">
-            COMMON QUESTIONS
-          </h2>
-          <div className="flex items-center justify-center gap-4">
-            <div className="h-px w-16 bg-gradient-to-r from-transparent to-muted-foreground/30" />
-            <div className="w-2 h-2 border border-muted-foreground/50 rotate-45" />
-            <div className="h-px w-16 bg-gradient-to-l from-transparent to-muted-foreground/30" />
-          </div>
-        </div>
-
         {/* Main Content - Two Column Layout */}
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Left Panel - Questions List with Blur Effect */}
@@ -443,7 +428,7 @@ export function FAQSection() {
           <div className="text-center">
             <p className="text-xs text-muted-foreground mb-3 tracking-wide">{t.faq.contact}</p>
             <a
-              href="https://github.com/crhistian-cornejo/CADHY/discussions"
+              href="https://github.com/crhistian-cornejo/CADHY/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-[10px] font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors border border-border px-5 py-2 hover:border-foreground/50"

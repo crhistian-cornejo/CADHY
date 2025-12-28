@@ -1,47 +1,166 @@
 {
-  "version": "1.0.0",
-  "resolution": "1k",
+  "version": "2.0.0",
+  "resolution": "2k",
+  "formatPolicy": "optimal",
+  "formats": {
+    "albedo": "jpg",
+    "normal": "png",
+    "displacement": "png",
+    "roughness": "png",
+    "ao": "png",
+    "metalness": "png"
+  },
   "categories": {
     "concrete": [
       "anti_slip_concrete",
       "asphalt_floor",
       "brick_wall_006",
       "brick_wall_02",
-      "brushed_concrete"
+      "brushed_concrete",
+      "brushed_concrete_03",
+      "brushed_concrete_2",
+      "checkered_pavement_tiles",
+      "climbing_wall_02",
+      "concrete"
     ],
     "metal": [
       "blue_metal_plate",
       "container_side",
       "corrugated_iron",
       "corrugated_iron_02",
-      "corrugated_iron_03"
+      "corrugated_iron_03",
+      "factory_wall",
+      "green_metal_rust",
+      "metal_grate_rusty",
+      "metal_plate",
+      "metal_plate_02"
     ],
-    "wood": ["bark_brown_01", "bark_brown_02", "bark_willow", "bark_willow_02", "beam_wall_01"],
+    "wood": [
+      "bark_brown_01",
+      "bark_brown_02",
+      "bark_willow",
+      "bark_willow_02",
+      "beam_wall_01",
+      "black_painted_planks",
+      "blue_painted_planks",
+      "brown_planks_03",
+      "brown_planks_04",
+      "brown_planks_05"
+    ],
     "brick": [
       "blue_floor_tiles_01",
       "brick_4",
       "brick_crosswalk",
       "brick_floor",
-      "brick_floor_003"
+      "brick_floor_003",
+      "brick_moss_001",
+      "brick_pavement",
+      "brick_pavement_02",
+      "brick_wall_001",
+      "brick_wall_003"
     ],
     "stone": [],
     "ground": [],
-    "fabric": ["bi_stretch", "book_pattern", "brown_leather", "caban", "cotton_jersey"],
+    "asphalt": [
+      "aerial_asphalt_01",
+      "asphalt_01",
+      "asphalt_03",
+      "asphalt_05",
+      "asphalt_06",
+      "asphalt_floor",
+      "asphalt_pit_lane",
+      "asphalt_snow",
+      "asphalt_track",
+      "cobblestone_embedded_asphalt"
+    ],
+    "gravel": [
+      "bicolour_gravel",
+      "flower_scattered_gravel",
+      "gravel_floor",
+      "gravel_floor_02",
+      "gravel_stones",
+      "gravelly_sand",
+      "rocky_gravel",
+      "sandy_gravel",
+      "sandy_gravel_02"
+    ],
+    "sand": [
+      "aerial_beach_01",
+      "aerial_beach_02",
+      "aerial_beach_03",
+      "aerial_sand",
+      "baseball_playground",
+      "coast_land_rocks_01",
+      "coast_sand_01",
+      "coast_sand_02",
+      "coast_sand_03",
+      "coast_sand_04"
+    ],
+    "grass": [],
     "tiles": [
       "brown_floor_tiles",
       "concrete_tiles_02",
       "dirty_tiles",
       "granite_tile_03",
-      "grey_cartago_01"
+      "grey_cartago_01",
+      "grey_cartago_03",
+      "interior_tiles",
+      "rectangular_facade_tiles",
+      "rectangular_facade_tiles_02",
+      "stone_embedded_tiles"
     ],
     "plaster": [
       "beige_wall_001",
       "beige_wall_002",
       "blue_plaster_weathered",
       "concrete_debris",
-      "concrete_floor_painted"
+      "concrete_floor_painted",
+      "concrete_wall_001",
+      "concrete_wall_003",
+      "concrete_wall_007",
+      "concrete_wall_008",
+      "coral_fort_wall_01"
     ],
-    "paint": []
+    "paint": [],
+    "wallpaper": [],
+    "plastic": [],
+    "rubber": [],
+    "rock": [
+      "aerial_grass_rock",
+      "aerial_rocks_01",
+      "aerial_rocks_02",
+      "aerial_rocks_04",
+      "broken_wall",
+      "castle_wall_slates",
+      "castle_wall_varriation",
+      "clean_pebbles",
+      "cliff_side",
+      "coast_sand_03"
+    ],
+    "water": [],
+    "fabric": [
+      "bi_stretch",
+      "book_pattern",
+      "brown_leather",
+      "caban",
+      "cotton_jersey",
+      "crepe_georgette",
+      "crepe_satin",
+      "curly_teddy_checkered",
+      "curly_teddy_natural",
+      "denim_fabric"
+    ],
+    "carpet": ["dirty_carpet"],
+    "leather": [
+      "brown_leather",
+      "fabric_leather_01",
+      "fabric_leather_02",
+      "leather_red_02",
+      "leather_red_03",
+      "leather_white"
+    ],
+    "roof": [],
+    "shingles": []
   },
-  "generated": "2025-12-20T01:01:59.079Z"
+  "generated": "2025-12-27T20:58:10.041Z"
 }

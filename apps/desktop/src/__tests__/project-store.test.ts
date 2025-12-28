@@ -12,10 +12,10 @@
  */
 
 import { beforeEach, describe, expect, mock, test } from "bun:test"
-import { useProjectStore } from "../stores/project-store"
+import { useProjectStore } from "../core/stores/ST_project"
 
 // Mock external services to isolate store tests
-mock.module("@/services/project-service", () => ({
+mock.module("@/core/services/project-service", () => ({
   createProject: mock(() => Promise.resolve({ id: "test-id", name: "Test", path: "/test/path" })),
   openProject: mock(() =>
     Promise.resolve({
@@ -29,11 +29,11 @@ mock.module("@/services/project-service", () => ({
   updateProjectSettings: mock(() => Promise.resolve()),
 }))
 
-mock.module("@/services/thumbnail-service", () => ({
+mock.module("@/core/services/thumbnail-service", () => ({
   captureViewportThumbnailDelayed: mock(() => Promise.resolve(null)),
 }))
 
-// NOTE: We don't mock @/stores/modeller because mock.module persists
+// NOTE: We don't mock @/core/stores/modeller because mock.module persists
 // across test files in bun, which would break modeller-store.test.ts.
 // Instead, we rely on the real modeller-store but mock its external dependencies.
 // The modeller-store itself is safe to use in tests since it has localStorage mocked via setup.ts.
@@ -42,7 +42,7 @@ mock.module("@/services/thumbnail-service", () => ({
 // which would break other store tests. The real stores with localStorage mocked via setup.ts
 // work fine for isolated tests.
 
-// NOTE: We don't mock @/stores/chat-store because it has dynamic import handling
+// NOTE: We don't mock @/core/stores/chat-store because it has dynamic import handling
 // that works with the real store. The chat-store tests handle their own mocking.
 
 describe("Project Store", () => {

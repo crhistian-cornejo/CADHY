@@ -1,26 +1,18 @@
 {
   "recommendations": [
-    // Core
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
     "biomejs.biome",
     "rust-lang.rust-analyzer",
+    "tamasfe.even-better-toml",
     "tauri-apps.tauri-vscode",
-
-    // TypeScript/React
-    "bradlc.vscode-tailwindcss",
     "dsznajder.es7-react-js-snippets",
-
-    // Git
+    "bradlc.vscode-tailwindcss",
     "eamodio.gitlens",
     "mhutchie.git-graph",
-
-    // Utilities
-    "streetsidesoftware.code-spell-checker",
     "usernamehw.errorlens",
-    "christian-kohler.path-intellisense",
-
-    // AI Assistants (optional)
-    "github.copilot",
-    "continue.continue"
-  ],
-  "unwantedRecommendations": ["esbenp.prettier-vscode", "dbaeumer.vscode-eslint"]
+    "streetsidesoftware.code-spell-checker",
+    "gruntfuggly.todo-tree",
+    "wayou.vscode-todo-highlight"
+  ]
 }

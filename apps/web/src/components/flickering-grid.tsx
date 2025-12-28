@@ -2,7 +2,8 @@
  * Flickering Grid Component
  *
  * Animated grid background with optional text mask.
- * Copied from GraphCAD with full text support.
+ * OPTIMIZED: Mask canvas is cached and only recreated on resize.
+ * Uses CSS variables for theming and reduces frame rate for better perf.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -32,30 +33,70 @@ export function FlickeringGrid({
 }: FlickeringGridProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  // Cache the mask data to avoid recreating every frame
+  const maskCacheRef = useRef<Uint8Array | null>(null)
   const [isInView, setIsInView] = useState(false)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
 
-  const memoizedColor = useMemo(() => {
-    // Simple hex to rgba conversion
+  // Parse color once
+  const rgbColor = useMemo(() => {
     if (color.startsWith("#")) {
       const hex = color.slice(1)
-      const r = parseInt(hex.slice(0, 2), 16)
-      const g = parseInt(hex.slice(2, 4), 16)
-      const b = parseInt(hex.slice(4, 6), 16)
-      return `rgba(${r}, ${g}, ${b}, 1)`
+      return {
+        r: parseInt(hex.slice(0, 2), 16),
+        g: parseInt(hex.slice(2, 4), 16),
+        b: parseInt(hex.slice(4, 6), 16),
+      }
     }
-    return color
+    return { r: 107, g: 114, b: 128 } // Default gray
   }, [color])
 
-  const colorWithOpacity = useCallback((baseColor: string, opacity: number) => {
-    if (baseColor.startsWith("rgba")) {
-      return baseColor.replace(/[\d.]+\)$/, `${opacity})`)
-    }
-    if (baseColor.startsWith("rgb")) {
-      return baseColor.replace("rgb", "rgba").replace(")", `, ${opacity})`)
-    }
-    return baseColor
-  }, [])
+  // Create mask bitmap once (not every frame!)
+  const createMaskCache = useCallback(
+    (width: number, height: number, cols: number, rows: number, dpr: number) => {
+      if (!text) {
+        maskCacheRef.current = null
+        return
+      }
+
+      const maskCanvas = document.createElement("canvas")
+      maskCanvas.width = width
+      maskCanvas.height = height
+      const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true })
+      if (!maskCtx) return
+
+      maskCtx.save()
+      maskCtx.scale(dpr, dpr)
+      maskCtx.fillStyle = "white"
+      maskCtx.font = `${fontWeight} ${fontSize}px "Inter", -apple-system, BlinkMacSystemFont, sans-serif`
+      maskCtx.textAlign = "center"
+      maskCtx.textBaseline = "middle"
+      maskCtx.fillText(text, width / (2 * dpr), height / (2 * dpr))
+      maskCtx.restore()
+
+      // Pre-compute which cells have text (boolean array, much faster than getImageData per frame)
+      const cellSize = (squareSize + gridGap) * dpr
+      const mask = new Uint8Array(cols * rows)
+
+      for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+          const x = Math.floor(i * cellSize)
+          const y = Math.floor(j * cellSize)
+          const sw = Math.floor(squareSize * dpr)
+          const sh = Math.floor(squareSize * dpr)
+
+          // Sample just the center pixel for performance
+          const centerX = Math.min(x + Math.floor(sw / 2), width - 1)
+          const centerY = Math.min(y + Math.floor(sh / 2), height - 1)
+          const pixel = maskCtx.getImageData(centerX, centerY, 1, 1).data
+          mask[i * rows + j] = pixel[0] > 0 ? 1 : 0
+        }
+      }
+
+      maskCacheRef.current = mask
+    },
+    [text, fontSize, fontWeight, squareSize, gridGap]
+  )
 
   const drawGrid = useCallback(
     (
@@ -68,46 +109,28 @@ export function FlickeringGrid({
       dpr: number
     ) => {
       ctx.clearRect(0, 0, width, height)
+      const mask = maskCacheRef.current
+      const cellSize = (squareSize + gridGap) * dpr
+      const sw = squareSize * dpr
+      const sh = squareSize * dpr
 
-      // Create mask canvas for text
-      const maskCanvas = document.createElement("canvas")
-      maskCanvas.width = width
-      maskCanvas.height = height
-      const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true })
-      if (!maskCtx) return
-
-      // Draw text on mask
-      if (text) {
-        maskCtx.save()
-        maskCtx.scale(dpr, dpr)
-        maskCtx.fillStyle = "white"
-        maskCtx.font = `${fontWeight} ${fontSize}px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
-        maskCtx.textAlign = "center"
-        maskCtx.textBaseline = "middle"
-        maskCtx.fillText(text, width / (2 * dpr), height / (2 * dpr))
-        maskCtx.restore()
-      }
-
-      // Draw flickering squares
+      // Batch similar colors together for better GPU performance
       for (let i = 0; i < cols; i++) {
         for (let j = 0; j < rows; j++) {
-          const x = i * (squareSize + gridGap) * dpr
-          const y = j * (squareSize + gridGap) * dpr
-          const squareWidth = squareSize * dpr
-          const squareHeight = squareSize * dpr
+          const idx = i * rows + j
+          const x = i * cellSize
+          const y = j * cellSize
 
-          const maskData = maskCtx.getImageData(x, y, squareWidth, squareHeight).data
-          const hasText = maskData.some((value, index) => index % 4 === 0 && value > 0)
+          const baseOpacity = squares[idx] ?? 0
+          const hasText = mask ? mask[idx] === 1 : false
+          const finalOpacity = hasText ? Math.min(1, baseOpacity * 3 + 0.4) : baseOpacity
 
-          const opacity = squares[i * rows + j] ?? 0
-          const finalOpacity = hasText ? Math.min(1, opacity * 3 + 0.4) : opacity
-
-          ctx.fillStyle = colorWithOpacity(memoizedColor, finalOpacity ?? 0)
-          ctx.fillRect(x, y, squareWidth, squareHeight)
+          ctx.fillStyle = `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b}, ${finalOpacity})`
+          ctx.fillRect(x, y, sw, sh)
         }
       }
     },
-    [memoizedColor, squareSize, gridGap, text, fontSize, fontWeight, colorWithOpacity]
+    [rgbColor, squareSize, gridGap]
   )
 
   const setupCanvas = useCallback(
@@ -125,15 +148,20 @@ export function FlickeringGrid({
         squares[i] = Math.random() * maxOpacity
       }
 
+      // Create mask cache once on setup
+      createMaskCache(canvas.width, canvas.height, cols, rows, dpr)
+
       return { cols, rows, squares, dpr }
     },
-    [squareSize, gridGap, maxOpacity]
+    [squareSize, gridGap, maxOpacity, createMaskCache]
   )
 
   const updateSquares = useCallback(
     (squares: Float32Array, deltaTime: number) => {
+      // Reduce flicker rate for smoother animation
+      const threshold = flickerChance * deltaTime
       for (let i = 0; i < squares.length; i++) {
-        if (Math.random() < flickerChance * deltaTime) {
+        if (Math.random() < threshold) {
           squares[i] = Math.random() * maxOpacity
         }
       }
@@ -162,22 +190,31 @@ export function FlickeringGrid({
     updateCanvasSize()
 
     let lastTime = 0
+    // Throttle to ~30fps for better performance (vs 60fps default)
+    const targetFrameTime = 1000 / 30
+
     const animate = (time: number) => {
       if (!isInView) return
 
-      const deltaTime = (time - lastTime) / 1000
-      lastTime = time
+      const elapsed = time - lastTime
 
-      updateSquares(gridParams.squares, deltaTime)
-      drawGrid(
-        ctx,
-        canvas.width,
-        canvas.height,
-        gridParams.cols,
-        gridParams.rows,
-        gridParams.squares,
-        gridParams.dpr
-      )
+      // Only update if enough time has passed (throttle)
+      if (elapsed >= targetFrameTime) {
+        const deltaTime = elapsed / 1000
+        lastTime = time
+
+        updateSquares(gridParams.squares, deltaTime)
+        drawGrid(
+          ctx,
+          canvas.width,
+          canvas.height,
+          gridParams.cols,
+          gridParams.rows,
+          gridParams.squares,
+          gridParams.dpr
+        )
+      }
+
       animationFrameId = requestAnimationFrame(animate)
     }
 

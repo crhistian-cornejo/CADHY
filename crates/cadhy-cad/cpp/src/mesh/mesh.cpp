@@ -35,6 +35,18 @@
 
 #include <algorithm>
 #include <unordered_map>
+#include <thread>
+#include <future>
+#include <mutex>
+#include <atomic>
+
+// TBB for parallel processing (bundled with OpenCASCADE)
+#ifdef HAVE_TBB
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_reduce.h>
+#include <tbb/blocked_range.h>
+#include <tbb/task_arena.h>
+#endif
 
 namespace cadhy::mesh {
 
@@ -267,6 +279,278 @@ FaceMesh tessellate_face(
         }
         result.triangles.push_back(t);
     }
+
+    return result;
+}
+
+//------------------------------------------------------------------------------
+// Parallel Tessellation (TBB or std::async fallback)
+//------------------------------------------------------------------------------
+
+namespace {
+
+/// Per-face mesh extraction result for parallel processing
+struct FaceExtractResult {
+    std::vector<float> positions;
+    std::vector<float> normals;
+    std::vector<uint32_t> indices;
+    std::vector<int32_t> face_ids;
+    uint32_t vertex_count = 0;
+    int face_id = 0;
+};
+
+/// Extract mesh data from a single face (thread-safe)
+FaceExtractResult extract_face_mesh(
+    const TopoDS_Face& face,
+    int face_id
+) {
+    FaceExtractResult result;
+    result.face_id = face_id;
+
+    TopLoc_Location loc;
+    Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(face, loc);
+
+    if (tri.IsNull()) return result;
+
+    bool reversed = (face.Orientation() == TopAbs_REVERSED);
+    gp_Trsf trsf = loc.Transformation();
+
+    // Get nodes
+    int num_nodes = tri->NbNodes();
+    result.positions.reserve(num_nodes * 3);
+
+    for (int i = 1; i <= num_nodes; ++i) {
+        gp_Pnt pt = tri->Node(i).Transformed(trsf);
+        result.positions.push_back(static_cast<float>(pt.X()));
+        result.positions.push_back(static_cast<float>(pt.Y()));
+        result.positions.push_back(static_cast<float>(pt.Z()));
+    }
+
+    // Get triangles (indices will be rebased later)
+    int num_triangles = tri->NbTriangles();
+    result.indices.reserve(num_triangles * 3);
+    result.face_ids.reserve(num_triangles);
+
+    for (int i = 1; i <= num_triangles; ++i) {
+        const Poly_Triangle& triangle = tri->Triangle(i);
+        int n1, n2, n3;
+        triangle.Get(n1, n2, n3);
+
+        if (reversed) {
+            result.indices.push_back(n1 - 1);
+            result.indices.push_back(n3 - 1);
+            result.indices.push_back(n2 - 1);
+        } else {
+            result.indices.push_back(n1 - 1);
+            result.indices.push_back(n2 - 1);
+            result.indices.push_back(n3 - 1);
+        }
+
+        result.face_ids.push_back(face_id);
+    }
+
+    // Compute normals if available
+    if (tri->HasNormals()) {
+        result.normals.reserve(num_nodes * 3);
+        for (int i = 1; i <= num_nodes; ++i) {
+            gp_Dir normal = tri->Normal(i);
+            if (reversed) normal.Reverse();
+
+            result.normals.push_back(static_cast<float>(normal.X()));
+            result.normals.push_back(static_cast<float>(normal.Y()));
+            result.normals.push_back(static_cast<float>(normal.Z()));
+        }
+    }
+
+    result.vertex_count = num_nodes;
+    return result;
+}
+
+/// Merge face results into final mesh
+MeshData merge_face_results(std::vector<FaceExtractResult>& results) {
+    MeshData mesh;
+
+    // Calculate total sizes
+    size_t total_positions = 0;
+    size_t total_indices = 0;
+    size_t total_normals = 0;
+    size_t total_face_ids = 0;
+
+    for (const auto& r : results) {
+        total_positions += r.positions.size();
+        total_indices += r.indices.size();
+        total_normals += r.normals.size();
+        total_face_ids += r.face_ids.size();
+    }
+
+    mesh.positions.reserve(total_positions);
+    mesh.indices.reserve(total_indices);
+    mesh.normals.reserve(total_normals);
+    mesh.face_ids.reserve(total_face_ids);
+
+    uint32_t vertex_offset = 0;
+
+    for (auto& r : results) {
+        // Append positions
+        mesh.positions.insert(mesh.positions.end(),
+            r.positions.begin(), r.positions.end());
+
+        // Append normals
+        mesh.normals.insert(mesh.normals.end(),
+            r.normals.begin(), r.normals.end());
+
+        // Append indices with offset
+        for (uint32_t idx : r.indices) {
+            mesh.indices.push_back(idx + vertex_offset);
+        }
+
+        // Append face IDs
+        mesh.face_ids.insert(mesh.face_ids.end(),
+            r.face_ids.begin(), r.face_ids.end());
+
+        vertex_offset += r.vertex_count;
+    }
+
+    return mesh;
+}
+
+} // anonymous namespace
+
+MeshData tessellate_parallel(
+    const OcctShape& shape,
+    double deflection,
+    int num_threads
+) {
+    // Step 1: Perform tessellation (OpenCASCADE's BRepMesh already uses parallel)
+    BRepMesh_IncrementalMesh mesher(shape.get(), deflection, false, 0.5, true);
+    mesher.Perform();
+
+    // Step 2: Build face list
+    TopTools_IndexedMapOfShape face_map;
+    TopExp::MapShapes(shape.get(), TopAbs_FACE, face_map);
+
+    int face_count = face_map.Extent();
+    if (face_count == 0) {
+        return MeshData{};
+    }
+
+    // For small face counts, use sequential processing
+    if (face_count < 8) {
+        return tessellate_deflection(shape, deflection);
+    }
+
+    // Step 3: Parallel face extraction
+    std::vector<FaceExtractResult> results(face_count);
+
+#ifdef HAVE_TBB
+    // Use TBB for parallel extraction
+    int thread_count = (num_threads > 0) ? num_threads :
+        static_cast<int>(std::thread::hardware_concurrency());
+
+    tbb::task_arena arena(thread_count);
+    arena.execute([&]() {
+        tbb::parallel_for(
+            tbb::blocked_range<int>(0, face_count),
+            [&](const tbb::blocked_range<int>& range) {
+                for (int i = range.begin(); i < range.end(); ++i) {
+                    TopoDS_Face face = TopoDS::Face(face_map(i + 1));
+                    results[i] = extract_face_mesh(face, i + 1);
+                }
+            }
+        );
+    });
+#else
+    // Fallback: use std::async for parallel extraction
+    int thread_count = (num_threads > 0) ? num_threads :
+        static_cast<int>(std::thread::hardware_concurrency());
+
+    // Limit to available hardware threads
+    thread_count = std::min(thread_count, face_count);
+    thread_count = std::max(thread_count, 1);
+
+    // Chunk work across threads
+    int chunk_size = (face_count + thread_count - 1) / thread_count;
+    std::vector<std::future<void>> futures;
+
+    for (int t = 0; t < thread_count; ++t) {
+        int start = t * chunk_size;
+        int end = std::min(start + chunk_size, face_count);
+
+        if (start >= end) break;
+
+        futures.push_back(std::async(std::launch::async,
+            [&results, &face_map, start, end]() {
+                for (int i = start; i < end; ++i) {
+                    TopoDS_Face face = TopoDS::Face(face_map(i + 1));
+                    results[i] = extract_face_mesh(face, i + 1);
+                }
+            }
+        ));
+    }
+
+    // Wait for all tasks
+    for (auto& f : futures) {
+        f.get();
+    }
+#endif
+
+    // Step 4: Merge results
+    MeshData mesh = merge_face_results(results);
+
+    // Step 5: Compute smooth normals if not available
+    if (mesh.normals.empty() && !mesh.indices.empty()) {
+        mesh = compute_smooth_normals(mesh);
+    }
+
+    return mesh;
+}
+
+MeshData tessellate_parallel_quality(
+    const OcctShape& shape,
+    const MeshQuality& quality
+) {
+    // Use parallel tessellation with quality settings
+    BRepMesh_IncrementalMesh mesher(
+        shape.get(),
+        quality.linear_deflection,
+        quality.relative,
+        quality.angular_deflection,
+        quality.parallel
+    );
+    mesher.Perform();
+
+    // Use our parallel extraction
+    return tessellate_parallel(shape, quality.linear_deflection);
+}
+
+LODMesh generate_lods_parallel(
+    const OcctShape& shape,
+    double high_deflection,
+    double medium_deflection,
+    double low_deflection,
+    double preview_deflection
+) {
+    LODMesh result;
+
+    // Generate all 4 LODs in parallel using std::async
+    auto high_future = std::async(std::launch::async, [&]() {
+        return tessellate_parallel(shape, high_deflection);
+    });
+    auto medium_future = std::async(std::launch::async, [&]() {
+        return tessellate_parallel(shape, medium_deflection);
+    });
+    auto low_future = std::async(std::launch::async, [&]() {
+        return tessellate_parallel(shape, low_deflection);
+    });
+    auto preview_future = std::async(std::launch::async, [&]() {
+        return tessellate_parallel(shape, preview_deflection);
+    });
+
+    // Collect results
+    result.high = high_future.get();
+    result.medium = medium_future.get();
+    result.low = low_future.get();
+    result.preview = preview_future.get();
 
     return result;
 }

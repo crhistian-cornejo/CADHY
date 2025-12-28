@@ -10,7 +10,7 @@ import {
   getAllDefaultHotkeys,
   getCategoryLabel,
   getDefaultHotkeyById,
-} from "../services/default-hotkeys"
+} from "../core/services/default-hotkeys"
 
 describe("DEFAULT_HOTKEYS", () => {
   test("should have all expected categories", () => {

@@ -4,8 +4,8 @@ import "@fontsource-variable/noto-sans"
 import "@cadhy/ui/styles/globals.css"
 import "./i18n" // Initialize i18n before app
 import { App } from "./app/App"
+import { initializeCadOperations } from "./core/services/SV_cad_init"
 import { initializeBVH } from "./lib/bvh-setup"
-import { initializeCadOperations } from "./services/cad-operations-init"
 
 // Initialize BVH (Bounding Volume Hierarchy) for 10-100x faster raycasting
 initializeBVH()
