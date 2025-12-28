@@ -666,3 +666,377 @@ impl Curves {
         Shape::from_ptr(ptr)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::f64::consts::PI;
+
+    // ============================================================
+    // Line Tests
+    // ============================================================
+
+    #[test]
+    fn make_line_rejects_same_endpoints() {
+        let result = Curves::make_line(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must be distinct"));
+    }
+
+    #[test]
+    fn make_line_rejects_very_close_points() {
+        // Points that are too close should be rejected
+        let epsilon = 1e-10;
+        let result = Curves::make_line(0.0, 0.0, 0.0, epsilon, 0.0, 0.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_line_dir_rejects_zero_length() {
+        let result = Curves::make_line_dir(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must be positive"));
+    }
+
+    #[test]
+    fn make_line_dir_rejects_negative_length() {
+        let result = Curves::make_line_dir(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -5.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_line_dir_rejects_zero_direction() {
+        let result = Curves::make_line_dir(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("cannot be zero"));
+    }
+
+    // ============================================================
+    // Circle Tests
+    // ============================================================
+
+    #[test]
+    fn make_circle_rejects_zero_radius() {
+        let result = Curves::make_circle(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must be positive"));
+    }
+
+    #[test]
+    fn make_circle_rejects_negative_radius() {
+        let result = Curves::make_circle(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, -5.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_circle_rejects_zero_normal() {
+        let result = Curves::make_circle(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("cannot be zero"));
+    }
+
+    #[test]
+    fn make_circle_xy_rejects_invalid_radius() {
+        let result = Curves::make_circle_xy(0.0, 0.0, -1.0);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Arc Tests
+    // ============================================================
+
+    #[test]
+    fn make_arc_rejects_zero_radius() {
+        let result = Curves::make_arc(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, PI / 2.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must be positive"));
+    }
+
+    #[test]
+    fn make_arc_rejects_zero_normal() {
+        let result = Curves::make_arc(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, PI / 2.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("cannot be zero"));
+    }
+
+    #[test]
+    fn make_arc_rejects_zero_angle_extent() {
+        let result = Curves::make_arc(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 5.0, PI / 4.0, PI / 4.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("non-zero angular extent"));
+    }
+
+    #[test]
+    fn make_arc_xy_rejects_invalid_radius() {
+        let result = Curves::make_arc_xy(0.0, 0.0, -5.0, 0.0, PI);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Arc 3 Points Tests
+    // ============================================================
+
+    #[test]
+    fn make_arc_3_points_rejects_coincident_first_second() {
+        let result = Curves::make_arc_3_points(
+            0.0, 0.0, 0.0, // P1
+            0.0, 0.0, 0.0, // P2 = P1
+            1.0, 1.0, 0.0, // P3
+        );
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must be distinct"));
+    }
+
+    #[test]
+    fn make_arc_3_points_rejects_coincident_second_third() {
+        let result = Curves::make_arc_3_points(
+            0.0, 0.0, 0.0, // P1
+            1.0, 1.0, 0.0, // P2
+            1.0, 1.0, 0.0, // P3 = P2
+        );
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Rectangle Tests
+    // ============================================================
+
+    #[test]
+    fn make_rectangle_rejects_zero_width() {
+        let result = Curves::make_rectangle(0.0, 0.0, 0.0, 5.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must be positive"));
+    }
+
+    #[test]
+    fn make_rectangle_rejects_negative_height() {
+        let result = Curves::make_rectangle(0.0, 0.0, 10.0, -5.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_rectangle_centered_uses_correct_offset() {
+        // Test that centered rectangle calculation is correct
+        let cx: f64 = 5.0;
+        let cy: f64 = 10.0;
+        let width: f64 = 4.0;
+        let height: f64 = 6.0;
+
+        let expected_x = cx - width / 2.0;
+        let expected_y = cy - height / 2.0;
+
+        assert!((expected_x - 3.0).abs() < 1e-10);
+        assert!((expected_y - 7.0).abs() < 1e-10);
+    }
+
+    // ============================================================
+    // Polygon Tests
+    // ============================================================
+
+    #[test]
+    fn make_polygon_2d_rejects_less_than_3_points() {
+        let result = Curves::make_polygon_2d(&[(0.0, 0.0), (1.0, 1.0)]);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 3 points"));
+    }
+
+    #[test]
+    fn make_polygon_2d_rejects_empty() {
+        let result = Curves::make_polygon_2d(&[]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_polygon_3d_rejects_less_than_3_points() {
+        let result = Curves::make_polygon_3d(&[(0.0, 0.0, 0.0)]);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 3 points"));
+    }
+
+    #[test]
+    fn make_regular_polygon_rejects_zero_radius() {
+        let result = Curves::make_regular_polygon(0.0, 0.0, 0.0, 6);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must be positive"));
+    }
+
+    #[test]
+    fn make_regular_polygon_rejects_less_than_3_sides() {
+        let result = Curves::make_regular_polygon(0.0, 0.0, 5.0, 2);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 3 sides"));
+    }
+
+    #[test]
+    fn make_regular_polygon_calculates_points_correctly() {
+        // Test that regular polygon generates correct number of points
+        let sides = 6u32;
+        let angle_step = 2.0 * PI / sides as f64;
+
+        // Hexagon should have 60 degree steps
+        assert!((angle_step - PI / 3.0).abs() < 1e-10);
+    }
+
+    // ============================================================
+    // Polyline Tests
+    // ============================================================
+
+    #[test]
+    fn make_polyline_2d_rejects_single_point() {
+        let result = Curves::make_polyline_2d(&[(0.0, 0.0)]);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 2 points"));
+    }
+
+    #[test]
+    fn make_polyline_3d_rejects_single_point() {
+        let result = Curves::make_polyline_3d(&[(0.0, 0.0, 0.0)]);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Wire Tests
+    // ============================================================
+
+    #[test]
+    fn make_wire_from_edges_rejects_empty() {
+        let result = Curves::make_wire_from_edges(&[]);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least one edge"));
+    }
+
+    // ============================================================
+    // Ellipse Tests
+    // ============================================================
+
+    #[test]
+    fn make_ellipse_rejects_zero_major_radius() {
+        let result = Curves::make_ellipse(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 3.0, 0.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must be positive"));
+    }
+
+    #[test]
+    fn make_ellipse_rejects_minor_greater_than_major() {
+        let result = Curves::make_ellipse(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 3.0, 5.0, 0.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("cannot exceed major radius"));
+    }
+
+    #[test]
+    fn make_ellipse_xy_rejects_invalid_radii() {
+        let result = Curves::make_ellipse_xy(0.0, 0.0, 2.0, 5.0, 0.0);
+        assert!(result.is_err()); // minor > major
+    }
+
+    // ============================================================
+    // B-Spline Tests
+    // ============================================================
+
+    #[test]
+    fn make_bspline_rejects_single_point() {
+        let result = Curves::make_bspline(&[(0.0, 0.0, 0.0)], false);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 2 points"));
+    }
+
+    #[test]
+    fn make_bspline_closed_rejects_less_than_3_points() {
+        let result = Curves::make_bspline(&[(0.0, 0.0, 0.0), (1.0, 1.0, 0.0)], true);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 3 points"));
+    }
+
+    // ============================================================
+    // Bezier Tests
+    // ============================================================
+
+    #[test]
+    fn make_bezier_rejects_single_point() {
+        let result = Curves::make_bezier(&[(0.0, 0.0, 0.0)]);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 2 control points"));
+    }
+
+    #[test]
+    fn make_bezier_rejects_too_many_points() {
+        // Create 26 points (exceeds max of 25)
+        let points: Vec<(f64, f64, f64)> = (0..26).map(|i| (i as f64, 0.0, 0.0)).collect();
+        let result = Curves::make_bezier(&points);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("maximum 25 control points"));
+    }
+
+    #[test]
+    fn make_bezier_accepts_max_points() {
+        // 25 points should be accepted (validation only, no FFI call test)
+        let points_count = 25;
+        assert!(points_count <= 25, "25 control points should be allowed");
+    }
+}

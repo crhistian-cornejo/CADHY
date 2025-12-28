@@ -54,6 +54,15 @@ pub mod ffi {
         pub faces: Vec<FaceInfo>,
     }
 
+    /// Multiple LOD meshes generated in parallel
+    #[derive(Debug)]
+    pub struct LODMeshResult {
+        pub high: MeshResult,
+        pub medium: MeshResult,
+        pub low: MeshResult,
+        pub preview: MeshResult,
+    }
+
     /// Information about a face in the shape topology
     #[derive(Debug, Clone)]
     pub struct FaceInfo {
@@ -101,6 +110,7 @@ pub mod ffi {
     /// Edge info for dimensioning
     #[derive(Debug, Clone)]
     pub struct EdgeInfo {
+        pub index: i32,
         pub start_x: f64,
         pub start_y: f64,
         pub start_z: f64,
@@ -109,6 +119,7 @@ pub mod ffi {
         pub end_z: f64,
         pub length: f64,
         pub edge_type: i32, // 0=line, 1=arc, 2=circle, 3=other
+        pub is_closed: bool,
     }
 
     /// 2D line for HLR projection results
@@ -277,6 +288,10 @@ pub mod ffi {
         pub num_small_edges: i32,
         pub num_degenerated_edges: i32,
         pub tolerance: f64,
+        pub is_closed: bool,
+        pub is_manifold: bool,
+        pub issue_count: i32,
+        pub message: String,
     }
 
     /// Distance measurement result with points
@@ -868,6 +883,19 @@ pub mod ffi {
 
         /// Tessellate with angular control
         fn tessellate_with_angle(shape: &OcctShape, deflection: f64, angle: f64) -> MeshResult;
+
+        /// Parallel tessellation with TBB (faster for complex shapes with many faces)
+        /// num_threads: 0 = auto-detect based on hardware concurrency
+        fn tessellate_parallel(shape: &OcctShape, deflection: f64, num_threads: i32) -> MeshResult;
+
+        /// Generate multiple LOD meshes in parallel
+        fn generate_lods_parallel(
+            shape: &OcctShape,
+            high_deflection: f64,
+            medium_deflection: f64,
+            low_deflection: f64,
+            preview_deflection: f64,
+        ) -> LODMeshResult;
 
         // ============================================================
         // BREP I/O

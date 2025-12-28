@@ -345,3 +345,461 @@ impl Topology {
         TopologyData::from(raw)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ============================================================
+    // CurveType Tests
+    // ============================================================
+
+    #[test]
+    fn curve_type_from_i32_line() {
+        assert_eq!(CurveType::from(0), CurveType::Line);
+    }
+
+    #[test]
+    fn curve_type_from_i32_circle() {
+        assert_eq!(CurveType::from(1), CurveType::Circle);
+    }
+
+    #[test]
+    fn curve_type_from_i32_ellipse() {
+        assert_eq!(CurveType::from(2), CurveType::Ellipse);
+    }
+
+    #[test]
+    fn curve_type_from_i32_hyperbola() {
+        assert_eq!(CurveType::from(3), CurveType::Hyperbola);
+    }
+
+    #[test]
+    fn curve_type_from_i32_parabola() {
+        assert_eq!(CurveType::from(4), CurveType::Parabola);
+    }
+
+    #[test]
+    fn curve_type_from_i32_bezier() {
+        assert_eq!(CurveType::from(5), CurveType::BezierCurve);
+    }
+
+    #[test]
+    fn curve_type_from_i32_bspline() {
+        assert_eq!(CurveType::from(6), CurveType::BSplineCurve);
+    }
+
+    #[test]
+    fn curve_type_from_i32_offset() {
+        assert_eq!(CurveType::from(7), CurveType::OffsetCurve);
+    }
+
+    #[test]
+    fn curve_type_from_i32_unknown() {
+        assert_eq!(CurveType::from(99), CurveType::Other);
+        assert_eq!(CurveType::from(-1), CurveType::Other);
+        assert_eq!(CurveType::from(100), CurveType::Other);
+    }
+
+    // ============================================================
+    // SurfaceType Tests
+    // ============================================================
+
+    #[test]
+    fn surface_type_from_i32_plane() {
+        assert_eq!(SurfaceType::from(0), SurfaceType::Plane);
+    }
+
+    #[test]
+    fn surface_type_from_i32_cylinder() {
+        assert_eq!(SurfaceType::from(1), SurfaceType::Cylinder);
+    }
+
+    #[test]
+    fn surface_type_from_i32_cone() {
+        assert_eq!(SurfaceType::from(2), SurfaceType::Cone);
+    }
+
+    #[test]
+    fn surface_type_from_i32_sphere() {
+        assert_eq!(SurfaceType::from(3), SurfaceType::Sphere);
+    }
+
+    #[test]
+    fn surface_type_from_i32_torus() {
+        assert_eq!(SurfaceType::from(4), SurfaceType::Torus);
+    }
+
+    #[test]
+    fn surface_type_from_i32_bezier_surface() {
+        assert_eq!(SurfaceType::from(5), SurfaceType::BezierSurface);
+    }
+
+    #[test]
+    fn surface_type_from_i32_bspline_surface() {
+        assert_eq!(SurfaceType::from(6), SurfaceType::BSplineSurface);
+    }
+
+    #[test]
+    fn surface_type_from_i32_revolution() {
+        assert_eq!(SurfaceType::from(7), SurfaceType::RevolutionSurface);
+    }
+
+    #[test]
+    fn surface_type_from_i32_extrusion() {
+        assert_eq!(SurfaceType::from(8), SurfaceType::ExtrusionSurface);
+    }
+
+    #[test]
+    fn surface_type_from_i32_offset() {
+        assert_eq!(SurfaceType::from(9), SurfaceType::OffsetSurface);
+    }
+
+    #[test]
+    fn surface_type_from_i32_unknown() {
+        assert_eq!(SurfaceType::from(99), SurfaceType::Other);
+        assert_eq!(SurfaceType::from(-1), SurfaceType::Other);
+    }
+
+    // ============================================================
+    // TopologyData Tests
+    // ============================================================
+
+    #[test]
+    fn topology_data_edges_for_vertex_empty() {
+        let data = TopologyData {
+            vertices: vec![],
+            edges: vec![],
+            faces: vec![],
+            vertex_to_edges: vec![],
+            vertex_to_edges_offset: vec![0], // One offset for no vertices
+            edge_to_faces: vec![],
+            edge_to_faces_offset: vec![0],
+        };
+
+        // Invalid index should return empty slice
+        let edges = data.edges_for_vertex(100);
+        assert!(edges.is_empty());
+    }
+
+    #[test]
+    fn topology_data_faces_for_edge_empty() {
+        let data = TopologyData {
+            vertices: vec![],
+            edges: vec![],
+            faces: vec![],
+            vertex_to_edges: vec![],
+            vertex_to_edges_offset: vec![0],
+            edge_to_faces: vec![],
+            edge_to_faces_offset: vec![0],
+        };
+
+        // Invalid index should return empty slice
+        let faces = data.faces_for_edge(100);
+        assert!(faces.is_empty());
+    }
+
+    #[test]
+    fn topology_data_vertices_as_flat_empty() {
+        let data = TopologyData {
+            vertices: vec![],
+            edges: vec![],
+            faces: vec![],
+            vertex_to_edges: vec![],
+            vertex_to_edges_offset: vec![],
+            edge_to_faces: vec![],
+            edge_to_faces_offset: vec![],
+        };
+
+        let flat = data.vertices_as_flat();
+        assert!(flat.is_empty());
+    }
+
+    #[test]
+    fn topology_data_vertices_as_flat_with_data() {
+        let data = TopologyData {
+            vertices: vec![
+                VertexInfo {
+                    index: 0,
+                    x: 1.0,
+                    y: 2.0,
+                    z: 3.0,
+                    tolerance: 0.001,
+                    num_edges: 3,
+                },
+                VertexInfo {
+                    index: 1,
+                    x: 4.0,
+                    y: 5.0,
+                    z: 6.0,
+                    tolerance: 0.001,
+                    num_edges: 2,
+                },
+            ],
+            edges: vec![],
+            faces: vec![],
+            vertex_to_edges: vec![],
+            vertex_to_edges_offset: vec![],
+            edge_to_faces: vec![],
+            edge_to_faces_offset: vec![],
+        };
+
+        let flat = data.vertices_as_flat();
+        assert_eq!(flat.len(), 6); // 2 vertices × 3 coords
+        assert_eq!(flat, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+    }
+
+    #[test]
+    fn topology_data_edges_as_line_segments_empty() {
+        let data = TopologyData {
+            vertices: vec![],
+            edges: vec![],
+            faces: vec![],
+            vertex_to_edges: vec![],
+            vertex_to_edges_offset: vec![],
+            edge_to_faces: vec![],
+            edge_to_faces_offset: vec![],
+        };
+
+        let (positions, indices) = data.edges_as_line_segments();
+        assert!(positions.is_empty());
+        assert!(indices.is_empty());
+    }
+
+    #[test]
+    fn topology_data_edges_as_line_segments_skips_degenerate() {
+        let data = TopologyData {
+            vertices: vec![],
+            edges: vec![EdgeTessellation {
+                index: 0,
+                curve_type: CurveType::Line,
+                start_vertex: 0,
+                end_vertex: 0,
+                length: 0.0,
+                is_degenerated: true, // Should be skipped
+                points: vec![
+                    EdgePoint {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0,
+                        parameter: 0.0,
+                    },
+                    EdgePoint {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0,
+                        parameter: 1.0,
+                    },
+                ],
+                adjacent_faces: vec![],
+            }],
+            faces: vec![],
+            vertex_to_edges: vec![],
+            vertex_to_edges_offset: vec![],
+            edge_to_faces: vec![],
+            edge_to_faces_offset: vec![],
+        };
+
+        let (positions, indices) = data.edges_as_line_segments();
+        assert!(positions.is_empty(), "Degenerate edge should be skipped");
+        assert!(indices.is_empty());
+    }
+
+    #[test]
+    fn topology_data_edges_as_line_segments_with_valid_edge() {
+        let data = TopologyData {
+            vertices: vec![],
+            edges: vec![EdgeTessellation {
+                index: 5,
+                curve_type: CurveType::Line,
+                start_vertex: 0,
+                end_vertex: 1,
+                length: 10.0,
+                is_degenerated: false,
+                points: vec![
+                    EdgePoint {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0,
+                        parameter: 0.0,
+                    },
+                    EdgePoint {
+                        x: 10.0,
+                        y: 0.0,
+                        z: 0.0,
+                        parameter: 1.0,
+                    },
+                ],
+                adjacent_faces: vec![0, 1],
+            }],
+            faces: vec![],
+            vertex_to_edges: vec![],
+            vertex_to_edges_offset: vec![],
+            edge_to_faces: vec![],
+            edge_to_faces_offset: vec![],
+        };
+
+        let (positions, indices) = data.edges_as_line_segments();
+        assert_eq!(positions.len(), 6); // 2 points × 3 coords
+        assert_eq!(indices.len(), 1);
+        assert_eq!(indices[0], 5); // Edge index
+    }
+
+    // ============================================================
+    // VertexInfo Tests
+    // ============================================================
+
+    #[test]
+    fn vertex_info_has_expected_fields() {
+        let vertex = VertexInfo {
+            index: 42,
+            x: 1.5,
+            y: 2.5,
+            z: 3.5,
+            tolerance: 0.0001,
+            num_edges: 4,
+        };
+
+        assert_eq!(vertex.index, 42);
+        assert!((vertex.x - 1.5).abs() < 1e-10);
+        assert!((vertex.y - 2.5).abs() < 1e-10);
+        assert!((vertex.z - 3.5).abs() < 1e-10);
+        assert!((vertex.tolerance - 0.0001).abs() < 1e-10);
+        assert_eq!(vertex.num_edges, 4);
+    }
+
+    // ============================================================
+    // EdgePoint Tests
+    // ============================================================
+
+    #[test]
+    fn edge_point_parameter_range() {
+        // Parameter should typically be 0.0 to 1.0
+        let start = EdgePoint {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            parameter: 0.0,
+        };
+        let end = EdgePoint {
+            x: 1.0,
+            y: 1.0,
+            z: 1.0,
+            parameter: 1.0,
+        };
+
+        assert!((start.parameter - 0.0).abs() < 1e-10);
+        assert!((end.parameter - 1.0).abs() < 1e-10);
+    }
+
+    // ============================================================
+    // FaceInfo Tests
+    // ============================================================
+
+    #[test]
+    fn face_info_has_expected_fields() {
+        let face = FaceInfo {
+            index: 10,
+            surface_type: SurfaceType::Plane,
+            area: 100.0,
+            is_reversed: false,
+            num_edges: 4,
+            boundary_edges: vec![0, 1, 2, 3],
+            center: (5.0, 5.0, 0.0),
+            normal: (0.0, 0.0, 1.0),
+        };
+
+        assert_eq!(face.index, 10);
+        assert_eq!(face.surface_type, SurfaceType::Plane);
+        assert!((face.area - 100.0).abs() < 1e-10);
+        assert!(!face.is_reversed);
+        assert_eq!(face.num_edges, 4);
+        assert_eq!(face.boundary_edges.len(), 4);
+    }
+
+    // ============================================================
+    // EdgeTessellation Tests
+    // ============================================================
+
+    #[test]
+    fn edge_tessellation_adjacent_faces() {
+        let edge = EdgeTessellation {
+            index: 0,
+            curve_type: CurveType::Circle,
+            start_vertex: 0,
+            end_vertex: 0, // Closed curve
+            length: 31.4159,
+            is_degenerated: false,
+            points: vec![],
+            adjacent_faces: vec![0, 1, 2],
+        };
+
+        assert_eq!(edge.adjacent_faces.len(), 3);
+        assert!(edge.adjacent_faces.contains(&0));
+        assert!(edge.adjacent_faces.contains(&1));
+        assert!(edge.adjacent_faces.contains(&2));
+    }
+
+    // ============================================================
+    // Serialization Tests
+    // ============================================================
+
+    #[test]
+    fn curve_type_serialization() {
+        let types = [
+            CurveType::Line,
+            CurveType::Circle,
+            CurveType::Ellipse,
+            CurveType::BezierCurve,
+            CurveType::BSplineCurve,
+            CurveType::Other,
+        ];
+
+        for curve_type in types {
+            let json = serde_json::to_string(&curve_type).expect("should serialize");
+            let deserialized: CurveType =
+                serde_json::from_str(&json).expect("should deserialize");
+            assert_eq!(curve_type, deserialized);
+        }
+    }
+
+    #[test]
+    fn surface_type_serialization() {
+        let types = [
+            SurfaceType::Plane,
+            SurfaceType::Cylinder,
+            SurfaceType::Cone,
+            SurfaceType::Sphere,
+            SurfaceType::Torus,
+            SurfaceType::BezierSurface,
+            SurfaceType::Other,
+        ];
+
+        for surface_type in types {
+            let json = serde_json::to_string(&surface_type).expect("should serialize");
+            let deserialized: SurfaceType =
+                serde_json::from_str(&json).expect("should deserialize");
+            assert_eq!(surface_type, deserialized);
+        }
+    }
+
+    #[test]
+    fn vertex_info_serialization() {
+        let vertex = VertexInfo {
+            index: 0,
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+            tolerance: 0.001,
+            num_edges: 3,
+        };
+
+        let json = serde_json::to_string(&vertex).expect("should serialize");
+        let deserialized: VertexInfo = serde_json::from_str(&json).expect("should deserialize");
+
+        assert_eq!(vertex.index, deserialized.index);
+        assert!((vertex.x - deserialized.x).abs() < 1e-10);
+        assert!((vertex.y - deserialized.y).abs() < 1e-10);
+        assert!((vertex.z - deserialized.z).abs() < 1e-10);
+    }
+}

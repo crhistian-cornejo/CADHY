@@ -15,7 +15,7 @@ import * as THREE from "three"
 // Note: @cadhy/shared is mocked globally in setup.ts
 // Note: material-pool uses the real implementation (loggers are mocked)
 
-import { MeasurementTools } from "../services/measurement-tools"
+import { MeasurementTools } from "../core/services/SV_measurement"
 
 describe("Measurement Tools", () => {
   let measurementTools: MeasurementTools

@@ -29,7 +29,7 @@ export function HeroSection() {
   const version = latestRelease?.version || "0.1.0"
 
   return (
-    <section className="relative border-b border-border bg-background py-20 px-8 lg:px-16">
+    <section className="relative bg-background py-20 px-8 lg:px-16">
       <div className="max-w-7xl mx-auto">
         {/* Content - Centered */}
         <div className="flex flex-col items-center text-center gap-6 mb-12">
@@ -109,18 +109,34 @@ export function HeroSection() {
               </span>
             </div>
 
-            {/* Screenshot Image - Light Theme */}
-            <img
-              src={`${basePath}hero/light.png`}
-              alt="CADHY Application"
-              className="w-full h-auto block dark:hidden"
-            />
-            {/* Screenshot Image - Dark Theme */}
-            <img
-              src={`${basePath}hero/dark.png`}
-              alt="CADHY Application"
-              className="w-full h-auto hidden dark:block"
-            />
+            {/* Screenshot Image - Light Theme (with WebP optimization) */}
+            <picture className="block dark:hidden">
+              <source srcSet={`${basePath}hero/light.webp`} type="image/webp" />
+              <img
+                src={`${basePath}hero/light.png`}
+                alt="CADHY Application - Light Theme"
+                className="w-full h-auto"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                width={3420}
+                height={2134}
+              />
+            </picture>
+            {/* Screenshot Image - Dark Theme (with WebP optimization) */}
+            <picture className="hidden dark:block">
+              <source srcSet={`${basePath}hero/dark.webp`} type="image/webp" />
+              <img
+                src={`${basePath}hero/dark.png`}
+                alt="CADHY Application - Dark Theme"
+                className="w-full h-auto"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                width={3410}
+                height={2136}
+              />
+            </picture>
           </div>
         </div>
       </div>

@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "tauri:dev",
+      "type": "shell",
+      "command": "bun run dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Listening"
+        }
+      }
+    },
+    {
+      "label": "typecheck",
+      "type": "shell",
+      "command": "bun typecheck",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "lint",
+      "type": "shell",
+      "command": "bun lint",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "lint:fix",
+      "type": "shell",
+      "command": "bun lint:fix",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "test:rust",
+      "type": "shell",
+      "command": "cargo test --workspace",
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "build:check",
+      "type": "shell",
+      "command": "bun run tools/utils_build/build_check.ts",
+      "problemMatcher": []
+    }
+  ]
+}

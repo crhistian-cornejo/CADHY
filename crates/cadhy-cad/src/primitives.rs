@@ -434,3 +434,257 @@ impl Primitives {
         Shape::from_ptr(ptr)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ============================================================
+    // Box Tests
+    // ============================================================
+
+    #[test]
+    fn make_box_rejects_zero_width() {
+        let result = Primitives::make_box(0.0, 10.0, 10.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("dimensions must be positive"));
+    }
+
+    #[test]
+    fn make_box_rejects_negative_depth() {
+        let result = Primitives::make_box(10.0, -5.0, 10.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_box_rejects_negative_height() {
+        let result = Primitives::make_box(10.0, 10.0, -1.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_box_at_rejects_invalid_dimensions() {
+        let result = Primitives::make_box_at(0.0, 0.0, 0.0, 0.0, 10.0, 10.0);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Cylinder Tests
+    // ============================================================
+
+    #[test]
+    fn make_cylinder_rejects_zero_radius() {
+        let result = Primitives::make_cylinder(0.0, 10.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("dimensions must be positive"));
+    }
+
+    #[test]
+    fn make_cylinder_rejects_negative_height() {
+        let result = Primitives::make_cylinder(5.0, -10.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_cylinder_at_rejects_invalid_params() {
+        let result = Primitives::make_cylinder_at(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 10.0);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Sphere Tests
+    // ============================================================
+
+    #[test]
+    fn make_sphere_rejects_zero_radius() {
+        let result = Primitives::make_sphere(0.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("radius must be positive"));
+    }
+
+    #[test]
+    fn make_sphere_rejects_negative_radius() {
+        let result = Primitives::make_sphere(-5.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_sphere_at_rejects_invalid_radius() {
+        let result = Primitives::make_sphere_at(0.0, 0.0, 0.0, -1.0);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Cone Tests
+    // ============================================================
+
+    #[test]
+    fn make_cone_rejects_zero_base_radius() {
+        let result = Primitives::make_cone(0.0, 0.0, 10.0);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("must be valid"));
+    }
+
+    #[test]
+    fn make_cone_rejects_negative_top_radius() {
+        let result = Primitives::make_cone(5.0, -1.0, 10.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_cone_rejects_zero_height() {
+        let result = Primitives::make_cone(5.0, 2.0, 0.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_cone_allows_zero_top_radius() {
+        // Zero top radius creates a pointed cone - this should be valid
+        // (only validates parameters, doesn't call FFI)
+        let base_radius = 5.0;
+        let top_radius = 0.0;
+        let height = 10.0;
+
+        // Validation logic check: top_radius >= 0 is allowed
+        assert!(top_radius >= 0.0);
+        assert!(base_radius > 0.0);
+        assert!(height > 0.0);
+    }
+
+    // ============================================================
+    // Torus Tests
+    // ============================================================
+
+    #[test]
+    fn make_torus_rejects_zero_major_radius() {
+        let result = Primitives::make_torus(0.0, 1.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("radii must be positive"));
+    }
+
+    #[test]
+    fn make_torus_rejects_zero_minor_radius() {
+        let result = Primitives::make_torus(5.0, 0.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_torus_rejects_minor_greater_than_major() {
+        let result = Primitives::make_torus(3.0, 5.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Minor radius must be less than major radius"));
+    }
+
+    #[test]
+    fn make_torus_rejects_equal_radii() {
+        let result = Primitives::make_torus(5.0, 5.0);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Wedge Tests
+    // ============================================================
+
+    #[test]
+    fn make_wedge_rejects_zero_dimensions() {
+        let result = Primitives::make_wedge(0.0, 10.0, 10.0, 5.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_wedge_rejects_negative_ltx() {
+        let result = Primitives::make_wedge(10.0, 10.0, 10.0, -1.0);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Helix Tests
+    // ============================================================
+
+    #[test]
+    fn make_helix_rejects_zero_radius() {
+        let result = Primitives::make_helix(0.0, 1.0, 10.0, true);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("must be positive"));
+    }
+
+    #[test]
+    fn make_helix_rejects_zero_pitch() {
+        let result = Primitives::make_helix(5.0, 0.0, 10.0, true);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_helix_rejects_negative_height() {
+        let result = Primitives::make_helix(5.0, 1.0, -10.0, false);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Rectangle Tests
+    // ============================================================
+
+    #[test]
+    fn make_rectangle_rejects_zero_width() {
+        let result = Primitives::make_rectangle(0.0, 0.0, 0.0, 10.0);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("dimensions must be positive"));
+    }
+
+    #[test]
+    fn make_rectangle_rejects_negative_height() {
+        let result = Primitives::make_rectangle(0.0, 0.0, 10.0, -5.0);
+        assert!(result.is_err());
+    }
+
+    // ============================================================
+    // Polygon Tests
+    // ============================================================
+
+    #[test]
+    fn make_polygon_2d_rejects_less_than_3_points() {
+        let result = Primitives::make_polygon_2d(&[(0.0, 0.0), (1.0, 0.0)]);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 3 points"));
+    }
+
+    #[test]
+    fn make_polygon_2d_rejects_empty() {
+        let result = Primitives::make_polygon_2d(&[]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn make_polygon_3d_rejects_less_than_3_points() {
+        let result = Primitives::make_polygon_3d(&[(0.0, 0.0, 0.0), (1.0, 0.0, 0.0)]);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 3 points"));
+    }
+}

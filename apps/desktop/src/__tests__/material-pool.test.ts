@@ -17,7 +17,7 @@ import {
   getLineMaterial,
   getStandardMaterial,
   materialPool,
-} from "../services/material-pool"
+} from "../render/pool/RE_material_pool"
 
 describe("Material Pool", () => {
   beforeEach(() => {

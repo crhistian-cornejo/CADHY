@@ -55,6 +55,13 @@
 //==============================================================================
 #include "edit/selection.hpp"
 #include "edit/face_ops.hpp"
+#include "edit/topology.hpp"
+#include "edit/explode.hpp"
+
+//==============================================================================
+// FFI helpers (type conversion for Rust/Python/C# bindings)
+//==============================================================================
+#include "ffi/helpers.hpp"
 
 //==============================================================================
 // Primitives (box, cylinder, sphere, cone, torus)

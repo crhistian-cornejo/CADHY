@@ -11,7 +11,7 @@
  */
 
 import { beforeEach, describe, expect, test } from "bun:test"
-import { type ChannelObject, type ShapeObject, useModellerStore } from "../stores/modeller"
+import { type ChannelObject, type ShapeObject, useModellerStore } from "../core/stores"
 
 // Helper to create a basic shape object
 const createTestShape = (

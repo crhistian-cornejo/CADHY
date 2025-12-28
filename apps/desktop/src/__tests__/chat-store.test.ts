@@ -9,11 +9,11 @@
  */
 
 import { beforeEach, describe, expect, mock, test } from "bun:test"
-import type { Message } from "@/hooks/use-ai-chat"
-import { useChatStore } from "../stores/chat-store"
+import type { Message } from "@/lib/hooks/use-ai-chat"
+import { useChatStore } from "../core/stores/ST_chat"
 
 // Mock external services to isolate store tests
-mock.module("@/services/chat-persistence", () => ({
+mock.module("@/core/services/chat-persistence", () => ({
   ChatPersistenceService: class MockChatPersistenceService {
     init = mock(() => Promise.resolve())
     listSessions = mock(() => Promise.resolve([]))
@@ -24,7 +24,7 @@ mock.module("@/services/chat-persistence", () => ({
   generateSessionId: () => `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
 }))
 
-mock.module("@/services/ai-service", () => ({
+mock.module("@/core/services/ai-service", () => ({
   getDefaultModelId: () => "claude-3-sonnet",
 }))
 

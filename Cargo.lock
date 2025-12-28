@@ -541,6 +541,7 @@ dependencies = [
  "gtk",
  "hostname",
  "keyring",
+ "log",
  "lopdf",
  "open",
  "reqwest",

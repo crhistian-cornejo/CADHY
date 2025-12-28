@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, test } from "bun:test"
-import { useLayoutStore } from "../stores/layout-store"
+import { useLayoutStore } from "../core/stores/ST_layout"
 
 describe("Layout Store", () => {
   beforeEach(() => {

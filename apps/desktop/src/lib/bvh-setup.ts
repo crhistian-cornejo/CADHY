@@ -24,7 +24,7 @@ export function initializeBVH() {
   THREE.Mesh.prototype.raycast = acceleratedRaycast
 
   bvhInitialized = true
-  console.log("[BVH] Initialized three-mesh-bvh for accelerated raycasting")
+  // PERF: console.log("[BVH] Initialized three-mesh-bvh for accelerated raycasting")
 }
 
 /**

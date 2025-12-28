@@ -56,6 +56,9 @@ sysinfo = "0.32"
 # HTTP client for OAuth token refresh and AI Gateway proxy
 reqwest = { version = "0.12", features = ["json"] }
 
+# Logging
+log = "0.4"
+
 # Base64 encoding/decoding for image data
 base64 = "0.22"
 

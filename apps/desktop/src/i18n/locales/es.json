@@ -22,7 +22,8 @@
     "rename": "Renombrar",
     "apply": "Aplicar",
     "more": "Más",
-    "now": "ahora"
+    "now": "ahora",
+    "back": "Volver"
   },
   "camera": {
     "savedViews": "Vistas Guardadas",
@@ -65,6 +66,8 @@
     "examples": "Ejemplos",
     "workspace": "Espacio de Trabajo",
     "modeller": "Modelador 3D",
+    "nodeEditor": "Editor de Nodos",
+    "fileBrowser": "Explorador de Archivos",
     "mesh": "Malla",
     "cadras": "CADRas",
     "cfd": "CFD",
@@ -1078,7 +1081,12 @@
       "locked": "Bloqueado",
       "lock": "Bloquear",
       "fitViews": "Ajustar",
-      "fitViewsTooltip": "Reposicionar vistas en cuadrícula"
+      "fitViewsTooltip": "Reposicionar vistas en cuadrícula",
+      "selected": "{{name}} seleccionada",
+      "delete": "Eliminar",
+      "currentShape": "Objeto actual",
+      "changeShape": "Cambiar",
+      "selectDifferentShape": "Seleccionar otro objeto..."
     },
     "viewport": {
       "zoomTotal": "Zoom Total",

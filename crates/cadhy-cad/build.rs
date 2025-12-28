@@ -19,6 +19,9 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/include/cadhy/core/types.hpp");
     println!("cargo:rerun-if-changed=cpp/include/cadhy/edit/selection.hpp");
     println!("cargo:rerun-if-changed=cpp/include/cadhy/edit/face_ops.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/edit/topology.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/edit/explode.hpp");
+    println!("cargo:rerun-if-changed=cpp/include/cadhy/ffi/helpers.hpp");
     println!("cargo:rerun-if-changed=cpp/include/cadhy/primitives/primitives.hpp");
     println!("cargo:rerun-if-changed=cpp/include/cadhy/boolean/boolean.hpp");
     println!("cargo:rerun-if-changed=cpp/include/cadhy/modify/modify.hpp");
@@ -33,6 +36,8 @@ fn main() {
     // CADHY modular C++ implementations
     println!("cargo:rerun-if-changed=cpp/src/edit/selection.cpp");
     println!("cargo:rerun-if-changed=cpp/src/edit/face_ops.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/edit/topology.cpp");
+    println!("cargo:rerun-if-changed=cpp/src/edit/explode.cpp");
     println!("cargo:rerun-if-changed=cpp/src/primitives/primitives.cpp");
     println!("cargo:rerun-if-changed=cpp/src/boolean/boolean.cpp");
     println!("cargo:rerun-if-changed=cpp/src/modify/modify.cpp");
@@ -147,6 +152,8 @@ fn main() {
         // CADHY modular C++ implementations
         .file("cpp/src/edit/selection.cpp")
         .file("cpp/src/edit/face_ops.cpp")
+        .file("cpp/src/edit/topology.cpp")
+        .file("cpp/src/edit/explode.cpp")
         .file("cpp/src/primitives/primitives.cpp")
         .file("cpp/src/boolean/boolean.cpp")
         .file("cpp/src/modify/modify.cpp")
